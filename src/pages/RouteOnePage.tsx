@@ -1062,13 +1062,15 @@ const RouteOnePage = () => {
 
       {/* View Skiptrak Job Dialog */}
       <Dialog open={!!viewingSkiptrakJob} onOpenChange={(open) => { if (!open) setViewingSkiptrakJob(null); }}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+        <DialogContent className="max-w-5xl w-[92vw] max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
+          <DialogHeader className="px-5 py-4 border-b border-border pr-12 shrink-0">
+            <DialogTitle className="flex flex-wrap items-center gap-2">
               <Truck className="h-4 w-4" />
               Skiptrak Job Details
+              {viewingSkiptrakJob?.job_number && <Badge variant="secondary">#{viewingSkiptrakJob.job_number}</Badge>}
             </DialogTitle>
           </DialogHeader>
+          <div className="overflow-y-auto flex-1 min-h-0 px-5 py-4">
           {viewingSkiptrakJob && (() => {
             const mt = getSkiptrakJobType(viewingSkiptrakJob.movement_type);
             const colorClass = mt ? jtSolid(mt) : "bg-muted text-foreground";
@@ -1079,7 +1081,7 @@ const RouteOnePage = () => {
                   {viewingSkiptrakJob.site && <p className="text-xs mt-0.5 opacity-90">{viewingSkiptrakJob.site}</p>}
                   <Badge className="mt-2 text-[10px] bg-white/20 border-0">{viewingSkiptrakJob.movement_type || "Unknown"}</Badge>
                 </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 text-sm">
                   <DetailRow label="Job Number" value={viewingSkiptrakJob.job_number} />
                   <DetailRow label="Date" value={viewingSkiptrakJob.job_date || "—"} />
                   <DetailRow label="Customer" value={viewingSkiptrakJob.customer || "—"} />
@@ -1090,49 +1092,58 @@ const RouteOnePage = () => {
                   <DetailRow label="Weight" value={viewingSkiptrakJob.weight_t != null ? `${viewingSkiptrakJob.weight_t}t` : "—"} />
                   <DetailRow label="Tipping Location" value={viewingSkiptrakJob.tipping_location || "—"} />
                 </div>
-                <div className="space-y-1.5">
-                  <p className="text-xs font-medium text-muted-foreground">Re-assign Driver</p>
-                  <Select
-                    value={(viewingSkiptrakJob.driver || "").trim() || "__none__"}
-                    onValueChange={(v) => {
-                      const driverName = v === "__none__" ? null : v;
-                      setViewingSkiptrakJob({ ...viewingSkiptrakJob, driver: driverName });
-                      updateSkiptrakDriver.mutate({ id: viewingSkiptrakJob.id, driverName });
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-muted-foreground">Re-assign Driver</p>
+                    <Select
+                      value={(viewingSkiptrakJob.driver || "").trim() || "__none__"}
+                      onValueChange={(v) => {
+                        const driverName = v === "__none__" ? null : v;
+                        setViewingSkiptrakJob({ ...viewingSkiptrakJob, driver: driverName });
+                        updateSkiptrakDriver.mutate({ id: viewingSkiptrakJob.id, driverName });
+                      }}
+                      disabled={updateSkiptrakDriver.isPending}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select driver" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Unassigned</SelectItem>
+                        {drivers.map((d: any) => (
+                          <SelectItem key={d.id} value={d.driver_name}>{d.driver_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <BespokeRateEditor
+                    jobId={viewingSkiptrakJob.id}
+                    jobNumber={viewingSkiptrakJob.job_number}
+                    value={viewingSkiptrakJob.rebate_rate_per_tonne}
+                    onSaved={(next) => {
+                      setViewingSkiptrakJob({ ...viewingSkiptrakJob, rebate_rate_per_tonne: next });
+                      queryClient.invalidateQueries({ queryKey: ["route-one-skiptrak-jobs"] });
                     }}
-                    disabled={updateSkiptrakDriver.isPending}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select driver" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Unassigned</SelectItem>
-                      {drivers.map((d: any) => (
-                        <SelectItem key={d.id} value={d.driver_name}>{d.driver_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
-                <BespokeRateEditor
-                  jobId={viewingSkiptrakJob.id}
-                  jobNumber={viewingSkiptrakJob.job_number}
-                  value={viewingSkiptrakJob.rebate_rate_per_tonne}
-                  onSaved={(next) => {
-                    setViewingSkiptrakJob({ ...viewingSkiptrakJob, rebate_rate_per_tonne: next });
-                    queryClient.invalidateQueries({ queryKey: ["route-one-skiptrak-jobs"] });
-                  }}
-                />
                 <WtnJobSignatures jobNumber={viewingSkiptrakJob.job_number} />
                 <SkiptrakSiteDetails job={viewingSkiptrakJob} />
                 <JobPodSection jobNumber={viewingSkiptrakJob.job_number} />
-                <DialogFooter>
-                  <Button variant="outline" size="sm" onClick={() => printWtnPdf(skiptrakWtnJob(viewingSkiptrakJob))}><Printer className="h-4 w-4 mr-2" />Print ticket</Button>
-                  <Button variant="outline" size="sm" onClick={() => downloadWtnPdf(skiptrakWtnJob(viewingSkiptrakJob))}><FileDown className="h-4 w-4 mr-2" />Download ticket</Button>
-                  <Button variant="outline" size="sm" disabled={exchangeLoading} onClick={() => startImportedExchange(viewingSkiptrakJob)}><Repeat2 className="h-4 w-4 mr-2" />{exchangeLoading ? "Loading…" : "New exchange"}</Button>
-                  <Button variant="ghost" size="sm" onClick={() => setViewingSkiptrakJob(null)}>Close</Button>
-                </DialogFooter>
               </div>
             );
           })()}
+          </div>
+          {viewingSkiptrakJob && (
+            <DialogFooter className="flex-row flex-wrap sm:justify-between items-center gap-2 p-4 border-t border-border shrink-0 bg-background">
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => printWtnPdf(skiptrakWtnJob(viewingSkiptrakJob))}><Printer className="h-4 w-4 mr-2" />Print ticket</Button>
+                <Button variant="outline" size="sm" onClick={() => downloadWtnPdf(skiptrakWtnJob(viewingSkiptrakJob))}><FileDown className="h-4 w-4 mr-2" />Download ticket</Button>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={exchangeLoading} onClick={() => startImportedExchange(viewingSkiptrakJob)}><Repeat2 className="h-4 w-4 mr-2" />{exchangeLoading ? "Loading…" : "New exchange"}</Button>
+                <Button variant="ghost" size="sm" onClick={() => setViewingSkiptrakJob(null)}>Close</Button>
+              </div>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
 
