@@ -4,38 +4,60 @@ import { parseLoadReportDate } from "@/lib/load-report-dates";
 export interface DaySheetJob { source: string; id: string; number: string; driver: string; vehicle: string; customer: string; address: string; type: string; container: string; waste: string; po: string; notes: string }
 
 export function buildDaySheet(date: string, jobs: DaySheetJob[], notes: Record<string, string> = {}) {
-  const doc = new jsPDF();
+  const doc = new jsPDF({ format: "a4", orientation: "portrait", unit: "mm" });
   const drivers = [...new Set(jobs.map(j => j.driver || "Unassigned"))];
-  let first = true;
-  for (const driver of drivers) {
+  for (const [pageIndex, driver] of drivers.entries()) {
     const assigned = jobs.filter(j => (j.driver || "Unassigned") === driver);
-    for (let offset = 0; offset < assigned.length;) {
-      if (!first) doc.addPage();
-      first = false;
-      doc.setFont("helvetica", "bold"); doc.setFontSize(18); doc.text("WasteOne | Daily job sheet", 12, 18);
-      doc.setFontSize(12); doc.text(driver, 12, 28);
-      doc.setFont("helvetica", "normal"); doc.setFontSize(10);
-      doc.text(`${parseLoadReportDate(date)?.toLocaleDateString("en-GB", { timeZone: "UTC" }) ?? date} | ${assigned.length} jobs | ${[...new Set(assigned.map(j => j.vehicle).filter(Boolean))].join(", ")}`, 12, 36, { maxWidth: 186 });
-      const note = [notes["*"], notes[driver]].filter(n => n?.trim()).join(" | ");
-      let top = 46;
-      if (note && offset === 0) {
-        const noteLines = doc.splitTextToSize(`NOTE: ${note}`, 180).slice(0, 4);
-        doc.setFont("helvetica", "bold"); doc.text(noteLines, 12, 43); doc.setFont("helvetica", "normal");
-        top = 46 + noteLines.length * 4.5;
-      }
-      const perPage = top > 46 ? 3 : 4;
-      assigned.slice(offset, offset + perPage).forEach((job, index) => {
-        const y = top + index * 58;
-        doc.setDrawColor(160); doc.rect(12, y, 186, 54);
-        doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.text(`${offset + index + 1}. Job ${job.number} | ${job.type}`, 16, y + 7, { maxWidth: 175 });
-        doc.setFontSize(10); doc.text(doc.splitTextToSize(job.customer, 172).slice(0, 2), 16, y + 14);
-        doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-        const lines = [job.address, `${job.container} | ${job.waste}`, `PO: ${job.po || "—"} | Vehicle: ${job.vehicle || "—"}`, job.notes ? `Notes: ${job.notes}` : "", "Completed: __________   Weight: __________   Driver initials: ______"];
-        doc.text(lines.filter(Boolean).flatMap(line => doc.splitTextToSize(line, 172)).slice(0, 6), 16, y + 25);
+    if (pageIndex > 0) doc.addPage("a4", "portrait");
+    doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.text("WasteOne | Daily job sheet", 12, 17);
+    doc.setFontSize(11); doc.text(driver, 12, 25, { maxWidth: 186 });
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+    const heading = `${parseLoadReportDate(date)?.toLocaleDateString("en-GB", { timeZone: "UTC" }) ?? date} | ${assigned.length} jobs | ${[...new Set(assigned.map(j => j.vehicle).filter(Boolean))].join(", ")}`;
+    const headingLines: string[] = doc.splitTextToSize(heading, 186);
+    doc.text(headingLines, 12, 32);
+    const top = 35 + headingLines.length * 3.7;
+    const available = 282 - top;
+    const note = [notes["*"], notes[driver]].filter(n => n?.trim()).join(" | ");
+    // Measure every wrapped line before drawing. Busy days reduce type and spacing,
+    // never split a driver onto another page or silently drop addresses/notes.
+    const layout = (fontSize: number) => {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(fontSize);
+      const lineHeight = fontSize * 0.405;
+      const padding = fontSize * 0.18;
+      const noteLines: string[] = note ? doc.splitTextToSize(`NOTE: ${note}`, 180) : [];
+      const rows = assigned.map((job, index) => {
+        const title = `${index + 1}. Job ${job.number} | ${job.type} | ${job.customer}`;
+        doc.setFont("helvetica", "bold");
+        const titleLines: string[] = doc.splitTextToSize(title, 180);
+        doc.setFont("helvetica", "normal");
+        const details = [job.address, `${job.container} | ${job.waste} | PO: ${job.po || "—"} | Vehicle: ${job.vehicle || "—"}`, job.notes ? `Notes: ${job.notes}` : "", "Completed: ________   Weight: ________   Initials: ______"];
+        const detailLines: string[] = details.filter(Boolean).flatMap(text => doc.splitTextToSize(text, 180));
+        return { titleLines, detailLines, height: (titleLines.length + detailLines.length) * lineHeight + padding * 2 };
       });
-      offset += perPage;
-      doc.setFontSize(8); doc.text(`RouteOne dispatch | Page ${doc.getNumberOfPages()}`, 12, 288);
+      const noteHeight = noteLines.length ? noteLines.length * lineHeight + padding * 2 : 0;
+      return { rows, noteLines, noteHeight, lineHeight, padding, height: noteHeight + rows.reduce((sum, row) => sum + row.height, 0) };
+    };
+    let fontSize = 9;
+    let measured = layout(fontSize);
+    while (measured.height > available) {
+      fontSize *= Math.min(0.95, available / measured.height);
+      measured = layout(fontSize);
     }
+    doc.setFontSize(fontSize);
+    let y = top;
+    if (measured.noteLines.length) {
+      doc.text(measured.noteLines, 15, y + measured.padding + measured.lineHeight * 0.8, { lineHeightFactor: 1.148 });
+      y += measured.noteHeight;
+    }
+    doc.setDrawColor(160); doc.setLineWidth(0.15);
+    for (const row of measured.rows) {
+      doc.rect(12, y, 186, row.height);
+      const baseline = y + measured.padding + measured.lineHeight * 0.8;
+      doc.setFont("helvetica", "bold"); doc.text(row.titleLines, 15, baseline, { lineHeightFactor: 1.148 });
+      doc.setFont("helvetica", "normal"); doc.text(row.detailLines, 15, baseline + row.titleLines.length * measured.lineHeight, { lineHeightFactor: 1.148 });
+      y += row.height;
+    }
+    doc.setFontSize(8); doc.text(`RouteOne dispatch | ${driver} | Page ${pageIndex + 1} of ${drivers.length}`, 12, 290, { maxWidth: 186 });
   }
   return doc;
 }
