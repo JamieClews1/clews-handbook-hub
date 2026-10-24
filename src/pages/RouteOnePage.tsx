@@ -74,6 +74,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { JobPriceSummary } from "@/components/route-one/JobPriceSummary";
+import { newExchangeForm } from "@/lib/route-job-exchange";
+import { Save, Repeat2, X } from "lucide-react";
 import { Columns3 } from "lucide-react";
 
 // Columns available in the List view. Each column knows how to read its value
@@ -224,7 +227,9 @@ const RouteOnePage = () => {
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
   const [draggedSkiptrakId, setDraggedSkiptrakId] = useState<string | null>(null);
   const [dragOverDriverId, setDragOverDriverId] = useState<string | null>(null);
-  const [viewingJob, setViewingJob] = useState<any | null>(null);
+  const [workspaceTab, setWorkspaceTab] = useState("booking");
+  const editBaseline = useRef("");
+  const newBaseline = useRef("");
   const [ticketJob, setTicketJob] = useState<any | null>(null);
   const [viewingSkiptrakJob, setViewingSkiptrakJob] = useState<any | null>(null);
   const [reorganiseOpen, setReorganiseOpen] = useState(false);
@@ -293,6 +298,8 @@ const RouteOnePage = () => {
     contamination_query_id: "",
     vat_rate: 20 as any,
   });
+
+  const blankForm = useRef(structuredClone(jobForm));
 
   // Edit form state
   const [editForm, setEditForm] = useState<any>({});
@@ -600,7 +607,7 @@ const RouteOnePage = () => {
   };
 
   const openEditDialog = (job: any) => {
-    setEditForm({
+    const populated = {
       customer_name: job.customer_name || "",
       site_name: job.site_name || "",
       site_address: job.site_address || "",
@@ -639,12 +646,15 @@ const RouteOnePage = () => {
       contamination_charge: job.contamination_charge ?? "",
       contamination_query_id: job.contamination_query_id ?? "",
       vat_rate: job.vat_rate ?? 20,
-    });
+    };
+    setEditForm(populated);
+    editBaseline.current = JSON.stringify(populated);
+    setWorkspaceTab("booking");
     setEditingJob(job);
   };
 
   const resetJobForm = () => {
-    setJobForm({
+    const empty = {
       customer_name: "", site_name: "", site_address: "", site_address_2: "", site_area: "",
       site_postcode: "", sic_code: "", site_contact_name: "", site_contact_phone: "",
       account_code: "", invoice_address: "", directions: "", disposal_site: "",
@@ -656,7 +666,31 @@ const RouteOnePage = () => {
       assigned_driver_id: "",
       haulage_cost: "", charge_per_tonne: "", min_weight_charge: "", weight_included_t: "",
       cost_items: [], contamination_charge: "", contamination_query_id: "", vat_rate: 20,
-    });
+    };
+    setJobForm(empty as typeof jobForm);
+    newBaseline.current = JSON.stringify(empty);
+  };
+
+  const closeEditor = () => {
+    if (JSON.stringify(editForm) !== editBaseline.current && !window.confirm("Discard unsaved changes to this job?")) return;
+    setEditingJob(null);
+  };
+  const closeNewJob = () => {
+    if (JSON.stringify(jobForm) !== newBaseline.current && !window.confirm("Discard this unsaved job?")) return;
+    setNewJobOpen(false);
+  };
+  const startExchange = (job: any) => {
+    if (JSON.stringify(editForm) !== editBaseline.current && !window.confirm("Discard unsaved changes and create an exchange from the saved job?")) return;
+    const fresh = newExchangeForm(blankForm.current, job, dateStr);
+    setJobForm(fresh);
+    newBaseline.current = JSON.stringify(fresh);
+    setEditingJob(null);
+    setNewJobOpen(true);
+  };
+  const printSavedJob = () => {
+    if (!editingJob) return;
+    if (JSON.stringify(editForm) !== editBaseline.current) { toast({ title: "Save your changes before printing", description: "The printed ticket uses the saved job details." }); return; }
+    printWtnPdf({ ...editingJob, driver_name: drivers.find(d => d.id === editingJob.assigned_driver_id)?.driver_name });
   };
 
 
@@ -853,19 +887,22 @@ const RouteOnePage = () => {
 
           {/* Actions */}
           <div className="flex items-center gap-2 shrink-0 ml-auto order-2">
-          <Dialog open={newJobOpen} onOpenChange={(open) => { setNewJobOpen(open); if (open) resetJobForm(); }}>
+          <Dialog open={newJobOpen} onOpenChange={(open) => { if (open) { resetJobForm(); setNewJobOpen(true); } else closeNewJob(); }}>
             <DialogTrigger asChild>
               <Button size="sm" className="h-9 px-4 text-sm font-semibold gap-1.5 shadow-sm">
                 <Plus className="h-3.5 w-3.5" />
                 New Job
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Create Job</DialogTitle>
+            <DialogContent className="max-w-6xl w-[95vw] h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
+              <DialogHeader className="px-5 py-4 border-b border-border pr-12 shrink-0">
+                <DialogTitle>{jobForm.job_type === "exchange" ? "New exchange" : "New job"}</DialogTitle>
+                <p className="text-sm text-muted-foreground break-words">{[jobForm.customer_name, jobForm.site_name].filter(Boolean).join(" · ") || "New booking"}</p>
               </DialogHeader>
-              <JobFormFields form={jobForm} setForm={setJobForm} drivers={drivers} />
-              <DialogFooter className="gap-2 sm:gap-2">
+              <JobPriceSummary form={jobForm} />
+              <div className="overflow-y-auto flex-1 min-h-0 px-5 py-3"><JobFormFields form={jobForm} setForm={setJobForm} drivers={drivers} /></div>
+              <DialogFooter className="gap-2 sm:gap-2 p-4 border-t border-border shrink-0 bg-background">
+                <Button variant="ghost" onClick={closeNewJob}><X className="h-4 w-4 mr-2" />Cancel</Button>
                 <Button variant="outline" onClick={() => createJob.mutate({ form: jobForm, send: false })} disabled={!jobForm.customer_name || createJob.isPending} className="sm:flex-1">
                   Save as draft
                 </Button>
@@ -965,147 +1002,28 @@ const RouteOnePage = () => {
         </div>
       </div>
 
-      {/* Edit Job Dialog */}
-      <Dialog open={!!editingJob} onOpenChange={(open) => { if (!open) setEditingJob(null); }}>
-        <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pencil className="h-4 w-4" />
-              Edit Job
-            </DialogTitle>
+      {/* One native-job workspace from both list and schedule. */}
+      <Dialog open={!!editingJob} onOpenChange={open => { if (!open) closeEditor(); }}>
+        <DialogContent className="max-w-6xl w-[95vw] h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
+          <DialogHeader className="px-5 py-4 border-b border-border pr-12 shrink-0">
+            <DialogTitle className="flex flex-wrap items-center gap-2">Job #{editingJob?.job_number}<Badge variant="secondary">{editingJob?.status?.replace(/_/g, " ")}</Badge><Badge variant="outline">{editingJob?.is_live ? "Sent" : "Draft"}</Badge></DialogTitle>
+            <p className="text-sm font-medium break-words">{[editForm.customer_name, editForm.site_name].filter(Boolean).join(" · ")}</p>
           </DialogHeader>
-          <JobFormFields form={editForm} setForm={setEditForm} drivers={drivers} />
-          <div className="flex items-center gap-2 mt-2">
-            <Select value={editingJob?.status || "assigned"} onValueChange={(v) => setEditForm({ ...editForm, _status: v })}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                <SelectItem value="assigned">Assigned</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="query">Query</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="flex-1" />
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => {
-                if (editingJob) {
-                  deleteJob.mutate(editingJob.id);
-                  setEditingJob(null);
-                }
-              }}
-            >
-              Delete
-            </Button>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingJob(null)}>Cancel</Button>
-            <Button onClick={saveEditedJob} disabled={!editForm.customer_name || updateJob.isPending}>
-              {updateJob.isPending ? "Saving..." : "Save Changes"}
-            </Button>
+          <JobPriceSummary form={editForm} />
+          <Tabs value={workspaceTab} onValueChange={setWorkspaceTab} className="flex-1 min-h-0 flex flex-col">
+            <TabsList className="mx-5 mt-3 self-start shrink-0"><TabsTrigger value="booking">Job booking</TabsTrigger><TabsTrigger value="paperwork">Photos & paperwork</TabsTrigger></TabsList>
+            <div className="overflow-y-auto flex-1 min-h-0 px-5 py-3">
+              <TabsContent value="booking" className="mt-0"><JobFormFields form={editForm} setForm={setEditForm} drivers={drivers} allowPrevious={false} /></TabsContent>
+              <TabsContent value="paperwork" className="space-y-4 mt-0">
+                {editingJob && <><WtnJobSignatures jobNumber={editingJob.job_number} /><JobPhotosSection jobId={editingJob.id} /><JobPodSection jobNumber={editingJob.job_number} />
+                <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => downloadWtnPdf(editingJob)}><FileDown className="h-4 w-4 mr-2" />Download WTN</Button><Button variant="outline" size="sm" onClick={() => setTicketJob(editingJob)}><Send className="h-4 w-4 mr-2" />Send ticket</Button></div></>}
+              </TabsContent>
+            </div>
+          </Tabs>
+          <DialogFooter className="flex-row flex-wrap sm:justify-between items-center gap-2 p-4 border-t border-border shrink-0 bg-background">
+            <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={printSavedJob}><Printer className="h-4 w-4 mr-2" />Print ticket</Button><Button variant="outline" onClick={() => editingJob && startExchange(editingJob)} disabled={updateJob.isPending}><Repeat2 className="h-4 w-4 mr-2" />New exchange</Button></div>
+            <div className="flex gap-2"><Button variant="ghost" onClick={closeEditor} disabled={updateJob.isPending}><X className="h-4 w-4 mr-2" />Cancel</Button><Button onClick={saveEditedJob} disabled={!editForm.customer_name || updateJob.isPending}><Save className="h-4 w-4 mr-2" />{updateJob.isPending ? "Saving…" : "Save"}</Button></div>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* View Native Job Dialog (read-only) */}
-      <Dialog open={!!viewingJob} onOpenChange={(open) => { if (!open) setViewingJob(null); }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Truck className="h-4 w-4" />
-              Job Details
-            </DialogTitle>
-          </DialogHeader>
-          {viewingJob && (() => {
-            const jt = viewingJob.job_type as JobType;
-            return (
-              <div className="space-y-4">
-                <div className={`rounded-lg p-3 ${jtSolid(jt)}`}>
-                  <p className="text-sm font-bold">{viewingJob.customer_name}</p>
-                  {viewingJob.site_name && <p className="text-xs mt-0.5 opacity-90">{viewingJob.site_name}</p>}
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <DetailRow label="Job Type" value={jtLabel(jt)} />
-                  <DetailRow label="Status" value={viewingJob.status} />
-                  <DetailRow label="Date" value={viewingJob.scheduled_date} />
-                  <DetailRow label="Duration" value={viewingJob.estimated_duration_mins ? `${viewingJob.estimated_duration_mins} min` : "—"} />
-                  <DetailRow label="Container" value={viewingJob.container_type || "—"} />
-                  <DetailRow label="Size" value={viewingJob.container_size || "—"} />
-                  <DetailRow label="Waste Type" value={viewingJob.waste_type || "—"} />
-                  <DetailRow label="EWC" value={viewingJob.ewc_code || "—"} />
-                  <DetailRow label="Hazardous / POPs" value={[viewingJob.waste_classification?.hazardous && "Hazardous", viewingJob.waste_classification?.contains_pops && "POPs"].filter(Boolean).join(" · ") || "—"} />
-                  <DetailRow label="PO Number" value={viewingJob.po_number || "—"} />
-                  <DetailRow label="Account" value={viewingJob.account_code || "—"} />
-                  <DetailRow label="Vehicle Reg" value={viewingJob.vehicle_reg || "—"} />
-                  <DetailRow label="SIC Code" value={viewingJob.sic_code || "—"} />
-                  <DetailRow label="Site Contact" value={viewingJob.site_contact_name || "—"} />
-                  <DetailRow label="Contact Phone" value={viewingJob.site_contact_phone || "—"} />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Full Address</p>
-                  <p className="text-sm bg-muted/50 rounded p-2 whitespace-pre-line">
-                    {[
-                      viewingJob.site_name,
-                      viewingJob.site_address,
-                      viewingJob.site_address_2,
-                      viewingJob.site_area,
-                      viewingJob.site_postcode,
-                    ]
-                      .filter(Boolean)
-                      .join("\n") || "—"}
-                  </p>
-                </div>
-                {viewingJob.notes && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1">Notes</p>
-                    <p className="text-sm bg-muted/50 rounded p-2">{viewingJob.notes}</p>
-                  </div>
-                )}
-                {(viewingJob.customer_signature || viewingJob.driver_signature) && (
-                  <div className="grid grid-cols-2 gap-3">
-                    {viewingJob.customer_signature && (
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-1">
-                          Customer{viewingJob.customer_signoff_name ? ` — ${viewingJob.customer_signoff_name}` : ""}
-                        </p>
-                        <img src={viewingJob.customer_signature} alt="Customer signature" className="h-14 w-full rounded border bg-white object-contain" />
-                      </div>
-                    )}
-                    {viewingJob.driver_signature && (
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-1">
-                          Driver{viewingJob.driver_signoff_name ? ` — ${viewingJob.driver_signoff_name}` : ""}
-                        </p>
-                        <img src={viewingJob.driver_signature} alt="Driver signature" className="h-14 w-full rounded border bg-white object-contain" />
-                      </div>
-                    )}
-                  </div>
-                )}
-                <WtnJobSignatures jobNumber={viewingJob.job_number} />
-                <JobPhotosSection jobId={viewingJob.id} />
-                <JobPodSection jobNumber={viewingJob.job_number} />
-                <DialogFooter className="gap-2 sm:gap-2">
-                  <Button variant="outline" size="sm" onClick={() => printWtnPdf(viewingJob)}>
-                    <Printer className="h-3 w-3 mr-1.5" /> Print WTN
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => downloadWtnPdf(viewingJob)}>
-                    <FileDown className="h-3 w-3 mr-1.5" /> Download WTN
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => { const j = viewingJob; setViewingJob(null); setTicketJob(j); }}>
-                    <Send className="h-3 w-3 mr-1.5" /> Print / Send ticket
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => { setViewingJob(null); openEditDialog(viewingJob); }}>
-                    <Pencil className="h-3 w-3 mr-1.5" /> Edit Job
-                  </Button>
-                </DialogFooter>
-              </div>
-            );
-          })()}
         </DialogContent>
       </Dialog>
 
@@ -1260,7 +1178,7 @@ const RouteOnePage = () => {
                       className={`cursor-pointer hover:bg-muted/50 ${
                         status === "completed" && jt ? `border-l-4 ${jtAccent(jt)?.replace("bg-", "border-") ?? "border-muted"}` : ""
                       }`}
-                      onClick={() => setViewingJob(job)}
+                      onClick={() => openEditDialog(job)}
                     >
                       {activeColumns.map((col) => (
                         <TableCell key={col.key} className="text-sm">
@@ -1387,7 +1305,7 @@ const RouteOnePage = () => {
                   job={job}
                   permit={permitsByJob[job.id]}
                   onEdit={() => openEditDialog(job)}
-                  onView={() => setViewingJob(job)}
+                  onView={() => openEditDialog(job)}
                   onDelete={() => deleteJob.mutate(job.id)}
                   onStatusChange={(status) => updateJob.mutate({ id: job.id, updates: { status } })}
                   onSendTicket={() => setTicketJob(job)}
@@ -1454,7 +1372,7 @@ const RouteOnePage = () => {
                       job={job}
                       permit={permitsByJob[job.id]}
                       onEdit={() => openEditDialog(job)}
-                      onView={() => setViewingJob(job)}
+                      onView={() => openEditDialog(job)}
                       onDelete={() => deleteJob.mutate(job.id)}
                       onStatusChange={(status) => updateJob.mutate({ id: job.id, updates: { status } })}
                       onSendTicket={() => setTicketJob(job)}

@@ -17,6 +17,7 @@ import { useJobTypes } from "./jobTypes";
 
 import { JobPricingPicker } from "./JobPricingPicker";
 import { EwcCodePicker, SicCodePicker } from "@/components/codes/CodePicker";
+import { EstablishedSitePicker } from "./EstablishedSitePicker";
 import { WasteOutSkipPanel } from "./WasteOutSkipPanel";
 import { WasteClassificationFields, asClassification } from "@/components/dwt/WasteClassificationFields";
 
@@ -158,10 +159,12 @@ export function JobFormFields({
   form,
   setForm,
   drivers,
+  allowPrevious = true,
 }: {
   form: any;
   setForm: (f: any) => void;
   drivers: any[];
+  allowPrevious?: boolean;
 }) {
   const [bookingTab, setBookingTab] = useState("booking");
   const [siteLoadError, setSiteLoadError] = useState("");
@@ -456,15 +459,15 @@ export function JobFormFields({
           <TabsTrigger value="site">Site details</TabsTrigger>
           <TabsTrigger value="costs">Business costs</TabsTrigger>
         </TabsList>
-      <TabsContent value="booking" className="space-y-4">
+      <TabsContent value="booking" className="grid gap-5 lg:grid-cols-2">
       {/* Customer & site */}
-      <div className="rounded-lg border border-border p-3 space-y-3">
+      <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Customer &amp; Site</h4>
-          <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={loadPreviousJobs}>
+          {allowPrevious && <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={loadPreviousJobs}>
             <History className="h-3.5 w-3.5" />
             Use previous job / exchange
-          </Button>
+          </Button>}
         </div>
 
         {/* Postcode-first lookup — start the call here */}
@@ -561,28 +564,7 @@ export function JobFormFields({
                 placeholder={siteLoading ? "Loading established sites…" : setupSites.length === 0 ? "No established sites — type site name" : "Site name"}
               />
             ) : (
-              <Select
-                value={form.site_name || ""}
-                onValueChange={(v) => {
-                  if (v === "__new_site__") { startNewSite(); return; }
-                  const selected = setupSites.find((site) => site.name === v);
-                  if (selected) setForm(applyBookingSite(form, selected));
-                }}
-              >
-                <SelectTrigger aria-label="Established site"><SelectValue placeholder={`Select from ${setupSites.length} established sites...`} /></SelectTrigger>
-                <SelectContent className="max-h-64">
-                  <SelectItem value="__new_site__">
-                    <span className="text-primary font-medium">+ New site</span>
-                  </SelectItem>
-                  {setupSites.map((s) => (
-                    <SelectItem key={s.name} value={s.name}>
-                      <span className="block">{s.name}</span>
-                      {s.address && <span className="block text-xs text-muted-foreground">{s.address.replace(/\n/g, ", ")}</span>}
-                      {s.postcode && <span className="ml-2 text-muted-foreground">{s.postcode}</span>}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <EstablishedSitePicker sites={setupSites} value={form.site_name || ""} onSelect={site => setForm(applyBookingSite(form, site))} onNew={startNewSite} />
             )}
 
           </div>
@@ -592,8 +574,80 @@ export function JobFormFields({
           <p className="text-sm whitespace-pre-line">{[form.site_address, form.site_address_2, form.site_postcode].filter(Boolean).join("\n") || "Site address not recorded"}</p>
           <Button type="button" variant="outline" size="sm" onClick={() => setBookingTab("site")}>Full site details</Button>
         </div>
+        </section>
+      {/* Job details */}
+      <section className="space-y-3">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Job Details</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div>
+            <Label className="text-xs">Job Type *</Label>
+            <Select value={form.job_type} onValueChange={(v) => setForm({ ...form, job_type: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {jobTypes.map((t) => (
+                  <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>
+                ))}
+                {form.job_type && !jobTypes.some((t) => t.key === form.job_type) && (
+                  <SelectItem value={form.job_type}>
+                    {JOB_TYPE_LABELS[form.job_type] ?? form.job_type}
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Container Type</Label>
+            <Select value={form.container_type || ""} onValueChange={(v) => setForm({ ...form, container_type: v })}>
+              <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+              <SelectContent className="max-h-64">
+                {containerTypes.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+                {form.container_type && !containerTypes.includes(form.container_type) && (
+                  <SelectItem value={form.container_type}>{form.container_type}</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Container Size</Label>
+            <Input value={form.container_size || ""} onChange={(e) => setForm({ ...form, container_size: e.target.value })} placeholder="e.g. 8yd, 20yd" />
+          </div>
+          <div>
+            <Label className="text-xs">Waste Type</Label>
+            <Input value={form.waste_type || ""} onChange={(e) => setForm({ ...form, waste_type: e.target.value })} placeholder="e.g. Mixed Waste" />
+          </div>
+          <div>
+            <Label className="text-xs">Date</Label>
+            <Input type="date" value={form.scheduled_date || ""} onChange={(e) => setForm({ ...form, scheduled_date: e.target.value })} />
+          </div>
+          <div>
+            <Label className="text-xs">PO Number</Label>
+            <Input value={form.po_number || ""} onChange={(e) => setForm({ ...form, po_number: e.target.value })} />
+          </div>
+          <div className="col-span-2">
+            <Label className="text-xs">Assign Driver</Label>
+            <Select
+              value={form.assigned_driver_id || "unassigned"}
+              onValueChange={(v) => setForm({ ...form, assigned_driver_id: v === "unassigned" ? "" : v })}
+            >
+              <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                {drivers.map((d: any) => (
+                  <SelectItem key={d.id} value={d.id}>{d.driver_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        </TabsContent>
+        <div>
+          <Label className="text-xs">Notes</Label>
+          <Textarea value={form.notes || ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
+        </div>
+      </section>
+
+      </TabsContent>
         <TabsContent value="site" className="space-y-3">
         <h4 className="font-semibold">{form.customer_name || "Customer"} — {form.site_name || "Site details"}</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -682,78 +736,6 @@ export function JobFormFields({
 
       </TabsContent>
       <TabsContent value="booking" className="space-y-4">
-      {/* Job details */}
-      <div className="rounded-lg border border-border p-3 space-y-3">
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Job Details</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div>
-            <Label className="text-xs">Job Type *</Label>
-            <Select value={form.job_type} onValueChange={(v) => setForm({ ...form, job_type: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {jobTypes.map((t) => (
-                  <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>
-                ))}
-                {form.job_type && !jobTypes.some((t) => t.key === form.job_type) && (
-                  <SelectItem value={form.job_type}>
-                    {JOB_TYPE_LABELS[form.job_type] ?? form.job_type}
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs">Container Type</Label>
-            <Select value={form.container_type || ""} onValueChange={(v) => setForm({ ...form, container_type: v })}>
-              <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-              <SelectContent className="max-h-64">
-                {containerTypes.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-                {form.container_type && !containerTypes.includes(form.container_type) && (
-                  <SelectItem value={form.container_type}>{form.container_type}</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs">Container Size</Label>
-            <Input value={form.container_size || ""} onChange={(e) => setForm({ ...form, container_size: e.target.value })} placeholder="e.g. 8yd, 20yd" />
-          </div>
-          <div>
-            <Label className="text-xs">Waste Type</Label>
-            <Input value={form.waste_type || ""} onChange={(e) => setForm({ ...form, waste_type: e.target.value })} placeholder="e.g. Mixed Waste" />
-          </div>
-          <div>
-            <Label className="text-xs">Date</Label>
-            <Input type="date" value={form.scheduled_date || ""} onChange={(e) => setForm({ ...form, scheduled_date: e.target.value })} />
-          </div>
-          <div>
-            <Label className="text-xs">PO Number</Label>
-            <Input value={form.po_number || ""} onChange={(e) => setForm({ ...form, po_number: e.target.value })} />
-          </div>
-          <div className="col-span-2">
-            <Label className="text-xs">Assign Driver</Label>
-            <Select
-              value={form.assigned_driver_id || "unassigned"}
-              onValueChange={(v) => setForm({ ...form, assigned_driver_id: v === "unassigned" ? "" : v })}
-            >
-              <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {drivers.map((d: any) => (
-                  <SelectItem key={d.id} value={d.id}>{d.driver_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <div>
-          <Label className="text-xs">Notes</Label>
-          <Textarea value={form.notes || ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
-        </div>
-      </div>
-
       {form.job_type === "waste_out_skip" && <WasteOutSkipPanel form={form} setForm={setForm} />}
 
       <section className="space-y-3 border-t border-border pt-4">
@@ -836,7 +818,7 @@ export function JobFormFields({
 
       {/* Costs */}
 
-      <div className="rounded-lg border border-border p-3 space-y-3">
+      <section className="space-y-3">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Customer pricing</h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div>
@@ -877,7 +859,7 @@ export function JobFormFields({
             <span>Total inc VAT</span><span>{money(totals.gross)}</span>
           </div>
         </div>
-      </div>
+      </section>
 
       </TabsContent>
       <TabsContent value="costs" className="space-y-3">
