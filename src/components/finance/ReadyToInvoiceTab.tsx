@@ -104,3 +104,20 @@ export default function ReadyToInvoiceTab() {
     </div>
   );
 }
+
+/** One-click "Create invoice" from a RouteOne job or WeighOne ticket screen. */
+export async function invoiceFromSource(src: { jobId?: string; transactionId?: string }) {
+  try {
+    const [item] = await fetchReadyToInvoice(src);
+    if (!item) {
+      toast.error(src.jobId ? "Not ready to invoice — the job must be completed and not already invoiced." : "Not ready to invoice — already invoiced, paid on the day, or linked to a RouteOne job (invoice the job instead).");
+      return;
+    }
+    const hard = item.blockers.filter(b => b !== NO_PRICE);
+    if (hard.length) { toast.error("Can't invoice yet", { description: hard.join(" · ") }); return; }
+    await createInvoiceInteractive(item);
+    toast.success(`Draft invoice created for ${item.reference}`, { description: "Review and send it in Finance → Invoices." });
+  } catch (e: any) {
+    toast.error(e.message ?? "Could not create the invoice");
+  }
+}
