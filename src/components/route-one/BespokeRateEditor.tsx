@@ -53,7 +53,7 @@ export function BespokeRateEditor({ jobId, jobNumber, value, onSaved }: Props) {
           placeholder="Use configured rate"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          className="h-8 max-w-[160px]"
+          className="h-8 flex-1 min-w-0"
         />
         <Button
           size="sm"
