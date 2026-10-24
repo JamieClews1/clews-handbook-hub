@@ -176,6 +176,7 @@ const DriverLogin = ({ onLogin }: { onLogin: (user: AppUser) => void }) => {
         body: { action: "login", username: username.trim(), pin },
       });
 
+      if (authData?.token) driverPass.set(authData.token);
       if (!authData?.user) {
         setError("Invalid username or PIN");
         setLoading(false);
@@ -1354,7 +1355,7 @@ const DriverDashboard = ({
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["driver-jobs", driver.id, today],
     queryFn: async () => {
-      const { jobs } = await driverAction("list_jobs", { driver_id: driver.id, date: today });
+      const { jobs } = await driverAction("list_jobs", { date: today });
       return (jobs || []) as Job[];
     },
     refetchInterval: 30000,
@@ -1365,7 +1366,7 @@ const DriverDashboard = ({
     queryKey: ["driver-skiptrak-jobs", driver.driver_name, today],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("driver-jobs", {
-        body: { driverName: driver.driver_name, date: today },
+        body: { token: driverPass.get(), date: today },
       });
       if (error) throw error;
       return (data?.jobs ?? []) as any[];
@@ -1627,9 +1628,10 @@ const DriverAppPage = () => {
           .catch(() => localStorage.removeItem("driver_session"));
       } else if (src === "profile") {
         supabase.functions
-          .invoke("driver-auth", { body: { action: "restore", id } })
+          .invoke("driver-auth", { body: { action: "restore", token: driverPass.get() } })
           .then(({ data }) => {
             const u = data?.user;
+            if (data?.token) driverPass.set(data.token);
             if (u) {
               const profileDriver: Driver = {
                 id: u.id,
@@ -1645,7 +1647,7 @@ const DriverAppPage = () => {
             }
           });
       } else {
-        driverAction("driver_restore", { id })
+        driverAction("driver_restore")
           .then(({ driver: data }) => {
             if (data)
               setUser({ id: data.id, name: data.driver_name, role: "driver", driver: data as Driver });
@@ -1660,6 +1662,7 @@ const DriverAppPage = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("driver_session");
+    driverPass.clear();
     setUser(null);
   };
 
