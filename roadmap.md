@@ -1,15 +1,15 @@
 # Roadmap
 ## RouteOne + WeighOne go-live (plan approved 24 Oct)
-- [ ] 1. Driver app security: signed driver pass, job ownership checks, no PINs returned, exact imported-driver matching
-- [ ] 2. Save & send to driver + Draft/Sent badges
-- [ ] 3. WeighOne RouteOne arrival picker (today ±2 days) with prefill and booked rate
-- [ ] 4. Several weigh tickets per job; separate Weighed state
-- [ ] 5. Second-weigh validation (missing / negative net)
-- [ ] 6. Ready to invoice list in Finance
-- [ ] 7. Create invoice from job (atomic, no duplicates, kg→t, first tonne included, extras, zero-price reason)
-- [ ] 8. Create invoice buttons on RouteOne job and WeighOne ticket
-- [ ] 9. Cash/card priced ticket; paid time preserved
-- [ ] 10. End-to-end test with real booking
+- [x] 1. Driver app security: signed driver pass, job ownership checks, no PINs returned, exact imported-driver matching
+- [x] 2. Save & send to driver + Draft/Sent badges
+- [x] 3. WeighOne RouteOne arrival picker (today ±2 days) with prefill and booked rate
+- [x] 4. Several weigh tickets per job; separate Weighed state
+- [x] 5. Second-weigh validation (missing / negative net)
+- [x] 6. Ready to invoice list in Finance
+- [x] 7. Create invoice from job (atomic, no duplicates, kg→t, first tonne included, extras, zero-price reason)
+- [x] 8. Create invoice buttons on RouteOne job and WeighOne ticket
+- [x] 9. Cash/card priced ticket; paid time preserved
+- [ ] 10. End-to-end test with a real booking (blocked: needs a real job booked, driven and weighed by your team)
 - [x] Repair customer reset email requests and add public recovery page; request API returns 200, invalid links rejected, six tests pass, preview build clean, create-user deployed.
 - [ ] Verify delivery and password saving from a real customer reset email (blocked: customer inbox/link unavailable; customer-facing page changes need publishing).
 - [x] Limit the P&L access list to active office staff; Jamie-only management and existing grants retained. Five authenticated tests pass and Jamie’s settings list verified.
