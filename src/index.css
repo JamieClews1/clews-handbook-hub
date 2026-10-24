@@ -218,3 +218,96 @@
     border: 1px solid hsl(var(--border) / 0.5);
   }
 }
+
+/* RouteOne Day scheduler: scoped semantic tokens, leaving other views unchanged. */
+@layer components {
+  .routeone-day {
+    --board-page: 240.00 11.11% 96.47%;
+    --board-panel: 0.00 0.00% 100.00%;
+    --board-column: 240.00 9.09% 93.53%;
+    --board-text: 240.00 3.33% 11.76%;
+    --board-detail: 240.00 1.82% 32.35%;
+    --board-avatar: 217.50 75.00% 93.73%;
+    --board-avatar-text: 218.90 66.82% 42.55%;
+    --board-track: 240.00 6.85% 85.69%;
+    --board-available: 152.38 67.02% 36.86%;
+    --board-busy: 43.12 100.00% 43.92%;
+    --board-over: 358.09 75.12% 59.02%;
+    --board-tabs: 240.00 6.25% 93.73%;
+    background: hsl(var(--board-page)); color: hsl(var(--board-text)); font-family: system-ui, sans-serif;
+    --board-shadow: 0 2px 6px hsl(0 0% 0% / .08);
+    --board-drag-shadow: 0 8px 20px hsl(0 0% 0% / .18);
+  }
+  [data-job-palette="collect"] {
+    /* Slightly deepen the supplied Collect orange so 11px white text meets AA. */
+    --job-tag: 13.82 74.17% 47.06%;
+    --job-tag-text: 0.00 0.00% 100.00%;
+    --job-tint: 17.50 80.00% 94.12%;
+    --job-border: 16.71 75.24% 79.41%;
+    --job-accent: 12.00 75.54% 27.25%;
+  }
+  [data-job-palette="exchange"] {
+    --job-tag: 39.12 87.44% 59.41%;
+    --job-tag-text: 41.31 100.00% 11.96%;
+    --job-tint: 43.33 94.74% 92.55%;
+    --job-border: 42.78 78.26% 72.94%;
+    --job-accent: 41.50 100.00% 20.98%;
+  }
+  [data-job-palette="delivery"] {
+    --job-tag: 251.90 55.76% 57.45%;
+    --job-tag-text: 0.00 0.00% 100.00%;
+    --job-tint: 254.12 73.91% 95.49%;
+    --job-border: 252.22 69.23% 84.71%;
+    --job-accent: 250.97 52.54% 34.71%;
+  }
+  [data-job-palette="waste"] {
+    --job-tag: 213.49 70.49% 47.84%;
+    --job-tag-text: 0.00 0.00% 100.00%;
+    --job-tint: 211.30 79.31% 94.31%;
+    --job-border: 213.70 73.74% 80.59%;
+    --job-accent: 211.89 83.46% 26.08%;
+  }
+  [data-job-palette="other"] {
+    --job-tag: 215.29 19.32% 34.51%;
+    --job-tag-text: 0.00 0.00% 100.00%;
+    --job-tint: 214.29 24.14% 94.31%;
+    --job-border: 213.75 15.69% 80.00%;
+    --job-accent: 215.29 25.00% 26.67%;
+  }
+  .routeone-tinted-job { background: hsl(var(--job-tint)); border: 1px solid hsl(var(--job-border)); border-radius: 12px; padding: 11px 12px; display: flex; flex-direction: column; gap: 4px; cursor: grab; position: relative; transition: border-color .15s, transform .15s, box-shadow .15s; }
+  .routeone-tinted-job[data-unconfirmed="true"] { border: 1.5px dashed hsl(var(--job-accent)); }
+  .routeone-tinted-job:hover { border-color: hsl(var(--job-tag)); transform: translateY(-1px); box-shadow: var(--board-shadow); }
+  .routeone-tinted-job[data-dragging="true"] { opacity: 1; box-shadow: var(--board-drag-shadow); }
+  .routeone-tinted-job:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+  .routeone-job-tag { background: hsl(var(--job-tag)); color: hsl(var(--job-tag-text)); font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+  .routeone-job-customer { color: hsl(var(--board-text)); }
+  .routeone-job-detail { color: hsl(var(--board-detail)); }
+  .routeone-job-accent { color: hsl(var(--job-accent)); }
+  .routeone-job-divider { height: 1px; background: hsl(var(--job-border)); margin: 3px 0; }
+  .routeone-day .routeone-driver-column { background: hsl(var(--board-column)); border-radius: 14px; padding: 10px; width: max(220px, calc((100cqw - 260px) / 6)); }
+  .routeone-driver-header { position: sticky; top: 0; z-index: 10; background: hsl(var(--board-column)); padding-bottom: 10px; }
+  .routeone-driver-avatar { width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; background: hsl(var(--board-avatar)); color: hsl(var(--board-avatar-text)); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+  .routeone-capacity { height: 4px; border-radius: 2px; background: hsl(var(--board-track)); overflow: hidden; margin-top: 10px; }
+  .routeone-capacity-fill { height: 100%; width: var(--capacity); background: hsl(var(--board-available)); }
+  .routeone-capacity-fill[data-tone="busy"] { background: hsl(var(--board-busy)); }
+  .routeone-capacity-fill[data-tone="over"] { background: hsl(var(--board-over)); }
+  .routeone-room { border: 1px dashed hsl(var(--board-track)); border-radius: 8px; padding: 16px 4px; text-align: center; color: hsl(var(--board-detail)); font-size: 11px; }
+  .routeone-unassigned { background: hsl(var(--board-panel)); border: 1px solid hsl(var(--board-track)); border-radius: 14px; width: 190px; flex-shrink: 0; padding: 10px; }
+  .routeone-day .routeone-view-tabs { background: hsl(var(--board-tabs)); }
+  .routeone-day .routeone-view-tabs [data-state="active"] { background: hsl(var(--board-panel)); color: hsl(var(--board-text)); box-shadow: var(--board-shadow); }
+  .routeone-day .routeone-new-job { background: hsl(var(--board-available)); color: hsl(var(--board-panel)); }
+  .routeone-summary { background: hsl(var(--board-panel)); color: hsl(var(--board-detail)); }
+  .routeone-key-dot { background: hsl(var(--job-tag)); width: 7px; height: 7px; border-radius: 50%; }
+  .routeone-empty-tick { color: hsl(var(--board-available)); }
+  @media (prefers-reduced-motion: reduce) { .routeone-tinted-job { transition: none; } .routeone-tinted-job:hover { transform: none; } }
+}
+
+@layer components {
+  .routeone-day > div:first-child { flex-wrap: wrap; overflow: visible; gap: 8px; }
+  .routeone-day > div:first-child > div:nth-child(2) { min-width: 0; flex-wrap: wrap; gap: 6px; }
+  .routeone-day .routeone-toolbar-actions { gap: 4px; }
+  .routeone-day .routeone-toolbar-actions > [data-state] { order: 5; }
+  .routeone-day .routeone-toolbar-actions > [data-state].routeone-new-job { order: 10; }
+}
+
+@layer components { .routeone-day > .routeone-driver-viewport { scroll-snap-type: none; } }

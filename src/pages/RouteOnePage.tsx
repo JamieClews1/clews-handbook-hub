@@ -80,6 +80,9 @@ import { importedBookingPrices } from "@/lib/route-booking-pricing";
 import { loadExchangeBookingDate } from "@/lib/load-exchange-booking-date";
 import { importedSiteDetails } from "@/lib/route-booking-sites";
 import { Save, Repeat2, X } from "lucide-react";
+import { TintedJobCard } from "@/components/route-one/TintedJobCard";
+import { boardCapacity, boardRegistration, boardUnconfirmed } from "@/lib/route-board-presentation";
+import { Search } from "lucide-react";
 import { Columns3 } from "lucide-react";
 
 // Columns available in the List view. Each column knows how to read its value
@@ -213,7 +216,10 @@ const costFields = (form: any) => {
 const RouteOnePage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [boardSearchOpen, setBoardSearchOpen] = useState(false);
+  const [printDayOpen, setPrintDayOpen] = useState(false);
+  const [finaliseDayOpen, setFinaliseDayOpen] = useState(false);
   // Loads configured job types into the shared registry used by jtLabel/jtSolid.
   useJobTypes();
   const [fullScreen, setFullScreen] = useState(false);
@@ -854,7 +860,7 @@ const RouteOnePage = () => {
   const queryJobs = jobs.filter((j: any) => j.status === "query").length;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem)]">
+    <div className={`flex flex-col h-[calc(100vh-3.5rem)] ${viewMode === "day" ? "routeone-day" : ""}`}>
       {/* Header Bar */}
       <div className="px-4 py-2 border-b border-border bg-card flex items-center gap-3 shrink-0 overflow-x-auto">
         <div className="flex items-center gap-2 shrink-0">
@@ -869,34 +875,36 @@ const RouteOnePage = () => {
         <div className="flex items-center gap-2 min-w-max flex-1">
           {/* View toggle */}
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as typeof viewMode)}>
-            <TabsList className="h-8 shrink-0">
+            <TabsList className="routeone-view-tabs h-8 shrink-0">
               <TabsTrigger value="day" className="text-xs px-3 h-7">Day</TabsTrigger>
               <TabsTrigger value="week" className="text-xs px-3 h-7">Week</TabsTrigger>
               <TabsTrigger value="list" className="text-xs px-3 h-7"><List className="h-3 w-3 mr-1" />List</TabsTrigger>
               <TabsTrigger value="map" className="text-xs px-3 h-7"><MapPin className="h-3 w-3 mr-1" />Live Map</TabsTrigger>
-              <TabsTrigger value="bookings" className="text-xs px-3 h-7"><CalendarClock className="h-3 w-3 mr-1" />Bookings</TabsTrigger>
+              {viewMode !== "day" && <TabsTrigger value="bookings" className="text-xs px-3 h-7"><CalendarClock className="h-3 w-3 mr-1" />Bookings</TabsTrigger>}
             </TabsList>
           </Tabs>
 
           {/* Date navigation */}
           <div className="flex items-center gap-1 bg-muted/50 rounded-lg px-1 shrink-0">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigateDate(-1)}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Previous day" onClick={() => navigateDate(-1)}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="sm" className="h-7 text-xs font-medium min-w-[110px]" onClick={() => setSelectedDate(new Date())}>
               <Calendar className="h-3.5 w-3.5 mr-1.5" />
               {viewMode === "day"
-                ? format(selectedDate, "EEE dd MMM")
+                ? format(selectedDate, "EEEE d MMMM")
                 : `${format(startOfWeek(selectedDate, { weekStartsOn: 1 }), "dd MMM")} - ${format(endOfWeek(selectedDate, { weekStartsOn: 1 }), "dd MMM")}`
               }
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigateDate(1)}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Next day" onClick={() => navigateDate(1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
 
+          {viewMode === "day" && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setSelectedDate(new Date())}>Today</Button>}
+
           {/* Stats */}
-          <div className="hidden xl:flex items-center gap-2 text-xs text-muted-foreground shrink-0 px-1 order-3">
+          <div className={`${viewMode === "day" ? "hidden" : "hidden xl:flex"} items-center gap-2 text-xs text-muted-foreground shrink-0 px-1 order-3`}>
             <Badge variant="secondary" className="gap-1 font-normal">
               <strong className="text-foreground">{totalJobs}</strong> jobs
             </Badge>
@@ -911,10 +919,20 @@ const RouteOnePage = () => {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2 shrink-0 ml-auto order-2">
+          <div className="routeone-toolbar-actions flex items-center gap-2 shrink-0 ml-auto order-2">
+          {viewMode === "day" && <>
+            <Button variant="ghost" size="icon" aria-label="Search jobs" title="Search jobs" onClick={() => setBoardSearchOpen(v => !v)}><Search className="h-4 w-4" /></Button>
+            <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="More day actions" title="More day actions"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => setPrintDayOpen(true)}><Printer className="h-4 w-4 mr-2" />Job sheets</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setFinaliseDayOpen(true)}><CheckCircle2 className="h-4 w-4 mr-2" />Finalise day</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setViewMode("bookings")}><CalendarClock className="h-4 w-4 mr-2" />Bookings</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>}
           <Dialog open={newJobOpen} onOpenChange={(open) => { if (open) { resetJobForm(); setNewJobOpen(true); } else closeNewJob(); }}>
             <DialogTrigger asChild>
-              <Button size="sm" className="h-9 px-4 text-sm font-semibold gap-1.5 shadow-sm">
+              <Button size="sm" className="routeone-new-job h-9 px-4 text-sm font-semibold gap-1.5 shadow-sm order-last">
                 <Plus className="h-3.5 w-3.5" />
                 New Job
               </Button>
@@ -937,8 +955,8 @@ const RouteOnePage = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-          <DaySheetPrintDialog date={dateStr} drivers={drivers} />
-          <FinaliseDayDialog date={format(addDays(selectedDate, 1), "yyyy-MM-dd")} drivers={drivers} vehicles={boardVehicles} />
+          <DaySheetPrintDialog date={dateStr} drivers={drivers} externalOpen={printDayOpen} onExternalOpenChange={setPrintDayOpen} hideTrigger={viewMode === "day"} />
+          <FinaliseDayDialog date={format(addDays(selectedDate, 1), "yyyy-MM-dd")} drivers={drivers} vehicles={boardVehicles} externalOpen={finaliseDayOpen} onExternalOpenChange={setFinaliseDayOpen} hideTrigger={viewMode === "day"} />
           {/* Reorganise the day */}
           {viewMode === "day" && (
             <Button
@@ -1055,6 +1073,14 @@ const RouteOnePage = () => {
       </Dialog>
 
       <TicketSendDialog job={ticketJob} open={!!ticketJob} onOpenChange={(o) => { if (!o) setTicketJob(null); }} />
+
+      {viewMode === "day" && <>
+        {boardSearchOpen && <div className="px-4 py-2 border-b bg-card"><Input autoFocus aria-label="Search day jobs" placeholder="Search jobs, customers, sites or postcodes" value={searchParams.get("search") ?? ""} onChange={e => { const next = new URLSearchParams(searchParams); if (e.target.value) next.set("search", e.target.value); else next.delete("search"); setSearchParams(next, { replace: true }); }} /></div>}
+        <div className="routeone-summary flex flex-wrap items-center justify-between gap-3 px-4 py-2 border-b text-xs shrink-0">
+          <span>{jobs.length + skiptrakScheduledJobs.length} jobs · {boardDrivers.filter((d: any) => getDriverJobs(d.id).length + getSkiptrakJobsForDriver(d.driver_name).length > 0).length} drivers · <span className="routeone-empty-tick">●</span> {unassignedJobs.length + unassignedSkiptrakJobs.length} unassigned · {([...jobs, ...skiptrakScheduledJobs].filter(boardUnconfirmed)).length} unconfirmed</span>
+          <div className="flex flex-wrap gap-3 items-center">{["collect", "exchange", "delivery", "waste"].map(type => <span key={type} data-job-palette={type} className="flex items-center gap-1.5"><i className="routeone-key-dot" />{type[0].toUpperCase() + type.slice(1)}</span>)}<span className="flex items-center gap-1.5"><i className="w-3 h-3 rounded-sm border border-dashed border-current" />Unconfirmed</span></div>
+        </div>
+      </>}
 
       <RoutingProposalDialog
         open={reorganiseOpen}
@@ -1321,13 +1347,11 @@ const RouteOnePage = () => {
         </div>
       ) : (
       /* Dispatch Board (Kanban) */
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <div className="flex h-full min-w-0">
+      <div className="flex-1 min-h-0 overflow-auto p-3 routeone-driver-viewport">
+        <div className="flex min-w-max items-start gap-5">
           {/* Unassigned Column */}
           <div
-            className={`w-36 lg:w-44 shrink-0 border-r border-border flex flex-col transition-colors ${
-              dragOverDriverId === "__unassigned__" ? "bg-primary/5" : "bg-muted/30"
-            }`}
+            className={`routeone-unassigned ${dragOverDriverId === "__unassigned__" ? "ring-2 ring-primary" : ""}`}
             onDragOver={(e) => handleDragOver(e, null)}
             onDragLeave={handleDragLeave}
             onDrop={() => handleDrop(null)}
@@ -1338,7 +1362,7 @@ const RouteOnePage = () => {
                 <span className="text-[11px] font-medium text-muted-foreground bg-background rounded-full px-2 py-0.5">{unassignedJobs.length}</span>
               </div>
             </div>
-            <div className={`flex-1 overflow-y-auto ${fullScreen ? "p-1.5 space-y-1" : "p-2 space-y-1.5"}`}>
+            <div className="space-y-2 pt-2">
               {unassignedJobs.map((job: any) => (
                 <JobCard
                   key={job.id}
@@ -1354,6 +1378,7 @@ const RouteOnePage = () => {
                   onDragEnd={handleDragEnd}
                   isDragging={draggedJobId === job.id}
                   compact={fullScreen}
+                  tinted
                 />
               ))}
               {unassignedSkiptrakJobs.map((sj: any) => (
@@ -1365,47 +1390,42 @@ const RouteOnePage = () => {
                   onDragEnd={handleDragEnd}
                   isDragging={draggedSkiptrakId === sj.id}
                   compact={fullScreen}
+                  tinted
                 />
               ))}
               {unassignedJobs.length === 0 && unassignedSkiptrakJobs.length === 0 && (
-                <p className="text-xs text-muted-foreground text-center py-8">No unassigned jobs</p>
+                <div className="text-center py-8 space-y-2"><CheckCircle2 className="routeone-empty-tick h-8 w-8 mx-auto" /><p className="text-xs font-semibold">All jobs assigned</p><p className="text-[11px] text-muted-foreground">Drag a job here to unassign it</p></div>
               )}
             </div>
           </div>
 
           {/* Driver Columns */}
-          <div className="flex-1 min-w-0 min-h-0">
+          <div className="min-w-0">
           <DriverVehicleBoard groups={driverVehicleGroups} jobCount={(driver: any) => getDriverJobs(driver.id).length + getSkiptrakJobsForDriver(driver.driver_name).length} renderDriver={(driver: any) => {
             const driverJobs = getDriverJobs(driver.id);
             const skiptrakJobs = getSkiptrakJobsForDriver(driver.driver_name);
             const totalCount = driverJobs.length + skiptrakJobs.length;
             const isDropTarget = dragOverDriverId === driver.id;
+            const capacity = boardCapacity(totalCount);
             return (
               <div
                 key={driver.id}
-                className={`routeone-driver-column shrink-0 border-r border-border flex flex-col transition-colors ${
-                  isDropTarget ? "bg-primary/5" : ""
+                className={`routeone-driver-column shrink-0 flex flex-col transition-colors ${
+                  isDropTarget ? "ring-2 ring-primary" : ""
                 }`}
                 onDragOver={(e) => handleDragOver(e, driver.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={() => handleDrop(driver.id)}
               >
-                <div className="px-2 py-2 min-h-16 border-b border-hairline bg-card">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="min-w-0">
-                         <p className="text-[13px] leading-tight font-semibold text-foreground break-words" title={driver.driver_name}>{driver.driver_name}</p>
-                         {driverDayVehicles.get(driver.id)?.registration && (
-                          <p className="text-[11px] text-muted-foreground truncate">
-                             {driverDayVehicles.get(driver.id)?.registration}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-medium text-muted-foreground bg-muted rounded-full px-2 py-0.5 shrink-0">{totalCount}</span>
+                <div className="routeone-driver-header">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="routeone-driver-avatar" aria-hidden="true">{driver.driver_name.split(/\s+/).filter(Boolean).map((n: string) => n[0]).slice(0, 2).join("")}</div>
+                    <div className="min-w-0"><p className="text-[13px] font-semibold leading-tight break-words">{driver.driver_name}</p><p className="text-[11px] font-mono text-muted-foreground mt-1">{boardRegistration(driverDayVehicles.get(driver.id)?.registration)}</p></div>
                   </div>
+                  <div className="routeone-capacity" aria-label={`${totalCount} of 10 job capacity`}><div className="routeone-capacity-fill" data-tone={capacity.tone} style={{ "--capacity": `${capacity.percent}%` } as React.CSSProperties} /></div>
+                  <p className="text-[11px] text-muted-foreground mt-1.5">{totalCount} jobs · {totalCount} / 10 jobs</p>
                 </div>
-                <div className={`flex-1 overflow-y-auto ${fullScreen ? "p-1.5 space-y-1" : "p-2 space-y-1.5"}`}>
+                <div className="space-y-2">
                   {driverJobs.map((job: any) => (
                     <JobCard
                       key={job.id}
@@ -1421,15 +1441,9 @@ const RouteOnePage = () => {
                       onDragEnd={handleDragEnd}
                       isDragging={draggedJobId === job.id}
                       compact={fullScreen}
+                  tinted
                     />
                   ))}
-                  {skiptrakJobs.length > 0 && driverJobs.length > 0 && (
-                    <div className="border-t border-dashed border-border my-2 pt-2 flex items-center gap-2">
-                      <div className="h-px flex-1 bg-border" />
-                      <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Skiptrak</span>
-                      <div className="h-px flex-1 bg-border" />
-                    </div>
-                  )}
                   {skiptrakJobs.map((sj: any) => (
                     <SkiptrakJobCard
                       key={sj.id}
@@ -1439,16 +1453,10 @@ const RouteOnePage = () => {
                       onDragEnd={handleDragEnd}
                       isDragging={draggedSkiptrakId === sj.id}
                       compact={fullScreen}
+                  tinted
                     />
                   ))}
-                  {totalCount === 0 && (
-                    <div className="h-full flex items-center justify-center py-8">
-                      <div className="w-full mx-2 rounded-md border border-dashed border-hairline py-6 flex flex-col items-center gap-1.5 text-muted-foreground">
-                        <Truck className="h-5 w-5 opacity-60" />
-                        <p className="text-[11px]">Drop jobs here</p>
-                      </div>
-                    </div>
-                  )}
+                  {capacity.showRoom && <div className="routeone-room">+ Room for {capacity.room} more</div>}
                 </div>
               </div>
             );
@@ -1498,6 +1506,7 @@ function JobCard({
   onDragEnd,
   isDragging,
   compact,
+  tinted,
 }: {
   job: any;
   permit?: any;
@@ -1511,12 +1520,57 @@ function JobCard({
   onDragEnd: (e: React.DragEvent) => void;
   isDragging: boolean;
   compact?: boolean;
+  tinted?: boolean;
 }) {
   const jobType = job.job_type as JobType;
   const status = job.status as JobStatus;
 
   const addr = [job.site_address, job.site_address_2].filter(Boolean).join(", ");
   const statusLabel = status === "completed" ? "Done" : status === "in_progress" ? "In progress" : status === "query" ? "Query" : null;
+
+  if (tinted) return <TintedJobCard job={job} type={jobType} label={jtLabel(jobType)} onClick={onView} onDragStart={onDragStart} onDragEnd={onDragEnd} isDragging={isDragging} permit={<PermitBadge permit={permit} />} actions={
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon"
+                aria-label="Job actions"
+                className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent/10"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+                <Pencil className="h-3 w-3 mr-2" /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); downloadWtnPdf(job); }}>
+                <FileDown className="h-3 w-3 mr-2" /> Download WTN
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); printWtnPdf(job); }}>
+                <Printer className="h-3 w-3 mr-2" /> Print WTN
+              </DropdownMenuItem>
+              {onSendTicket && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onSendTicket(); }}>
+                  <Send className="h-3 w-3 mr-2" /> Print / Send ticket
+                </DropdownMenuItem>
+              )}
+              {onToggleLive && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggleLive(); }}>
+                  <Radio className="h-3 w-3 mr-2" /> {job.is_live ? "Take off live (hide from driver)" : "Make live (send to driver)"}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("in_progress"); }}>Mark In Progress</DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("completed"); }}>Mark Complete</DropdownMenuItem>
+              {job.status === "completed" && job.job_type !== "waste_out_skip" && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); invoiceFromSource({ jobId: job.id }); }}>
+                  <PoundSterling className="h-3 w-3 mr-2" /> Create invoice
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onStatusChange("query"); }}>Flag as Query</DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-destructive">Delete Job</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+  } />;
 
   return (
     <div
@@ -1636,9 +1690,11 @@ function getSkiptrakJobType(movementType: string | null): JobType | null {
 }
 
 // Skiptrak Job Card (read-only, from data_hub_jobs)
-function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging, compact }: { job: any; onClick?: () => void; onDragStart?: (e: React.DragEvent) => void; onDragEnd?: (e: React.DragEvent) => void; isDragging?: boolean; compact?: boolean }) {
+function SkiptrakJobCard({ job, onClick, onDragStart, onDragEnd, isDragging, compact, tinted }: { job: any; onClick?: () => void; onDragStart?: (e: React.DragEvent) => void; onDragEnd?: (e: React.DragEvent) => void; isDragging?: boolean; compact?: boolean; tinted?: boolean }) {
   const mappedType = getSkiptrakJobType(job.movement_type);
   const solid = mappedType ? jtSolid(mappedType) : "bg-slate-600 border-slate-700 text-white";
+
+  if (tinted) return <TintedJobCard imported job={job} type={mappedType || "other"} label={job.movement_type || "Job"} onClick={onClick} onDragStart={onDragStart} onDragEnd={onDragEnd} isDragging={isDragging} />;
 
   return (
     <div
