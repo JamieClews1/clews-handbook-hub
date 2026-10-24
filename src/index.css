@@ -308,3 +308,5 @@
   .routeone-day .routeone-toolbar-actions > [data-state] { order: 5; }
   .routeone-day .routeone-toolbar-actions > [data-state].routeone-new-job { order: 10; }
 }
+
+@layer components { .routeone-day > .routeone-driver-viewport { scroll-snap-type: none; } }
