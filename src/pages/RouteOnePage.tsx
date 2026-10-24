@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,7 +81,10 @@ import { loadExchangeBookingDate } from "@/lib/load-exchange-booking-date";
 import { importedSiteDetails } from "@/lib/route-booking-sites";
 import { Save, Repeat2, X } from "lucide-react";
 import { TintedJobCard } from "@/components/route-one/TintedJobCard";
-import { boardCapacity, boardRegistration, boardUnconfirmed } from "@/lib/route-board-presentation";
+import { boardRegistration, boardUnconfirmed } from "@/lib/route-board-presentation";
+import { estimateDriverDay, dayTime } from "@/lib/driver-day-estimate";
+import { usePostcodeCoords } from "@/hooks/usePostcodeCoords";
+import { usePostcodeZoneLookup } from "@/hooks/usePostcodeZoneLookup";
 import { Search } from "lucide-react";
 import { Columns3 } from "lucide-react";
 
@@ -845,6 +848,10 @@ const RouteOnePage = () => {
 
   // Stats
   const { rules: boardRules } = useRoutingRules();
+  const { zoneFor: boardZoneFor } = usePostcodeZoneLookup();
+  const boardPostcodeKey = [boardRules.yard_postcode, ...plannerJobs.map(j => j.postcode)].sort().join("|");
+  const boardPostcodes = useMemo(() => boardPostcodeKey.split("|"), [boardPostcodeKey]);
+  const { coords: boardCoords, loading: boardCoordsLoading } = usePostcodeCoords(boardPostcodes, viewMode === "day");
   const boardDrivers = boardRules.hide_unused_drivers
     ? drivers.filter((d: any) => getDriverJobs(d.id).length + getSkiptrakJobsForDriver(d.driver_name).length > 0)
     : drivers;
@@ -1406,7 +1413,10 @@ const RouteOnePage = () => {
             const skiptrakJobs = getSkiptrakJobsForDriver(driver.driver_name);
             const totalCount = driverJobs.length + skiptrakJobs.length;
             const isDropTarget = dragOverDriverId === driver.id;
-            const capacity = boardCapacity(totalCount);
+            const capacity = estimateDriverDay([
+              ...driverJobs.map((j: any) => ({ postcode: j.site_postcode || "", movement: j.job_type || "", durationMinutes: j.estimated_duration_mins })),
+              ...skiptrakJobs.map((j: any) => ({ postcode: j.postcode || "", movement: j.movement_type || "" })),
+            ], boardRules, { coords: boardCoords, zoneFor: boardZoneFor });
             return (
               <div
                 key={driver.id}
@@ -1422,8 +1432,9 @@ const RouteOnePage = () => {
                     <div className="routeone-driver-avatar" aria-hidden="true">{driver.driver_name.split(/\s+/).filter(Boolean).map((n: string) => n[0]).slice(0, 2).join("")}</div>
                     <div className="min-w-0"><p className="text-[13px] font-semibold leading-tight break-words">{driver.driver_name}</p><p className="text-[11px] font-mono text-muted-foreground mt-1">{boardRegistration(driverDayVehicles.get(driver.id)?.registration)}</p></div>
                   </div>
-                  <div className="routeone-capacity" aria-label={`${totalCount} of 10 job capacity`}><div className="routeone-capacity-fill" data-tone={capacity.tone} style={{ "--capacity": `${capacity.percent}%` } as React.CSSProperties} /></div>
-                  <p className="text-[11px] text-muted-foreground mt-1.5">{totalCount} jobs · {totalCount} / 10 jobs</p>
+                  <div className="routeone-capacity" aria-label={`${dayTime(capacity.totalMinutes)} estimated of ${boardRules.day_length_hours} hour day`}><div className="routeone-capacity-fill" data-tone={capacity.tone} style={{ "--capacity": `${capacity.percent}%` } as React.CSSProperties} /></div>
+                  <p className="text-[11px] text-muted-foreground mt-1.5">{totalCount} jobs · {boardCoordsLoading ? "Estimating travel…" : `~${dayTime(capacity.totalMinutes)} / ${boardRules.day_length_hours}h`}</p>
+                  {!boardCoordsLoading && <p className="text-[10px] text-muted-foreground mt-1" title={`${dayTime(capacity.travelMinutes)} travel · ${dayTime(capacity.handlingMinutes)} handling · ${capacity.breakMinutes}m break${capacity.fallbackLegs ? ` · ${capacity.fallbackLegs} travel legs use fallback allowances` : ""}`}>{dayTime(capacity.travelMinutes)} travel · {capacity.breakMinutes}m break{capacity.fallbackLegs > 0 ? " · fallback" : ""}</p>}
                 </div>
                 <div className="space-y-2">
                   {driverJobs.map((job: any) => (
@@ -1456,7 +1467,7 @@ const RouteOnePage = () => {
                   tinted
                     />
                   ))}
-                  {capacity.showRoom && <div className="routeone-room">+ Room for {capacity.room} more</div>}
+                  {!boardCoordsLoading && capacity.showRoom && <div className="routeone-room">~{dayTime(capacity.remainingMinutes)} available</div>}
                 </div>
               </div>
             );
