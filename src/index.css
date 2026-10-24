@@ -239,7 +239,8 @@
     --board-drag-shadow: 0 8px 20px hsl(0 0% 0% / .18);
   }
   [data-job-palette="collect"] {
-    --job-tag: 14.08 74.27% 47.25%;
+    /* Slightly deepen the supplied Collect orange so 11px white text meets AA. */
+    --job-tag: 13.82 74.17% 47.06%;
     --job-tag-text: 0.00 0.00% 100.00%;
     --job-tint: 17.50 80.00% 94.12%;
     --job-border: 16.71 75.24% 79.41%;
