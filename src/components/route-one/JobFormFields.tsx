@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { fetchAllRows } from "@/lib/fetch-all";
+import { importedSiteDetails, applyBookingSite, type BookingSite } from "@/lib/route-booking-sites";
 import { History, Plus, Trash2, AlertTriangle, ExternalLink, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePostcodeZoneLookup } from "@/hooks/usePostcodeZoneLookup";
@@ -29,11 +32,7 @@ export const JOB_TYPE_LABELS: Record<string, string> = {
 
 export type CostItem = { name: string; charge: number; qty: number };
 
-type KnownSite = {
-  name: string;
-  address: string;
-  postcode: string;
-};
+type KnownSite = BookingSite;
 
 const normaliseCustomer = (value: string) =>
   value
@@ -164,6 +163,10 @@ export function JobFormFields({
   setForm: (f: any) => void;
   drivers: any[];
 }) {
+  const [bookingTab, setBookingTab] = useState("booking");
+  const [siteLoadError, setSiteLoadError] = useState("");
+  const [siteLoading, setSiteLoading] = useState(false);
+  const [siteRetry, setSiteRetry] = useState(0);
   const [setupSites, setSetupSites] = useState<KnownSite[]>([]);
   const [postcodeQuery, setPostcodeQuery] = useState("");
   const [postcodeMatches, setPostcodeMatches] = useState<PostcodeMatch[]>([]);
@@ -189,68 +192,36 @@ export function JobFormFields({
     let cancelled = false;
     const load = async () => {
       if (!customer || customer.length < 2) { setSetupSites([]); return; }
+      setSiteLoading(true); setSiteLoadError(""); setSetupSites([]);
       const customerSearch = normaliseCustomer(customer);
-      // Exact-match the customer (raw name and normalised name) so we never pull
-      // in sites belonging to other, similarly named accounts.
-      const { data: custs } = await supabase
-        .from("customers")
-        .select("id, customer_name")
-        .or(`customer_name.eq.${customer},customer_name.eq.${customerSearch}`)
-        .limit(5);
-
-      const setupRes = custs?.length
-        ? await supabase
-            .from("customer_sites")
-            .select("site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
-            .in("customer_id", custs.map((c) => c.id))
-            .order("site_name")
-        : { data: [] as any[] };
-
-      if (cancelled) return;
-
-      // Data Hub customer names mapped on this customer's own sites
-      const aliasNames = new Set<string>([customer.trim(), customerSearch.trim()]);
-      for (const row of (setupRes.data ?? []) as any[]) {
-        const alias = typeof row.data_hub_customer === "string" ? row.data_hub_customer.trim() : "";
-        if (alias) aliasNames.add(alias);
-      }
-
-      const hubRes = await supabase
-        .from("data_hub_jobs")
-        .select("customer, site, raw, job_date")
-        .in("customer", [...aliasNames].filter(Boolean))
-        .not("site", "is", null)
-        .limit(1000);
-
+      const candidates = await fetchAllRows<any>("customers", "id,customer_name,data_hub_customer", "id", q => q.eq("is_active", true));
+      const wanted = customerSearch.toLowerCase();
+      const custs = candidates.filter(c => [c.customer_name, c.data_hub_customer].some(n => n && normaliseCustomer(n).toLowerCase() === wanted));
+      const setup = custs.length ? await fetchAllRows<any>("customer_sites", "*", "id", q => q.in("customer_id", custs.map(c => c.id)).eq("is_archived", false)) : [];
+      const aliases = [...new Set([customer.trim(), customerSearch, ...custs.flatMap(c => [c.customer_name, c.data_hub_customer]), ...setup.map(r => r.data_hub_customer)].filter(Boolean))];
+      const hub = await fetchAllRows<any>("data_hub_jobs", "customer,site,postcode,raw,job_date,id", "id", q => q.eq("source", "skiptrak").in("customer", aliases).not("site", "is", null));
       if (cancelled) return;
       const known = new Map<string, KnownSite>();
-      const addSite = (nameValue: unknown, raw?: Record<string, unknown> | null) => {
-        const name = typeof nameValue === "string" ? nameValue.trim() : "";
-        if (!name) return;
-        const key = name.toLowerCase();
-        const address = rawText(raw, ["Site Address", "Site address", "Address"]);
-        const postcode = rawText(raw, ["Location Postc", "Location Postcode", "Postcode"]);
-        const existing = known.get(key);
-        known.set(key, {
-          name: existing?.name || name,
-          address: existing?.address || address,
-          postcode: existing?.postcode || postcode,
-        });
-      };
-
-      for (const row of (setupRes.data ?? []) as any[]) {
-        addSite(row.site_name);
-        [row.data_hub_site, row.data_hub_site_2, row.data_hub_site_3, row.data_hub_site_4, row.data_hub_site_5]
-          .forEach((siteName) => addSite(siteName));
+      for (const row of setup) {
+        const address = [row.address_1, row.address_2, row.address_3, row.address_4, row.address_5].filter(Boolean).join("\n");
+        known.set(row.site_name.toLowerCase(), { name: row.site_name, address, postcode: row.postcode || "", area: row.area || "", contact: row.site_contact_name || "", phone: row.site_contact_phone || "", sic: row.sic_code || "" });
       }
-      for (const row of (hubRes.data ?? []) as any[]) addSite(row.site, row.raw);
-
+      for (const row of hub.sort((a,b) => String(b.job_date).localeCompare(String(a.job_date)))) {
+        const name = String(row.site || "").trim(); if (!name) continue;
+        const mapped = setup.find(s => [s.site_name,s.data_hub_site,s.data_hub_site_2,s.data_hub_site_3,s.data_hub_site_4,s.data_hub_site_5].some(n => n?.trim().toLowerCase() === name.toLowerCase()));
+        const displayName = mapped?.site_name || name;
+        const existing = known.get(displayName.toLowerCase());
+        const details = importedSiteDetails(row.raw, row.postcode);
+        known.set(displayName.toLowerCase(), { ...details, ...existing, name: displayName, address: existing?.address || details.address, postcode: existing?.postcode || details.postcode, area: existing?.area || details.area, contact: existing?.contact || details.contact, phone: existing?.phone || details.phone, sic: existing?.sic || details.sic });
+      }
 
       setSetupSites([...known.values()].sort((a, b) => a.name.localeCompare(b.name)));
     };
-    load();
-    return () => { cancelled = true; };
-  }, [customer]);
+    const timer = setTimeout(() => {
+      load().catch(() => { if (!cancelled) { setSetupSites([]); setSiteLoadError("Unable to load established sites. Try again before selecting a site."); } }).finally(() => { if (!cancelled) setSiteLoading(false); });
+    }, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [customer, siteRetry]);
 
 
   useEffect(() => {
@@ -340,7 +311,7 @@ export function JobFormFields({
       byKey.set(key, {
         customer: j.customer || "",
         site: j.site || "",
-        address: rawText(j.raw, ["Site Address", "Site address", "Address"]),
+        address: importedSiteDetails(j.raw, j.postcode).address,
         postcode: j.postcode || "",
         container_type: j.container_type || "",
         waste_type: j.waste_description || "",
@@ -359,7 +330,9 @@ export function JobFormFields({
       ...form,
       customer_name: m.customer || form.customer_name,
       site_name: m.site || form.site_name,
-      site_address: m.address || form.site_address,
+      site_address: m.address,
+      site_address_2: "",
+      site_contact_name: "", site_contact_phone: "", site_area: "",
       site_postcode: m.postcode || postcodeQuery.trim(),
     });
     setPostcodeMatches([]);
@@ -453,7 +426,7 @@ export function JobFormFields({
         notes: `${form.notes ? form.notes + "\n" : ""}Exchange of container from job ${j.job_number || ""}`.trim(),
       });
     } else {
-      const previousAddress = rawText(j.raw, ["Site Address", "Site address", "Address"]);
+      const previousAddress = importedSiteDetails(j.raw).address;
       const previousPostcode = rawText(j.raw, ["Location Postc", "Location Postcode", "Postcode"]);
       setForm({
         ...form,
@@ -477,6 +450,13 @@ export function JobFormFields({
 
   return (
     <div className="grid gap-4">
+      <Tabs value={bookingTab} onValueChange={setBookingTab}>
+        <TabsList className="sticky top-0 z-10 w-full justify-start bg-background border border-border">
+          <TabsTrigger value="booking">Booking</TabsTrigger>
+          <TabsTrigger value="site">Site details</TabsTrigger>
+          <TabsTrigger value="costs">Business costs</TabsTrigger>
+        </TabsList>
+      <TabsContent value="booking" className="space-y-4">
       {/* Customer & site */}
       <div className="rounded-lg border border-border p-3 space-y-3">
         <div className="flex items-center justify-between">
@@ -558,7 +538,7 @@ export function JobFormFields({
             <Label className="text-xs">Customer *</Label>
             <AutocompleteInput
               value={form.customer_name || ""}
-              onChange={(val) => setForm({ ...form, customer_name: normaliseCustomer(val) })}
+              onChange={(val) => { setManualSite(false); setForm({ ...applyBookingSite(form, { name: "", address: "", postcode: "" }), customer_name: normaliseCustomer(val) }); }}
               placeholder="Start typing customer..."
               fetchSuggestions={fetchCustomers}
             />
@@ -578,7 +558,7 @@ export function JobFormFields({
               <Input
                 value={form.site_name || ""}
                 onChange={(e) => setForm({ ...form, site_name: e.target.value })}
-                placeholder={setupSites.length === 0 ? "No known sites — type site name" : "Site name"}
+                placeholder={siteLoading ? "Loading established sites…" : setupSites.length === 0 ? "No established sites — type site name" : "Site name"}
               />
             ) : (
               <Select
@@ -586,22 +566,18 @@ export function JobFormFields({
                 onValueChange={(v) => {
                   if (v === "__new_site__") { startNewSite(); return; }
                   const selected = setupSites.find((site) => site.name === v);
-                  setForm({
-                    ...form,
-                    site_name: v,
-                    site_address: selected?.address || v,
-                    site_postcode: selected?.postcode || "",
-                  });
+                  if (selected) setForm(applyBookingSite(form, selected));
                 }}
               >
-                <SelectTrigger><SelectValue placeholder={`Select from ${setupSites.length} known sites...`} /></SelectTrigger>
+                <SelectTrigger aria-label="Established site"><SelectValue placeholder={`Select from ${setupSites.length} established sites...`} /></SelectTrigger>
                 <SelectContent className="max-h-64">
                   <SelectItem value="__new_site__">
                     <span className="text-primary font-medium">+ New site</span>
                   </SelectItem>
                   {setupSites.map((s) => (
                     <SelectItem key={s.name} value={s.name}>
-                      <span>{s.name}</span>
+                      <span className="block">{s.name}</span>
+                      {s.address && <span className="block text-xs text-muted-foreground">{s.address.replace(/\n/g, ", ")}</span>}
                       {s.postcode && <span className="ml-2 text-muted-foreground">{s.postcode}</span>}
                     </SelectItem>
                   ))}
@@ -611,6 +587,15 @@ export function JobFormFields({
 
           </div>
         </div>
+        {siteLoadError && <p role="alert" className="text-sm text-destructive">{siteLoadError}<Button type="button" variant="link" onClick={() => setSiteRetry(n => n + 1)}>Try again</Button></p>}
+        <div className="flex items-start justify-between gap-3 border-t border-border pt-3">
+          <p className="text-sm whitespace-pre-line">{[form.site_address, form.site_address_2, form.site_postcode].filter(Boolean).join("\n") || "Site address not recorded"}</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => setBookingTab("site")}>Full site details</Button>
+        </div>
+        </div>
+        </TabsContent>
+        <TabsContent value="site" className="space-y-3">
+        <h4 className="font-semibold">{form.customer_name || "Customer"} — {form.site_name || "Site details"}</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="md:col-span-2">
             <Label className="text-xs">Site Address</Label>
@@ -618,10 +603,12 @@ export function JobFormFields({
               value={form.site_address || ""}
               onChange={(e) => setForm({ ...form, site_address: e.target.value })}
               rows={4}
-              placeholder={"Unit 17\nHunters Lane\nRugby\nWarwickshire"}
+              placeholder={"Customer site street address\nTown\nCounty"}
               className="font-mono text-xs"
             />
             <p className="text-[11px] text-muted-foreground mt-1">One line per address line.</p>
+            <Label className="text-xs">Additional address lines</Label>
+            <Textarea value={form.site_address_2 || ""} onChange={e => setForm({ ...form, site_address_2: e.target.value })} rows={2} placeholder="Additional site address details" />
           </div>
           <div className="space-y-3">
             <div>
@@ -665,15 +652,11 @@ export function JobFormFields({
             <Input value={form.account_code || ""} onChange={(e) => setForm({ ...form, account_code: e.target.value })} placeholder="e.g. ZZWIL004" />
           </div>
           <div>
-            <Label className="text-xs">EWC Code</Label>
-            <EwcCodePicker value={form.ewc_code || ""} onChange={(v) => setForm({ ...form, ewc_code: v })} />
-          </div>
-          <div>
             <Label className="text-xs">Vehicle Registration</Label>
             <Input value={form.vehicle_reg || ""} onChange={(e) => setForm({ ...form, vehicle_reg: e.target.value.toUpperCase() })} placeholder="e.g. FJ18 FDM" className="font-mono" />
           </div>
         </div>
-        <WasteClassificationFields value={asClassification(form.waste_classification)} onChange={(v) => setForm({ ...form, waste_classification: v })} ewcCode={form.ewc_code || ""} />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">Invoice Address</Label>
@@ -696,8 +679,9 @@ export function JobFormFields({
             />
           </div>
         </div>
-      </div>
 
+      </TabsContent>
+      <TabsContent value="booking" className="space-y-4">
       {/* Job details */}
       <div className="rounded-lg border border-border p-3 space-y-3">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Job Details</h4>
@@ -772,32 +756,10 @@ export function JobFormFields({
 
       {form.job_type === "waste_out_skip" && <WasteOutSkipPanel form={form} setForm={setForm} />}
 
-      {/* Pricing (Pricing CMS: tier × zone) */}
-      <JobPricingPicker form={form} setForm={setForm} />
-
-      {/* Costs */}
-
-      <div className="rounded-lg border border-border p-3 space-y-3">
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Costs</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div>
-            <Label className="text-xs">Haulage (£)</Label>
-            <Input type="number" step="0.01" value={form.haulage_cost ?? ""} onChange={(e) => setForm({ ...form, haulage_cost: e.target.value })} />
-          </div>
-          <div>
-            <Label className="text-xs">Charge per Tonne (£)</Label>
-            <Input type="number" step="0.01" value={form.charge_per_tonne ?? ""} onChange={(e) => setForm({ ...form, charge_per_tonne: e.target.value })} />
-          </div>
-          <div>
-            <Label className="text-xs">Weight Included (t)</Label>
-            <Input type="number" step="0.01" value={form.weight_included_t ?? ""} onChange={(e) => setForm({ ...form, weight_included_t: e.target.value })} />
-          </div>
-          <div>
-            <Label className="text-xs">Min Weight Charge (£)</Label>
-            <Input type="number" step="0.01" value={form.min_weight_charge ?? ""} onChange={(e) => setForm({ ...form, min_weight_charge: e.target.value })} />
-          </div>
-        </div>
-
+      <section className="space-y-3 border-t border-border pt-4">
+        <h4 className="text-sm font-semibold">Additional considerations</h4>
+        <div><Label className="text-xs">EWC Code</Label><EwcCodePicker value={form.ewc_code || ""} onChange={(v) => setForm({ ...form, ewc_code: v })} /></div>
+        <WasteClassificationFields value={asClassification(form.waste_classification)} onChange={(v) => setForm({ ...form, waste_classification: v })} ewcCode={form.ewc_code || ""} />
         {/* Added items */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -868,6 +830,33 @@ export function JobFormFields({
           </Link>
         </div>
 
+      </section>
+      {/* Pricing (Pricing CMS: tier × zone) */}
+      <JobPricingPicker form={form} setForm={setForm} />
+
+      {/* Costs */}
+
+      <div className="rounded-lg border border-border p-3 space-y-3">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Customer pricing</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div>
+            <Label className="text-xs">Haulage (£)</Label>
+            <Input type="number" step="0.01" value={form.haulage_cost ?? ""} onChange={(e) => setForm({ ...form, haulage_cost: e.target.value })} />
+          </div>
+          <div>
+            <Label className="text-xs">Charge per Tonne (£)</Label>
+            <Input type="number" step="0.01" value={form.charge_per_tonne ?? ""} onChange={(e) => setForm({ ...form, charge_per_tonne: e.target.value })} />
+          </div>
+          <div>
+            <Label className="text-xs">Weight Included (t)</Label>
+            <Input type="number" step="0.01" value={form.weight_included_t ?? ""} onChange={(e) => setForm({ ...form, weight_included_t: e.target.value })} />
+          </div>
+          <div>
+            <Label className="text-xs">Min Weight Charge (£)</Label>
+            <Input type="number" step="0.01" value={form.min_weight_charge ?? ""} onChange={(e) => setForm({ ...form, min_weight_charge: e.target.value })} />
+          </div>
+        </div>
+
         {/* Totals */}
         <div className="rounded-md bg-muted/50 p-3 space-y-1 text-xs">
           <div className="flex justify-between"><span className="text-muted-foreground">Tonnage charge</span><span>{money(totals.tonnage)}</span></div>
@@ -890,6 +879,12 @@ export function JobFormFields({
         </div>
       </div>
 
+      </TabsContent>
+      <TabsContent value="costs" className="space-y-3">
+        <h4 className="font-semibold">Business costs</h4>
+        <p className="text-sm text-muted-foreground">Internal cost assessment — to be added later.</p>
+      </TabsContent>
+      </Tabs>
       {/* Previous jobs dialog */}
       <Dialog open={prevOpen} onOpenChange={setPrevOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
@@ -932,7 +927,7 @@ export function JobFormFields({
       <Dialog open={itemsOpen} onOpenChange={setItemsOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add cost item</DialogTitle>
+            <DialogTitle>Add chargeable item</DialogTitle>
           </DialogHeader>
           {catalogue.length === 0 ? (
             <p className="text-sm text-muted-foreground">No items configured yet — add them in RouteOne Setup → Cost Items.</p>
