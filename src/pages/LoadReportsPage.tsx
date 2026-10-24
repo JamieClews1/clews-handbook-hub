@@ -499,15 +499,16 @@ const LoadReportsPage = () => {
     }
 
     const norm = (s: string | null | undefined) => (s || "").trim().toLowerCase();
-    const matches = [
+    const mapped = [
       mapping.data_hub_site,
       mapping.data_hub_site_2,
       mapping.data_hub_site_3,
       mapping.data_hub_site_4,
       mapping.data_hub_site_5,
-    ]
-      .map(norm)
-      .some((s) => s && s === jobSite);
+    ].map(norm).filter(Boolean);
+    // No site mapping set up: nothing to compare against, so don't warn.
+    if (mapped.length === 0) { setSiteMismatch(null); return; }
+    const matches = mapped.some((s) => s === jobSite);
 
     setSiteMismatch(matches ? null : (job.site || "").trim());
   };
