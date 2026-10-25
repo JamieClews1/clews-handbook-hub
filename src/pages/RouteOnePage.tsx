@@ -1,3 +1,4 @@
+import { bookingRentalFields } from "@/lib/booking-container-options";
 import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -203,6 +204,7 @@ const costFields = (form: any) => {
   };
   const totals = computeJobTotals(form);
   return {
+    ...bookingRentalFields(form),
     haulage_cost: toNum(form.haulage_cost),
     charge_per_tonne: toNum(form.charge_per_tonne),
     min_weight_charge: toNum(form.min_weight_charge),
@@ -297,6 +299,7 @@ const RouteOnePage = () => {
     destination_address: "",
     container_type: "",
     container_size: "",
+    own_container: false, rental_enabled: false, rental_free_days: null as number | null, rental_weekly_rate: null as number | null, rental_start_date: "",
     waste_type: "",
     notes: "",
     po_number: "",
@@ -646,6 +649,7 @@ const RouteOnePage = () => {
       destination_address: job.destination_address || "",
       container_type: job.container_type || "",
       container_size: job.container_size || "",
+      own_container: job.own_container || false, rental_enabled: job.rental_enabled || false, rental_free_days: job.rental_free_days ?? null, rental_weekly_rate: job.rental_weekly_rate ?? null, rental_start_date: job.rental_start_date || "",
       waste_type: job.waste_type || "",
       notes: job.notes || "",
       po_number: job.po_number || "",
@@ -672,6 +676,7 @@ const RouteOnePage = () => {
       site_postcode: "", sic_code: "", site_contact_name: "", site_contact_phone: "",
       account_code: "", invoice_address: "", directions: "", disposal_site: "",
       vehicle_reg: "", carrier_name: "", ewc_code: "", waste_classification: {},
+      own_container: false, rental_enabled: false, rental_free_days: null, rental_weekly_rate: null, rental_start_date: "",
       job_type: "delivery", container_type: "", container_size: "", waste_type: "",
       weighbridge_transaction_id: "", weighbridge_ticket_number: "", outbound_weight_t: "",
       destination_name: "", destination_address: "",
