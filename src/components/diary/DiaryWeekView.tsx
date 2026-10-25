@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { DiaryWeekNote } from "./DiaryWeekNote";
-import { DiaryWeekNav } from "./DiaryWeekNav";
-import { DiaryCategoryRow } from "./DiaryCategoryRow";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -16,56 +15,24 @@ import {
   DragEndEvent,
 } from "@dnd-kit/core";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { DiaryMobileListView } from "./DiaryMobileListView";
-import { localCalendarKey } from "@/lib/ui-calendar";
-
-export const DIARY_CATEGORIES = [
-  { key: null, label: "General", icon: "📝" },
-  { key: "drivers", label: "Drivers", icon: "🚛" },
-  { key: "loads_in", label: "Loads In", icon: "📥" },
-  { key: "loads_out", label: "Loads Out", icon: "📤" },
-  { key: "maintenance", label: "Maintenance", icon: "🔧" },
-] as const;
-
-export const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string; badge: string }> = {
-  general: { bg: "", border: "border-slate-300", text: "text-slate-500", badge: "bg-slate-200" },
-  drivers: { bg: "", border: "border-blue-400", text: "text-blue-600", badge: "bg-blue-200" },
-  loads_in: { bg: "", border: "border-emerald-400", text: "text-emerald-600", badge: "bg-emerald-200" },
-  loads_out: { bg: "", border: "border-amber-400", text: "text-amber-600", badge: "bg-amber-200" },
-  maintenance: { bg: "", border: "border-rose-400", text: "text-rose-600", badge: "bg-rose-200" },
-};
-
-export interface DiaryCard {
-  id: string;
-  user_id: string;
-  day_of_week: number;
-  week_start: string;
-  content: string;
-  color: string;
-  display_order: number;
-  category: string | null;
-}
-
-const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-function getMonday(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function formatDate(date: Date): string {
-  return localCalendarKey(date);
-}
-
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
-}
+import { DiaryWeekNote } from "./DiaryWeekNote";
+import { DiaryDayColumn } from "./DiaryDayColumn";
+import { DiaryEntryModal } from "./DiaryEntryModal";
+import { DiarySearchOverlay } from "./DiarySearchOverlay";
+import { DiaryMobileDayView } from "./DiaryMobileDayView";
+import {
+  DiaryCard,
+  DIARY_CATEGORIES,
+  CATEGORY_DOT_CLASS,
+  getMonday,
+  addDays,
+  formatDate,
+  isoWeekNumber,
+  filterByCategory,
+  entriesForDay,
+  repeatOccurrences,
+  DiaryRepeat,
+} from "@/lib/diary-utils";
 
 export const DiaryWeekView = () => {
   const isMobile = useIsMobile();
@@ -75,6 +42,11 @@ export const DiaryWeekView = () => {
   const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
   const [loading, setLoading] = useState(true);
   const [activeCard, setActiveCard] = useState<DiaryCard | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [modalCardId, setModalCardId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState(() => (new Date().getDay() + 6) % 7);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -105,10 +77,15 @@ export const DiaryWeekView = () => {
     fetchCards();
   }, [fetchCards]);
 
-  const addCard = async (dayIndex: number, category: string | null = null) => {
-    if (!user) return;
+  const visibleCards = useMemo(
+    () => filterByCategory(cards, categoryFilter),
+    [cards, categoryFilter]
+  );
+
+  const addCard = async (dayIndex: number): Promise<DiaryCard | null> => {
+    if (!user) return null;
     const maxOrder = cards
-      .filter((c) => c.day_of_week === dayIndex && c.category === category)
+      .filter((c) => c.day_of_week === dayIndex)
       .reduce((m, c) => Math.max(m, c.display_order), -1);
 
     const { data, error } = await supabase
@@ -120,16 +97,18 @@ export const DiaryWeekView = () => {
         content: "",
         color: "default",
         display_order: maxOrder + 1,
-        category,
+        category: null,
       })
       .select()
       .single();
 
     if (error) {
-      toast({ title: "Failed to add card", variant: "destructive" });
-      return;
+      toast({ title: "Failed to add entry", variant: "destructive" });
+      return null;
     }
-    setCards((prev) => [...prev, data as DiaryCard]);
+    const card = data as DiaryCard;
+    setCards((prev) => [...prev, card]);
+    return card;
   };
 
   const updateCard = async (id: string, updates: Partial<DiaryCard>) => {
@@ -140,30 +119,30 @@ export const DiaryWeekView = () => {
 
   const deleteCard = async (id: string) => {
     setCards((prev) => prev.filter((c) => c.id !== id));
+    if (modalCardId === id) setModalCardId(null);
+    if (editingId === id) setEditingId(null);
     const { error } = await supabase.from("diary_cards").delete().eq("id", id);
     if (error) toast({ title: "Failed to delete", variant: "destructive" });
   };
 
-  const duplicateCard = async (card: DiaryCard) => {
-    if (!user) return;
-    const maxOrder = cards
-      .filter((c) => c.day_of_week === card.day_of_week && c.category === card.category)
-      .reduce((m, c) => Math.max(m, c.display_order), -1);
+  const toggleDone = (card: DiaryCard) => updateCard(card.id, { done: !card.done });
 
-    const { data, error } = await supabase
-      .from("diary_cards")
-      .insert({
+  const setRepeat = async (card: DiaryCard, repeat: DiaryRepeat | null) => {
+    await updateCard(card.id, { repeat });
+    if (!repeat || !user) return;
+    const occurrences = repeatOccurrences(card, repeat);
+    for (const occ of occurrences) {
+      await supabase.from("diary_cards").insert({
         user_id: user.id,
-        day_of_week: card.day_of_week,
-        week_start: weekStartStr,
+        day_of_week: occ.day_of_week,
+        week_start: occ.week_start,
         content: card.content,
-        color: card.color,
-        display_order: maxOrder + 1,
+        color: card.color ?? "default",
+        display_order: 1000,
         category: card.category,
-      })
-      .select()
-      .single();
-    if (!error && data) setCards((prev) => [...prev, data as DiaryCard]);
+      });
+    }
+    toast({ title: `Repeat set — ${occurrences.length} future entries added` });
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -178,34 +157,47 @@ export const DiaryWeekView = () => {
 
     const cardId = active.id as string;
     const overId = over.id as string;
-
-    let targetDay: number;
-    let targetCategory: string | null | undefined;
-
-    if (overId.startsWith("cat-")) {
-      const parts = overId.split("-day-");
-      targetDay = parseInt(parts[1], 10);
-      const catPart = parts[0].replace("cat-", "");
-      targetCategory = catPart === "general" ? null : catPart;
-    } else {
-      const overCard = cards.find((c) => c.id === overId);
-      if (!overCard) return;
-      targetDay = overCard.day_of_week;
-      targetCategory = overCard.category;
-    }
+    if (cardId === overId) return;
 
     const card = cards.find((c) => c.id === cardId);
     if (!card) return;
 
-    const updates: Partial<DiaryCard> = {};
-    if (card.day_of_week !== targetDay) updates.day_of_week = targetDay;
-    if (targetCategory !== undefined && card.category !== targetCategory) updates.category = targetCategory;
+    let targetDay: number;
+    let targetIndex: number;
 
-    if (Object.keys(updates).length > 0) {
-      const dayCards = cards.filter((c) => c.day_of_week === targetDay && c.category === targetCategory);
-      const maxOrder = dayCards.reduce((m, c) => Math.max(m, c.display_order), -1);
-      updates.display_order = maxOrder + 1;
-      await updateCard(cardId, updates);
+    if (overId.startsWith("day-")) {
+      targetDay = parseInt(overId.slice(4), 10);
+      targetIndex = entriesForDay(cards, targetDay).filter((c) => c.id !== cardId).length;
+    } else {
+      const overCard = cards.find((c) => c.id === overId);
+      if (!overCard) return;
+      targetDay = overCard.day_of_week;
+      targetIndex = entriesForDay(cards, targetDay).findIndex((c) => c.id === overId);
+      if (targetIndex < 0) targetIndex = 0;
+    }
+
+    const dayEntries = entriesForDay(cards, targetDay).filter((c) => c.id !== cardId);
+    dayEntries.splice(targetIndex, 0, { ...card, day_of_week: targetDay });
+
+    const updates: Array<{ id: string; display_order: number; day_of_week: number }> = [];
+    dayEntries.forEach((c, i) => {
+      if (c.id === cardId || c.display_order !== i || c.day_of_week !== targetDay) {
+        updates.push({ id: c.id, display_order: i, day_of_week: targetDay });
+      }
+    });
+    if (updates.length === 0) return;
+
+    setCards((prev) =>
+      prev.map((c) => {
+        const u = updates.find((x) => x.id === c.id);
+        return u ? { ...c, display_order: u.display_order, day_of_week: u.day_of_week } : c;
+      })
+    );
+    for (const u of updates) {
+      await supabase
+        .from("diary_cards")
+        .update({ display_order: u.display_order, day_of_week: u.day_of_week })
+        .eq("id", u.id);
     }
   };
 
@@ -213,24 +205,105 @@ export const DiaryWeekView = () => {
   const goToNextWeek = () => setWeekStart((prev) => addDays(prev, 7));
   const goToThisWeek = () => setWeekStart(getMonday(new Date()));
 
+  // Keyboard: arrows change week, T jumps to today
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+        return;
+      if (modalCardId || searchOpen) return;
+      if (e.key === "ArrowLeft") goToPrevWeek();
+      else if (e.key === "ArrowRight") goToNextWeek();
+      else if (e.key.toLowerCase() === "t") goToThisWeek();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [modalCardId, searchOpen]);
+
   const isCurrentWeek = formatDate(getMonday(new Date())) === weekStartStr;
   const today = formatDate(new Date());
-
-  const weekEndDate = addDays(weekStart, 6);
   const monthYear = weekStart.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const weekNumber = isoWeekNumber(weekStart);
+  const modalCard = modalCardId ? cards.find((c) => c.id === modalCardId) ?? null : null;
+
+  const columnProps = {
+    weekStart,
+    today,
+    editingId,
+    onAddLine: addCard,
+    onRequestEdit: setEditingId,
+    onUpdate: updateCard,
+    onDelete: deleteCard,
+    onOpen: (card: DiaryCard) => setModalCardId(card.id),
+    onToggleDone: toggleDone,
+  };
 
   return (
     <div className="space-y-4">
-      {/* Month title - large and bold like Tweek */}
-      <h2 className="text-3xl font-black text-foreground tracking-tight">{monthYear}</h2>
+      {/* Header: month + week number, search / today / nav */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <h2 className="text-3xl font-black text-foreground tracking-tight">
+          {monthYear}{" "}
+          <span className="text-xl font-semibold text-muted-foreground/60">W{weekNumber}</span>
+        </h2>
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Search diary"
+            onClick={() => setSearchOpen(true)}
+            className="h-8 w-8 rounded-full"
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+          {!isCurrentWeek && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToThisWeek}
+              className="text-xs rounded-full px-3 h-8"
+            >
+              Today
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Previous week"
+            onClick={goToPrevWeek}
+            className="h-8 w-8 rounded-full"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Next week"
+            onClick={goToNextWeek}
+            className="h-8 w-8 rounded-full"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
-      <DiaryWeekNav
-        weekLabel={`${weekStart.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${weekEndDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`}
-        isCurrentWeek={isCurrentWeek}
-        onPrev={goToPrevWeek}
-        onNext={goToNextWeek}
-        onToday={goToThisWeek}
-      />
+      {/* Category filter chips */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <FilterChip
+          active={categoryFilter === "all"}
+          onClick={() => setCategoryFilter("all")}
+          label="All"
+        />
+        {DIARY_CATEGORIES.map((cat) => (
+          <FilterChip
+            key={cat.key}
+            active={categoryFilter === cat.key}
+            onClick={() => setCategoryFilter(cat.key)}
+            label={cat.label}
+            dotClass={CATEGORY_DOT_CLASS[cat.key]}
+          />
+        ))}
+      </div>
 
       <DiaryWeekNote weekStart={weekStartStr} />
 
@@ -239,13 +312,12 @@ export const DiaryWeekView = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </div>
       ) : isMobile ? (
-        <DiaryMobileListView
+        <DiaryMobileDayView
           weekStart={weekStart}
-          cards={cards}
-          onAddCard={addCard}
-          onUpdateCard={updateCard}
-          onDeleteCard={deleteCard}
-          onDuplicateCard={duplicateCard}
+          cards={visibleCards}
+          selectedDay={selectedDay}
+          onSelectDay={setSelectedDay}
+          {...columnProps}
         />
       ) : (
         <DndContext
@@ -254,85 +326,86 @@ export const DiaryWeekView = () => {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          {/* Day headers — Tweek style */}
-          <div className="grid grid-cols-7 gap-0">
-            {DAY_SHORT.map((day, i) => {
-              const dayDate = addDays(weekStart, i);
-              const dayStr = formatDate(dayDate);
-              const isToday = dayStr === today;
-              const isPast = dayStr < today;
-              const isWeekend = i >= 5;
-              const dateLabel = dayDate.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-              return (
-                <div
-                  key={i}
-                  aria-current={isToday ? "date" : undefined}
-                  className={`px-2 pb-2 ${isToday ? "border-b-[3px] border-primary" : "border-b border-border/30"}`}
-                >
-                  <div className="flex items-baseline justify-between">
-                    <span className={`text-sm font-bold ${
-                      isToday ? "text-primary" : isPast || isWeekend ? "text-muted-foreground" : "text-foreground"
-                    }`}>
-                      {dateLabel}
-                    </span>
-                    <span className={`text-xs font-semibold ${
-                      isToday ? "text-primary" : "text-muted-foreground"
-                    }`}>
-                      {day}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Category rows — minimal with just a small colored label */}
-          <div>
-            {DIARY_CATEGORIES.map((cat) => {
-              const catKey = cat.key ?? "general";
-              const colorClasses = CATEGORY_COLORS[catKey];
-              const catCards = cards.filter((c) => (c.category ?? "general") === catKey || (c.category === null && catKey === "general"));
-              const hasCards = catCards.length > 0;
-
-              return (
-                <div key={catKey}>
-                  {/* Subtle category divider */}
-                  <div className="grid grid-cols-7 gap-0">
-                    <div className="px-2 pt-2 pb-0.5 col-span-7">
-                      <span className={`text-[10px] font-bold uppercase tracking-widest ${colorClasses.text}`}>
-                        {categoryLabel(cat)}
-                      </span>
-                    </div>
-                  </div>
-                  <DiaryCategoryRow
-                    categoryKey={cat.key}
-                    categoryLabel={cat.label}
-                    colorClasses={colorClasses}
-                    weekStart={weekStart}
-                    cards={catCards}
-                    onAddCard={addCard}
-                    onUpdateCard={updateCard}
-                    onDeleteCard={deleteCard}
-                    onDuplicateCard={duplicateCard}
-                  />
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-6 gap-x-6">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <DiaryDayColumn
+                key={i}
+                dayIndex={i}
+                entries={entriesForDay(visibleCards, i)}
+                {...columnProps}
+              />
+            ))}
+            <div className="flex flex-col gap-8">
+              <DiaryDayColumn
+                dayIndex={5}
+                entries={entriesForDay(visibleCards, 5)}
+                lines={4}
+                {...columnProps}
+              />
+              <DiaryDayColumn
+                dayIndex={6}
+                entries={entriesForDay(visibleCards, 6)}
+                lines={4}
+                {...columnProps}
+              />
+            </div>
           </div>
 
           <DragOverlay>
             {activeCard ? (
               <div className="bg-card rounded px-2 py-1.5 shadow-lg border border-border/30 opacity-90 rotate-1 max-w-[200px]">
-                <p className="text-[13px] text-foreground">{activeCard.content || "Empty"}</p>
+                <p className="text-[13px] text-foreground truncate">
+                  {activeCard.content || "Empty"}
+                </p>
               </div>
             ) : null}
           </DragOverlay>
         </DndContext>
       )}
+
+      <DiaryEntryModal
+        card={modalCard}
+        weekStart={weekStart}
+        open={!!modalCard}
+        onClose={() => setModalCardId(null)}
+        onUpdate={updateCard}
+        onDelete={deleteCard}
+        onSetRepeat={setRepeat}
+      />
+
+      <DiarySearchOverlay
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onJumpToEntry={(card) => {
+          setWeekStart(getMonday(new Date(card.week_start + "T00:00:00")));
+          setModalCardId(card.id);
+          setSearchOpen(false);
+        }}
+      />
     </div>
   );
 };
 
-function categoryLabel(cat: { key: string | null; label: string }) {
-  return cat.label;
-}
+const FilterChip = ({
+  active,
+  onClick,
+  label,
+  dotClass,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  dotClass?: string;
+}) => (
+  <button
+    onClick={onClick}
+    className={`flex items-center gap-1.5 rounded-full px-3 h-7 text-xs font-medium border transition-colors ${
+      active
+        ? "bg-primary text-primary-foreground border-primary"
+        : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+    }`}
+  >
+    {dotClass && <span className={`h-2 w-2 rounded-full ${dotClass}`} />}
+    {label}
+  </button>
+);
