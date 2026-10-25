@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Redesign booking window from Figma: single-column booking order, tinted job choices, container/size choices, collapsed considerations, fixed footer price; retain separate haulage/tonnage and exchange defaults.
 - [x] Replace driver job-count capacity with postcode travel, handling and yard-return estimates; 10-hour day including 45-minute break saved and reloaded in Driver settings. Nine tests pass, signed-in Monday totals verified; approximation excludes live traffic/waiting and uses fallback allowances for missing postcodes. No job assignments changed.
 - [x] Restyle RouteOne Day scheduler from uploaded tinted-block brief; signed-in Monday cards, job opening, print/finalise menu and unchanged Week verified; 13 tests pass. Capacity uses 10-job fallback. Current data has no confirmation/time-window fields, so neither is inferred; no jobs changed.
 - [x] Default exchanges to configured Skip/RoRo zone booking dates; four date-rule tests pass, signed-in RoRo selects 26 Oct and preserves manual 30 Oct across tabs, no job saved, preview clean.
