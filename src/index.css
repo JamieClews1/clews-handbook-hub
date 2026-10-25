@@ -328,7 +328,7 @@
   .routeone-booking-flow { max-width: 880px; margin-inline: auto; }
   .booking-section { padding-block: 20px; border-bottom: 1px solid hsl(var(--border)); }
   .routeone-booking-flow .booking-container-choice { background: hsl(var(--background)); color: hsl(var(--foreground)); border-color: hsl(var(--border)); }
-  .routeone-booking-flow .booking-container-choice[aria-pressed="true"] { border-color: hsl(var(--foreground)); background: hsl(var(--muted)); }
+  .routeone-booking-flow .booking-container-choice[aria-pressed="true"] { border-color: hsl(var(--primary)); background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-weight: 600; }
   .booking-step { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 600; color: hsl(var(--foreground)); }
   .booking-step > span { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; background: hsl(var(--muted)); color: hsl(var(--muted-foreground)); font-size: 12px; }
   .routeone-booking-flow .booking-type-choice { background: hsl(var(--job-tint)); color: hsl(var(--job-accent)); border-color: hsl(var(--job-border)); gap: 6px; }
