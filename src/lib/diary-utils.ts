@@ -110,8 +110,10 @@ export function repeatOccurrences(
       out.push({ week_start: formatDate(addDays(monday, 28 * i)), day_of_week: card.day_of_week });
     }
   } else if (repeat === "daily") {
-    for (let i = 1; i <= 28; i++) {
-      const d = addDays(monday, i);
+    // Start the day after the entry's own date so the original is never duplicated.
+    const startDate = addDays(monday, card.day_of_week + 1);
+    for (let i = 0; i < 28; i++) {
+      const d = addDays(startDate, i);
       out.push({ week_start: formatDate(getMonday(d)), day_of_week: (d.getDay() + 6) % 7 });
     }
   }
