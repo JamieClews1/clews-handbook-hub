@@ -516,7 +516,7 @@ export function JobFormFields({
               <Search className="h-4 w-4" />{postcodeSearching ? "Searching..." : "Search"}
             </Button>
           </div>
-          {postcodeQuery.trim().length >= 3 && !queryZone && (
+          {/^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(postcodeQuery.trim()) && !queryZone && (
             <p className="text-[11px] text-muted-foreground">No zone configured for this postcode.</p>
           )}
           {postcodeSearched && postcodeMatches.length === 0 && (
