@@ -1,6 +1,6 @@
 import { it } from "node:test";
 import assert from "node:assert/strict";
-import { STAFF_NAV_GROUPS, navigationAllowed, navigationActive } from "./staff-navigation";
+import { QUICK_LINKS, STAFF_NAV_GROUPS, navigationAllowed, navigationActive } from "./staff-navigation";
 const all = STAFF_NAV_GROUPS.flatMap(g => g.items);
 const staff = { isAdmin: false, canAccessFinance: false, canAccessPl: false };
 it("moving admin pages does not expose them to ordinary staff", () => {
