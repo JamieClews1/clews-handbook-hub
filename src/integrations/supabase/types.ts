@@ -8597,10 +8597,15 @@ export type Database = {
           min_weight_charge: number | null
           notes: string | null
           outbound_weight_t: number | null
+          own_container: boolean
           permit_application_id: string | null
           permit_required: boolean
           po_number: string | null
           query_reason: string | null
+          rental_enabled: boolean
+          rental_free_days: number | null
+          rental_start_date: string | null
+          rental_weekly_rate: number | null
           scheduled_date: string
           scheduled_time: string | null
           sic_code: string | null
@@ -8663,10 +8668,15 @@ export type Database = {
           min_weight_charge?: number | null
           notes?: string | null
           outbound_weight_t?: number | null
+          own_container?: boolean
           permit_application_id?: string | null
           permit_required?: boolean
           po_number?: string | null
           query_reason?: string | null
+          rental_enabled?: boolean
+          rental_free_days?: number | null
+          rental_start_date?: string | null
+          rental_weekly_rate?: number | null
           scheduled_date?: string
           scheduled_time?: string | null
           sic_code?: string | null
@@ -8729,10 +8739,15 @@ export type Database = {
           min_weight_charge?: number | null
           notes?: string | null
           outbound_weight_t?: number | null
+          own_container?: boolean
           permit_application_id?: string | null
           permit_required?: boolean
           po_number?: string | null
           query_reason?: string | null
+          rental_enabled?: boolean
+          rental_free_days?: number | null
+          rental_start_date?: string | null
+          rental_weekly_rate?: number | null
           scheduled_date?: string
           scheduled_time?: string | null
           sic_code?: string | null
@@ -10843,6 +10858,8 @@ export type Database = {
         | "waste_truck"
         | "wasted_journey"
         | "waste_out_skip"
+        | "pickup_truck"
+        | "third_party_booking"
       skip_material_type: "card_loose" | "scrap_metal"
       user_type: "driver" | "yard" | "office" | "management"
       weighbridge_status: "first_weigh" | "completed" | "voided"
@@ -10997,6 +11014,8 @@ export const Constants = {
         "waste_truck",
         "wasted_journey",
         "waste_out_skip",
+        "pickup_truck",
+        "third_party_booking",
       ],
       skip_material_type: ["card_loose", "scrap_metal"],
       user_type: ["driver", "yard", "office", "management"],

@@ -239,6 +239,13 @@
       "when": 1792933804889,
       "tag": "0033_recent_booking_site_bank",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792934167314,
+      "tag": "0034_booking_ownership_rental_and_types",
+      "breakpoints": true
     }
   ]
 }
