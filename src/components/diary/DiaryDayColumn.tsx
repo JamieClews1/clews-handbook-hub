@@ -1,7 +1,14 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { DiaryEntryLine } from "./DiaryEntryLine";
-import { DiaryCard, addDays, formatDate } from "@/lib/diary-utils";
+import {
+  DiaryCard,
+  DiaryCategory,
+  addDays,
+  formatDate,
+  categoryKeyOf,
+  dotClassFor,
+} from "@/lib/diary-utils";
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -10,6 +17,7 @@ interface DiaryDayColumnProps {
   weekStart: Date;
   today: string;
   entries: DiaryCard[];
+  categories: DiaryCategory[];
   lines?: number;
   editingId: string | null;
   onAddLine: (dayIndex: number) => Promise<DiaryCard | null>;
@@ -25,6 +33,7 @@ export const DiaryDayColumn = ({
   weekStart,
   today,
   entries,
+  categories,
   lines = 8,
   editingId,
   onAddLine,
@@ -38,6 +47,7 @@ export const DiaryDayColumn = ({
   const dayDate = addDays(weekStart, dayIndex);
   const isToday = formatDate(dayDate) === today;
   const dateLabel = dayDate.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+
   // Hide blank entries left over from the old "+" buttons unless being edited
   const visibleEntries = entries.filter(
     (e) => e.content.trim().length > 0 || editingId === e.id
@@ -56,14 +66,14 @@ export const DiaryDayColumn = ({
       aria-current={isToday ? "date" : undefined}
     >
       <div
-        className={`flex items-baseline justify-between pb-1 border-b-2 ${
+        className={`flex items-baseline justify-between pb-1.5 border-b-2 ${
           isToday ? "border-primary" : "border-foreground/70"
         }`}
       >
-        <span className={`text-sm font-bold ${isToday ? "text-primary" : "text-foreground"}`}>
+        <span className={`text-lg font-bold ${isToday ? "text-primary" : "text-foreground"}`}>
           {dateLabel}
         </span>
-        <span className={`text-xs ${isToday ? "text-primary" : "text-muted-foreground"}`}>
+        <span className={`text-sm ${isToday ? "text-primary" : "text-muted-foreground"}`}>
           {DAY_NAMES[dayIndex]}
         </span>
       </div>
@@ -73,6 +83,7 @@ export const DiaryDayColumn = ({
           <DiaryEntryLine
             key={card.id}
             card={card}
+            dotClass={dotClassFor(categoryKeyOf(card), categories)}
             editing={editingId === card.id}
             onRequestEdit={onRequestEdit}
             onUpdate={onUpdate}
@@ -89,7 +100,7 @@ export const DiaryDayColumn = ({
           key={i}
           onClick={addAndEdit}
           aria-label={`Add entry on ${DAY_NAMES[dayIndex]} ${dateLabel}`}
-          className="block w-full h-[42px] border-b border-border/40 hover:bg-muted/20 transition-colors"
+          className="block w-full h-[52px] border-b border-border/40 hover:bg-muted/20 transition-colors"
         />
       ))}
     </div>

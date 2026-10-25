@@ -1,12 +1,19 @@
 import { useRef } from "react";
 import { DiaryDayColumn } from "./DiaryDayColumn";
-import { DiaryCard, addDays, formatDate, entriesForDay } from "@/lib/diary-utils";
+import {
+  DiaryCard,
+  DiaryCategory,
+  addDays,
+  formatDate,
+  entriesForDay,
+} from "@/lib/diary-utils";
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 interface DiaryMobileDayViewProps {
   weekStart: Date;
   cards: DiaryCard[];
+  categories: DiaryCategory[];
   selectedDay: number;
   onSelectDay: (day: number) => void;
   today: string;
@@ -22,6 +29,7 @@ interface DiaryMobileDayViewProps {
 export const DiaryMobileDayView = ({
   weekStart,
   cards,
+  categories,
   selectedDay,
   onSelectDay,
   today,
@@ -52,7 +60,7 @@ export const DiaryMobileDayView = ({
             <button
               key={name}
               onClick={() => onSelectDay(i)}
-              className={`flex flex-col items-center rounded-lg py-1.5 text-xs transition-colors ${
+              className={`flex flex-col items-center rounded-lg py-2 text-sm transition-colors ${
                 selected
                   ? "bg-primary text-primary-foreground"
                   : isToday
@@ -61,7 +69,7 @@ export const DiaryMobileDayView = ({
               }`}
             >
               <span className="font-medium">{name}</span>
-              <span className="text-sm font-bold">{date.getDate()}</span>
+              <span className="text-base font-bold">{date.getDate()}</span>
             </button>
           );
         })}
@@ -72,6 +80,7 @@ export const DiaryMobileDayView = ({
         weekStart={weekStart}
         today={today}
         entries={entriesForDay(cards, selectedDay)}
+        categories={categories}
         lines={10}
         {...rest}
       />

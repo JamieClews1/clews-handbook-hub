@@ -2,6 +2,8 @@ import { it } from "node:test";
 import assert from "node:assert/strict";
 import {
   DiaryCard,
+  DiaryCategory,
+  DEFAULT_DIARY_CATEGORIES,
   isoWeekNumber,
   getMonday,
   addDays,
@@ -11,6 +13,8 @@ import {
   entriesForDay,
   repeatOccurrences,
   categoryKeyOf,
+  dotClassFor,
+  slugifyCategoryKey,
 } from "./diary-utils";
 
 const card = (over: Partial<DiaryCard>): DiaryCard => ({
@@ -120,4 +124,29 @@ it("daily repeat covers the next 4 weeks without duplicating the original day", 
 
 it("addDays crosses month boundaries", () => {
   assert.equal(formatDate(addDays(new Date(2026, 9, 31), 1)), "2026-11-01");
+});
+
+it("default categories are five with unique keys", () => {
+  assert.equal(DEFAULT_DIARY_CATEGORIES.length, 5);
+  const keys = DEFAULT_DIARY_CATEGORIES.map((c) => c.key);
+  assert.equal(new Set(keys).size, keys.length);
+  assert.equal(DEFAULT_DIARY_CATEGORIES[0].key, "general");
+});
+
+it("dotClassFor uses the category colour", () => {
+  const cats: DiaryCategory[] = [{ key: "drivers", label: "Drivers", color: "blue" }];
+  assert.equal(dotClassFor("drivers", cats), "bg-blue-500");
+});
+
+it("dotClassFor falls back to grey for unknown keys and colours", () => {
+  const cats: DiaryCategory[] = [{ key: "odd", label: "Odd", color: "not-a-colour" }];
+  assert.equal(dotClassFor("missing", cats), "bg-slate-400");
+  assert.equal(dotClassFor("odd", cats), "bg-slate-400");
+});
+
+it("slugifyCategoryKey makes safe unique keys", () => {
+  assert.equal(slugifyCategoryKey("Loads In!", []), "loads_in");
+  assert.equal(slugifyCategoryKey("Drivers", ["drivers"]), "drivers_2");
+  assert.equal(slugifyCategoryKey("Drivers", ["drivers", "drivers_2"]), "drivers_3");
+  assert.equal(slugifyCategoryKey("!!!", []), "category");
 });

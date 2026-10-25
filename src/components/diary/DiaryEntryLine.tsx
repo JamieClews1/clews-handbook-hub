@@ -2,10 +2,11 @@ import { useState, useRef, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Check } from "lucide-react";
-import { DiaryCard, CATEGORY_DOT_CLASS, categoryKeyOf } from "@/lib/diary-utils";
+import { DiaryCard } from "@/lib/diary-utils";
 
 interface DiaryEntryLineProps {
   card: DiaryCard;
+  dotClass: string;
   editing: boolean;
   onRequestEdit: (id: string | null) => void;
   onUpdate: (id: string, updates: Partial<DiaryCard>) => void;
@@ -17,6 +18,7 @@ interface DiaryEntryLineProps {
 
 export const DiaryEntryLine = ({
   card,
+  dotClass,
   editing,
   onRequestEdit,
   onUpdate,
@@ -52,13 +54,11 @@ export const DiaryEntryLine = ({
         transition,
         opacity: isDragging ? 0.4 : 1,
       }}
-      className="group flex items-center gap-2 h-[42px] border-b border-border/40"
+      className="group flex items-center gap-2.5 h-[52px] border-b border-border/40"
       {...attributes}
       {...listeners}
     >
-      <span
-        className={`h-2 w-2 rounded-full shrink-0 ${CATEGORY_DOT_CLASS[categoryKeyOf(card)]}`}
-      />
+      <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${dotClass}`} />
       {editing ? (
         <input
           ref={inputRef}
@@ -78,13 +78,13 @@ export const DiaryEntryLine = ({
           }}
           onPointerDown={(e) => e.stopPropagation()}
           placeholder="Write something..."
-          className="flex-1 min-w-0 bg-transparent outline-none text-[14px] text-foreground placeholder:text-muted-foreground/40"
+          className="flex-1 min-w-0 bg-transparent outline-none text-base text-foreground placeholder:text-muted-foreground/40"
         />
       ) : (
         <button
           onClick={() => onOpen(card)}
           onDoubleClick={() => onRequestEdit(card.id)}
-          className={`flex-1 min-w-0 text-left truncate text-[14px] ${
+          className={`flex-1 min-w-0 text-left truncate text-base ${
             card.done ? "line-through text-muted-foreground/60" : "text-foreground"
           }`}
         >
@@ -98,13 +98,13 @@ export const DiaryEntryLine = ({
         }}
         onPointerDown={(e) => e.stopPropagation()}
         aria-label={card.done ? "Mark as not done" : "Mark as done"}
-        className={`h-5 w-5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
+        className={`h-6 w-6 rounded-full border flex items-center justify-center shrink-0 transition-all ${
           card.done
             ? "border-primary bg-primary text-primary-foreground"
             : "border-muted-foreground/40 text-transparent opacity-0 group-hover:opacity-100 hover:border-primary"
         }`}
       >
-        <Check className="h-3 w-3" />
+        <Check className="h-3.5 w-3.5" />
       </button>
     </div>
   );
