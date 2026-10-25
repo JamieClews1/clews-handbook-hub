@@ -25,7 +25,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { ArrowLeft, DollarSign, Save, Link2, Settings, Send, FileSpreadsheet, ClipboardList, Inbox, MailCheck } from "lucide-react";
-import clewsLogo from "@/assets/clews-logo.png";
+import { PageHeading } from "@/components/PageHeading";
 import { RebateMappingSection } from "@/components/rebate-values/RebateMappingSection";
 import { RebateSettingsSection } from "@/components/rebate-values/RebateSettingsSection";
 import { RebateScreenshotUpload } from "@/components/rebate-values/RebateScreenshotUpload";
@@ -247,27 +247,9 @@ const RebateValuesPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Link to="/portal">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline">Portal</span>
-                </Button>
-              </Link>
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-muted-foreground" />
-                <span className="font-semibold text-foreground">Rebates</span>
-              </div>
-            </div>
-            <img src={clewsLogo} alt="Clews Recycling" className="h-8 w-auto" />
-          </div>
-        </div>
-      </header>
 
       <main className="container mx-auto px-4 py-6">
+        <PageHeading title="Rebates" />
         <div className="max-w-screen-2xl mx-auto space-y-6">
           <Tabs defaultValue="monthly-generation" className="w-full">
             <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 mb-6 h-auto">

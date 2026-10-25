@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import logo from "@/assets/w1-logo.png";
 
 interface HeaderProps {
   language: string;
@@ -24,9 +23,9 @@ export const Header = ({ language, onLanguageChange }: HeaderProps) => {
   };
 
   return (
-    <header className="bg-card border-b border-border sticky top-0 z-50 shadow-sm">
+    <header className="bg-background">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <img src={logo} alt="Clews Recycling" className="h-12 md:h-16" />
+        <span className="text-2xl font-bold text-foreground">Handbook</span>
         
         <div className="flex items-center gap-4">
           {isAdmin && (

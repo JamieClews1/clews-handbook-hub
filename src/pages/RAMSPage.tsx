@@ -1,3 +1,4 @@
+import { PageHeading } from "@/components/PageHeading";
 import { useEffect, useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,7 +10,6 @@ import { ArrowLeft, FileText, AlertTriangle, ClipboardList, Loader2, CheckCircle
 import { format } from "date-fns";
 import { RAMSBuilder } from "@/components/RAMSBuilder";
 import { Pencil, Eye } from "lucide-react";
-import clewsLogo from "@/assets/clews-logo.png";
 
 interface RAMS {
   id: string;
@@ -145,84 +145,18 @@ const RAMSPage = () => {
   const editing = isAdmin && searchParams.get("view") === "edit";
   return (
     <div className="min-h-screen bg-background">
-      {isAdmin && <div className="container mx-auto px-4 py-3 flex justify-end">
-        <Button variant="outline" onClick={() => setSearchParams(prev => { const next = new URLSearchParams(prev); if (editing) next.delete("view"); else next.set("view", "edit"); return next; })}>
-          {editing ? <Eye className="h-4 w-4 mr-2" /> : <Pencil className="h-4 w-4 mr-2" />}{editing ? "View RAMS" : "Edit RAMS"}
-        </Button>
-      </div>}
-      {editing ? <main className="container max-w-screen-2xl mx-auto px-4 py-6"><h1 className="text-2xl font-bold mb-6">Edit RAMS</h1><RAMSBuilder /></main> : <>
-      {/* Header */}
-      <header className="bg-card border-b border-border shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <img src={clewsLogo} alt="Clews Recycling" className="h-12 w-auto" />
-          {/* Desktop controls */}
-          <div className="hidden md:flex items-center gap-2">
-            {(isAdmin || isManagement) && (
-              <Link to="/mass-sign-off">
-                <Button variant="default" size="sm" className="gap-2">
-                  <ClipboardSignature className="h-4 w-4" />
-                  <span>Mass Sign-Off</span>
-                </Button>
-              </Link>
-            )}
-            <Link to="/my-profile">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <User className="h-4 w-4" />
-                <span>My Profile</span>
-              </Button>
-            </Link>
-            <Link to="/portal">
-              <Button variant="outline" size="sm" className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back to Portal</span>
-              </Button>
-            </Link>
-          </div>
-          {/* Mobile nav buttons only */}
-          <div className="flex md:hidden items-center gap-2">
-            <Link to="/my-profile">
-              <Button variant="ghost" size="sm">
-                <User className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link to="/portal">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* Mobile controls bar */}
-      <div className="md:hidden bg-card border-b border-border px-4 py-3">
-        <div className="flex items-center justify-center gap-3">
-          {(isAdmin || isManagement) && (
-            <Link to="/mass-sign-off">
-              <Button variant="default" size="sm" className="gap-2">
-                <ClipboardSignature className="h-4 w-4" />
-                <span>Mass Sign-Off</span>
-              </Button>
-            </Link>
-          )}
-        </div>
+      <div className="container mx-auto px-4 pt-6">
+        <PageHeading title={editing ? "Edit RAMS" : "RAMS"} description="Risk assessments and method statements" actions={
+          <>
+            {(isAdmin || isManagement) && <Button asChild variant="outline"><Link to="/mass-sign-off"><ClipboardSignature className="h-4 w-4 mr-2" />Mass Sign-Off</Link></Button>}
+            {isAdmin && <Button variant="outline" onClick={() => setSearchParams(prev => { const next = new URLSearchParams(prev); if (editing) next.delete("view"); else next.set("view", "edit"); return next; })}>
+              {editing ? <Eye className="h-4 w-4 mr-2" /> : <Pencil className="h-4 w-4 mr-2" />}{editing ? "View RAMS" : "Edit RAMS"}
+            </Button>}
+          </>
+        } />
       </div>
-
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-accent to-primary py-12">
-        <div className="container mx-auto px-4 text-center">
-          <FileText className="h-16 w-16 text-primary-foreground mx-auto mb-4" />
-          <h2 className="text-3xl font-bold text-primary-foreground mb-2">
-            Risk Assessments & Method Statements
-          </h2>
-          <p className="text-lg text-primary-foreground/90 max-w-2xl mx-auto">
-            Essential documentation for safe work practices and regulatory compliance.
-          </p>
-        </div>
-      </section>
-
-      {/* Content */}
-      <main className="container mx-auto px-4 py-12">
+      {editing ? <main className="container max-w-screen-2xl mx-auto px-4 py-6"><RAMSBuilder /></main> : <>
+      <main className="container mx-auto px-4 pb-6">
         <div className="max-w-4xl mx-auto">
           <Card className="mb-8">
             <CardHeader>

@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { ArrowLeft, Download, Languages, Loader2, CheckCircle, PenTool, ClipboardSignature } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import clewsLogo from "@/assets/clews-logo.png";
 import jsPDF from "jspdf";
 import { SignaturePad } from "@/components/SignaturePad";
 import { sanitizeHtml } from "@/lib/sanitize-html";
@@ -653,7 +652,6 @@ const RAMSDetailPage = () => {
       <header className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
             <div className="hidden sm:block">
               <h1 className="text-lg font-semibold text-foreground">{rams.reference_code}</h1>
             </div>

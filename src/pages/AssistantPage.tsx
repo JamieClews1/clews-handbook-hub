@@ -72,15 +72,10 @@ const AssistantPage = () => {
 
   return (
     <div className="h-[calc(100vh-3.5rem)] flex flex-col">
-      <div className="border-b border-border bg-card px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow">
-            <Bot className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold">Ask One</h1>
-            <p className="text-sm text-muted-foreground">Read & interpret your data, or take admin actions — in plain English.</p>
-          </div>
+      <div className="border-b border-border bg-background px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-baseline gap-3">
+            <h1 className="text-2xl font-bold text-foreground">Ask One</h1>
+            <p className="text-sm text-muted-foreground">Portal assistant</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setLogOpen(true)}>

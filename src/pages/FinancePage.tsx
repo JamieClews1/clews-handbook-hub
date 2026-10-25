@@ -1,4 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeading } from "@/components/PageHeading";
 import { PoundSterling } from "lucide-react";
 import { useFinanceAccess } from "@/hooks/useFinanceAccess";
 import FinanceDashboard from "@/components/finance/FinanceDashboard";
@@ -30,17 +31,7 @@ export default function FinancePage() {
 
   return (
     <div className="mx-auto max-w-screen-2xl space-y-6 p-6">
-      <header className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <PoundSterling className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Finance</h1>
-          <p className="text-sm text-muted-foreground">
-            Invoicing, payment tracking and accounts package sync.
-          </p>
-        </div>
-      </header>
+      <PageHeading title="Finance" description="Invoicing, payments and accounts package sync" />
 
       <Tabs defaultValue="dashboard">
         <TabsList className="h-auto flex-wrap">

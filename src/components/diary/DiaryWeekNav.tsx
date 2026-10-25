@@ -11,7 +11,8 @@ interface DiaryWeekNavProps {
 
 export const DiaryWeekNav = ({ weekLabel, isCurrentWeek, onPrev, onNext, onToday }: DiaryWeekNavProps) => {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-3">
+      <h1 className="text-2xl font-bold text-foreground">Diary</h1>
       {!isCurrentWeek && (
         <Button variant="outline" size="sm" onClick={onToday} className="text-xs rounded-full px-3 h-7">
           Today

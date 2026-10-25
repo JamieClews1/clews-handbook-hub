@@ -22,7 +22,7 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import clewsLogo from "@/assets/clews-logo.png";
+import { PageHeading } from "@/components/PageHeading";
 import { ArrowLeft, ArrowRight, ArrowUpRight, RefreshCw, Upload } from "lucide-react";
 import { ArchivedJobsPanel } from "@/components/data-uploads/ArchivedJobsPanel";
 import { LiveUploadsPanel } from "@/components/data-uploads/LiveUploadsPanel";
@@ -997,35 +997,10 @@ const DataUploadsPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link to="/performance-hub">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline">Back to Performance Hub</span>
-                </Button>
-              </Link>
-              <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
-            </div>
-          </div>
-        </div>
-      </header>
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-screen-2xl mx-auto space-y-8">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
-              <Upload className="h-7 w-7 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Performance Hub · Data Uploads</h1>
-              <p className="text-muted-foreground">
-                Upload Skiptrak and Midweigh XLSX files. Records are upserted by Ticket.
-              </p>
-            </div>
-          </div>
+          <PageHeading title="Data Uploads" description="Skiptrak and Midweigh files" />
 
           {!canUpload && (
             <Card>

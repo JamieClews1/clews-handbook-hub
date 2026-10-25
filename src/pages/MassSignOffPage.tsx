@@ -13,7 +13,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, CheckCircle, ClipboardList, Users, MessageSquare, ClipboardCheck } from "lucide-react";
 import { SignaturePad } from "@/components/SignaturePad";
 import { useToast } from "@/hooks/use-toast";
-import clewsLogo from "@/assets/clews-logo.png";
 
 interface UserProfile {
   id: string;
@@ -381,7 +380,6 @@ const MassSignOffPage = () => {
     <div className="min-h-screen bg-background">
       <header className="bg-card border-b px-4 py-3 sticky top-0 z-10">
         <div className="flex items-center justify-between">
-          <img src={clewsLogo} alt="Clews Logo" className="h-10 w-auto" />
           <Link to="/portal">
             <Button variant="outline" size="sm">
               <ArrowLeft className="h-4 w-4 mr-1" />

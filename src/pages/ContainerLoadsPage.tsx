@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Container, Plus, Loader2, Search, Boxes } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import clewsLogo from "@/assets/clews-logo.png";
+import { PageHeading } from "@/components/PageHeading";
 import {
   ContainerLoad,
   ContainerStatus,
@@ -123,32 +123,6 @@ const ContainerLoadsPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {selectedId ? (
-                <Button variant="ghost" size="sm" className="gap-2" onClick={handleBackToList}>
-                  <ArrowLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline">Back</span>
-                </Button>
-              ) : (
-                <Link to="/load-reports">
-                  <Button variant="ghost" size="sm" className="gap-2">
-                    <ArrowLeft className="h-4 w-4" />
-                    <span className="hidden sm:inline">Load Reports</span>
-                  </Button>
-                </Link>
-              )}
-              <div className="flex items-center gap-2">
-                <Container className="h-5 w-5 text-emerald-600" />
-                <span className="font-semibold text-foreground hidden sm:inline">Container Loads</span>
-              </div>
-            </div>
-            <img src={clewsLogo} alt="Clews Recycling" className="h-8 w-auto hidden sm:block" />
-          </div>
-        </div>
-      </header>
 
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-screen-2xl mx-auto">
@@ -156,18 +130,7 @@ const ContainerLoadsPage = () => {
             <ContainerLoadEditor loadId={selectedId} onBack={handleBackToList} />
           ) : (
             <>
-              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg">
-                    <Boxes className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-bold text-foreground">Container Loads</h1>
-                    <p className="text-muted-foreground text-sm">
-                      Prep, track and document outgoing export containers
-                    </p>
-                  </div>
-                </div>
+              <PageHeading title="Container Loads" description="Outgoing export containers" actions={
                 <div className="flex items-center gap-2">
                   <ContainerLoadSettingsDialog />
                   <Button onClick={handleNew} disabled={creating} className="gap-2">
@@ -175,7 +138,7 @@ const ContainerLoadsPage = () => {
                     New container load
                   </Button>
                 </div>
-              </div>
+              } />
 
               <div className="flex flex-wrap gap-3 mb-5">
                 <div className="relative flex-1 min-w-[200px]">

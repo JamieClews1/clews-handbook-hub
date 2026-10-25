@@ -74,7 +74,7 @@ export const Handbook = ({ language }: HandbookProps) => {
     <main className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold mb-4">Employee Handbook</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-4">Employee Handbook</h1>
         <p className="text-muted-foreground mb-4">Last updated: {new Date().toLocaleDateString()}</p>
         <p className="text-foreground max-w-2xl mx-auto leading-relaxed mb-6">
           {introductions[language as keyof typeof introductions] || introductions.en}

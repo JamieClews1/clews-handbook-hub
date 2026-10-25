@@ -75,7 +75,7 @@ const Index = () => {
       href: "/one-portal",
     },
     {
-      title: "Performance",
+      title: "Insights & Data",
       subtitle: "Analytics & Data",
       description: "Waste KPIs, business reports, contaminations, and stock monitoring.",
       icon: BarChart3,
@@ -88,8 +88,8 @@ const Index = () => {
       {/* Welcome */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Your workspace</p>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">Your workspace</p>
         </div>
         <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md font-mono">v{appVersion}</span>
       </div>
