@@ -140,12 +140,14 @@ function AutocompleteInput({
   );
 }
 
-/** Normalise a postcode to the "NN6 7XY" spaced form for matching. */
-const postcodeVariants = (input: string) => {
-  const compact = input.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  if (compact.length < 3) return [compact];
-  const spaced = `${compact.slice(0, -3)} ${compact.slice(-3)}`;
-  return compact === spaced ? [compact] : [compact, spaced];
+/** Rolling calendar-month window, matching the bank's London date boundary. */
+const recentSiteCutoff = () => {
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const [year, month, day] = today.split("-").map(Number);
+  const target = new Date(Date.UTC(year, month - 7, 1));
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(day, lastDay));
+  return target.toISOString().slice(0, 10);
 };
 
 type PostcodeMatch = {
@@ -208,19 +210,20 @@ export function JobFormFields({
       const custs = candidates.filter(c => [c.customer_name, c.data_hub_customer].some(n => n && normaliseCustomer(n).toLowerCase() === wanted));
       const setup = custs.length ? await fetchAllRows<any>("customer_sites", "*", "id", q => q.in("customer_id", custs.map(c => c.id)).eq("is_archived", false)) : [];
       const aliases = [...new Set([customer.trim(), customerSearch, ...custs.flatMap(c => [c.customer_name, c.data_hub_customer]), ...setup.map(r => r.data_hub_customer)].filter(Boolean))];
-      const hub = await fetchAllRows<any>("data_hub_jobs", "customer,site,postcode,raw,job_date,id", "id", q => q.eq("source", "skiptrak").in("customer", aliases).not("site", "is", null));
+      const { data: hub, error: bankError } = await supabase.from("route_one_recent_sites").select("customer,site,postcode,address,area,contact,phone,sic,last_used").in("customer", aliases).gte("last_used", recentSiteCutoff()).order("last_used", { ascending: false });
+      if (bankError) throw bankError;
       if (cancelled) return;
       const known = new Map<string, KnownSite>();
       for (const row of setup) {
         const address = [row.address_1, row.address_2, row.address_3, row.address_4, row.address_5].filter(Boolean).join("\n");
         known.set(row.site_name.toLowerCase(), { name: row.site_name, address, postcode: row.postcode || "", area: row.area || "", contact: row.site_contact_name || "", phone: row.site_contact_phone || "", sic: row.sic_code || "" });
       }
-      for (const row of hub.sort((a,b) => String(b.job_date).localeCompare(String(a.job_date)))) {
+      for (const row of hub || []) {
         const name = String(row.site || "").trim(); if (!name) continue;
         const mapped = setup.find(s => [s.site_name,s.data_hub_site,s.data_hub_site_2,s.data_hub_site_3,s.data_hub_site_4,s.data_hub_site_5].some(n => n?.trim().toLowerCase() === name.toLowerCase()));
         const displayName = mapped?.site_name || name;
         const existing = known.get(displayName.toLowerCase());
-        const details = importedSiteDetails(row.raw, row.postcode);
+        const details = { address: row.address, postcode: row.postcode, area: row.area, contact: row.contact, phone: row.phone, sic: row.sic };
         known.set(displayName.toLowerCase(), { ...details, ...existing, name: displayName, address: existing?.address || details.address, postcode: existing?.postcode || details.postcode, area: existing?.area || details.area, contact: existing?.contact || details.contact, phone: existing?.phone || details.phone, sic: existing?.sic || details.sic });
       }
 
@@ -281,57 +284,18 @@ export function JobFormFields({
     if (input.length < 3) return;
     setPostcodeSearching(true);
     setPostcodeSearched(false);
-    const variants = postcodeVariants(input);
-    const orFilter = variants.map((v) => `postcode.ilike.%${v}%`).join(",");
-    const roOrFilter = variants.map((v) => `site_postcode.ilike.%${v}%`).join(",");
-    const query = input.replace(/[,().%]/g, " ").trim();
-
-    const [{ data: ro }, { data: hub }] = await Promise.all([
-      supabase
-        .from("route_one_jobs")
-        .select("customer_name, site_name, site_address, site_postcode, container_type, container_size, waste_type, scheduled_date")
-        .or(`${roOrFilter},customer_name.ilike.%${query}%,site_name.ilike.%${query}%`)
-        .order("scheduled_date", { ascending: false })
-        .limit(50),
-      supabase
-        .from("data_hub_jobs")
-        .select("customer, site, postcode, container_type, waste_description, job_date, raw")
-        .or(`${orFilter},customer.ilike.%${query}%,site.ilike.%${query}%`)
-        .limit(200),
-    ]);
-
-    const byKey = new Map<string, PostcodeMatch>();
-    for (const j of (ro ?? []) as any[]) {
-      const key = `${(j.customer_name || "").toLowerCase()}|${(j.site_name || "").toLowerCase()}|${(j.site_postcode || "").toLowerCase()}`;
-      if (byKey.has(key)) continue;
-      byKey.set(key, {
-        customer: j.customer_name || "",
-        site: j.site_name || "",
-        address: j.site_address || "",
-        postcode: j.site_postcode || "",
-        container_type: j.container_type || "",
-        waste_type: j.waste_type || "",
-        last_date: j.scheduled_date || "",
-        source: "routeone",
-      });
+    try {
+      const { data, error } = await supabase.rpc("search_recent_booking_sites", { p_query: input, p_limit: 20 });
+      if (error) throw error;
+      setPostcodeMatches((data || []).map(row => ({ customer: row.customer, site: row.site, address: row.address, postcode: row.postcode, last_date: row.last_used, source: row.source === "routeone" ? "routeone" : "datahub" })));
+      setPostcodeSearched(true);
+      setSiteLoadError("");
+    } catch {
+      setPostcodeMatches([]);
+      setSiteLoadError("Site search is unavailable. Try searching again.");
+    } finally {
+      setPostcodeSearching(false);
     }
-    for (const j of (hub ?? []) as any[]) {
-      const key = `${(j.customer || "").toLowerCase()}|${(j.site || "").toLowerCase()}|${(j.postcode || "").toLowerCase()}`;
-      if (byKey.has(key)) continue;
-      byKey.set(key, {
-        customer: j.customer || "",
-        site: j.site || "",
-        address: importedSiteDetails(j.raw, j.postcode).address,
-        postcode: j.postcode || "",
-        container_type: j.container_type || "",
-        waste_type: j.waste_description || "",
-        last_date: j.job_date || "",
-        source: "datahub",
-      });
-    }
-    setPostcodeMatches([...byKey.values()].slice(0, 15));
-    setPostcodeSearching(false);
-    setPostcodeSearched(true);
   };
 
   /** Fill the form from a postcode match and jump straight to previous jobs. */
