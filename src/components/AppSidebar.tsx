@@ -22,6 +22,7 @@ import { isSuperAdminEmail } from "@/lib/super-admin";
 import { useSidebarGroupState } from "@/hooks/useSidebarGroupState";
 import { useFinanceAccess } from "@/hooks/useFinanceAccess";
 import { useCompanyPlAccess } from "@/hooks/useCompanyPlAccess";
+import { cn } from "@/lib/utils";
 
 function NavGroup({ title, icon: Icon, items, initialOpen, storageKey, collapsed, currentPath, hidden, isSuperAdmin }: {
   title: string; icon: LucideIcon; items: StaffNavItem[]; initialOpen: boolean; storageKey: string; collapsed: boolean;
@@ -35,12 +36,13 @@ function NavGroup({ title, icon: Icon, items, initialOpen, storageKey, collapsed
     previousPath.current = currentPath;
   }, [currentPath, items, setOpen]);
   const available = items.filter((item) => !item.key || !hidden.has(item.key) || isSuperAdmin);
+  const activeGroup = items.some(item => navigationActive(item.path, currentPath));
   if (available.length === 0) return null;
   return (
     <SidebarGroup className="gap-1">
       <Collapsible open={open} onOpenChange={setOpen}>
         <CollapsibleTrigger asChild>
-          <SidebarGroupLabel title={title} aria-label={title} className="h-9 cursor-pointer rounded-md px-3 text-xs font-semibold text-sidebar-foreground hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring">
+          <SidebarGroupLabel title={title} aria-label={title} className={cn("h-9 cursor-pointer rounded-md px-3 text-xs font-semibold focus-visible:ring-2 focus-visible:ring-sidebar-ring", activeGroup ? "text-sidebar-primary hover:text-sidebar-primary" : "text-sidebar-foreground hover:text-sidebar-foreground")}>
             {collapsed && <Icon className="h-4 w-4" />}
             {!collapsed && <><span>{title}</span><ChevronDown className="ml-auto h-4 w-4" /></>}
           </SidebarGroupLabel>
@@ -83,7 +85,7 @@ export function AppSidebar() {
         <div className="mb-2 px-4 py-3">
           <Link to="/portal" aria-label="WasteOne home" className="flex items-center gap-2" onClick={() => { if (isMobile) setOpenMobile(false); }}>
             <img src="/logo.png" alt="" className="h-8 w-8 rounded-md" />
-            {!collapsed && <span className="text-lg font-bold text-sidebar-foreground">WasteOne</span>}
+            {!collapsed && <span className="text-lg font-bold text-sidebar-primary">WasteOne</span>}
           </Link>
         </div>
         <SidebarGroup>
