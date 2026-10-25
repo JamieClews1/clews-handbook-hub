@@ -81,4 +81,4 @@
 - [x] Save changed rental chase email addresses to the customer contacts.
 - [x] Finance review: show every customer name on invoice lists and in the New invoice list; verify all 18 rows and the full active customer list.
 - [x] Show the date beside each Route One booking day (MON 19) on the bookings board; verify live board and day pickers.
-- [x] Restore mint #7FD3A0 sidebar primary on selected links (near-black text, 10.2:1 contrast), neutral hover kept, active section heading and wordmark mint; signed-in preview verified.
+- [x] Restore sidebar primary on selected links using the logo green #4DD289 (near-black text, 9.5:1 contrast), neutral hover kept, active section heading and wordmark same logo green; signed-in preview verified.
