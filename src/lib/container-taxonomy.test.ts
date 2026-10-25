@@ -9,7 +9,7 @@ it("ARTIC offers Curtain, Walking Floor and Ejector", () => assert.deepEqual(pri
 it("Pickup and 7.5 Tonne are separate vehicle options", () => {
   assert.equal(CONTAINER_GROUPS.find(g => g.value === "Pickup")?.label, "PICKUP");
   assert.equal(CONTAINER_GROUPS.find(g => g.value === "7.5 Tonne")?.label, "7.5 TONNE");
-  assert.deepEqual(pricingContainerOptions(sizes, "Pickup"), []);
+  assert.deepEqual(pricingContainerOptions(sizes, "Pickup").map(s => s.size_code), ["pickup"]);
   assert.deepEqual(pricingContainerOptions(sizes, "7.5 Tonne").map(s => s.size_code), ["7_5_tonne"]);
 });
 it("inactive and unrelated pricing sizes never become booking choices", () => assert.deepEqual(pricingContainerOptions([{ size_code: "4yd", display_name: "4yd", is_active: true }, { size_code: "8yd", display_name: "8yd", is_active: false }], "Skip"), []));
