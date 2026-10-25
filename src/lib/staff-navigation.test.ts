@@ -27,3 +27,15 @@ it("weighbridge pricing has its own active destination", () => {
   assert.equal(navigationActive("/weigh-one", "/weigh-one/pricing"), false);
   assert.equal(navigationActive("/weigh-one/pricing", "/weigh-one/pricing"), true);
 });
+it("Company P&L selects only its own page, not Invoicing", () => {
+  const selected = all.filter(item => navigationActive(item.path, "/finance/company-pl"));
+  assert.deepEqual(selected.map(item => item.path), ["/finance/company-pl"]);
+});
+it("nested P&L pages keep the most specific selection", () => {
+  assert.equal(navigationActive("/finance", "/finance/company-pl/settings"), false);
+  assert.equal(navigationActive("/finance/company-pl", "/finance/company-pl/settings"), true);
+});
+it("Invoicing still selects Finance itself", () => {
+  assert.equal(navigationActive("/finance", "/finance"), true);
+  assert.equal(navigationActive("/finance/company-pl", "/finance"), false);
+});

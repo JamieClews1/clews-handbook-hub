@@ -92,7 +92,7 @@ export function AppSidebar() {
           {!collapsed && <SidebarGroupLabel>Quick Links</SidebarGroupLabel>}
           <SidebarGroupContent><SidebarMenu>
             {QUICK_LINKS.filter(item => !item.key || !hidden.has(item.key) || isSuperAdmin).map(item => <SidebarMenuItem key={item.path}>
-              <SidebarMenuButton asChild isActive={navigationActive(item.path, pathname)} tooltip={item.label}>
+              <SidebarMenuButton asChild tooltip={item.label}>
                 <Link to={item.path} onClick={() => { if (isMobile) setOpenMobile(false); }}><item.icon className="h-[18px] w-[18px]" />{!collapsed && <span>{item.label}</span>}</Link>
               </SidebarMenuButton>
             </SidebarMenuItem>)}
