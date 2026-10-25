@@ -3226,6 +3226,36 @@ export type Database = {
         }
         Relationships: []
       }
+      diary_categories: {
+        Row: {
+          color: string
+          created_at: string
+          display_order: number
+          id: string
+          key: string
+          label: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          key: string
+          label: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          key?: string
+          label?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       diary_week_notes: {
         Row: {
           created_at: string
