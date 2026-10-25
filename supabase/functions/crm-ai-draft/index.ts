@@ -148,6 +148,33 @@ Deno.serve(async (req) => {
       }
     } catch (e) { console.error('site history failed', e); }
 
+    // No postcode yet: match a named site against the six-month established site bank.
+    if (!ex.postcode) {
+      try {
+        const text = `${ex.site_name ?? ''} ${ex.address ?? ''} ${t.subject ?? ''} ${inboundText}`.toLowerCase();
+        const generic = /^(ltd|limited|site|recycling|centre|center|waste|skip|skips|please|collect|collection|thanks|regards|lane|road|street|park|unit|the|and|from|with)$/;
+        const seeds = [...new Set(`${ex.site_name ?? ''} ${ex.address ?? ''}`.toLowerCase().split(/\W+/).filter((w) => w.length >= 4 && !generic.test(w)))];
+        if (!seeds.length) {
+          const m = text.match(/\b([a-z]{4,})\s+(lane|road|street|way|park|estate|hwrc)\b/);
+          if (m) seeds.push(m[1]);
+        }
+        let best: any = null, bestScore = 0;
+        for (const seed of seeds.slice(0, 3)) {
+          const { data: cands } = await admin.from('route_one_recent_sites').select('customer, site, postcode')
+            .ilike('site', `%${seed}%`).not('postcode', 'is', null).limit(50);
+          for (const c of cands ?? []) {
+            const score = String(c.site).toLowerCase().split(/\W+/).filter((w) => w.length >= 4 && !generic.test(w) && text.includes(w)).length;
+            if (score > bestScore) { best = c; bestScore = score; }
+          }
+        }
+        if (best) {
+          ex.postcode = best.postcode;
+          found.sitePostcode = best.postcode;
+          found.siteName ??= best.site;
+        }
+      } catch (e) { console.error('site bank lookup failed', e); }
+    }
+
     const isResidential = inboxDraftRateCard(`${t.subject ?? ''} ${inboundText}`, false) === 'Residential Skip Rates 2026';
     found.customerType = isResidential ? 'Residential (explicitly requested)' : 'Trade';
     found.pricingPolicy = 'Trade Rates are the standard for Inbox drafts, including website and personal-email enquiries. Use residential skip rates only when explicitly requested. Never guess an unlisted postcode zone.';
