@@ -267,6 +267,13 @@
       "when": 1792947604018,
       "tag": "0037_outgoing_sites",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1792948635045,
+      "tag": "0038_show_diary_in_staff_sidebar",
+      "breakpoints": true
     }
   ]
 }
