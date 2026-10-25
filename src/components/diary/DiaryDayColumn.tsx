@@ -38,7 +38,11 @@ export const DiaryDayColumn = ({
   const dayDate = addDays(weekStart, dayIndex);
   const isToday = formatDate(dayDate) === today;
   const dateLabel = dayDate.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-  const emptyLines = Math.max(lines - entries.length, 1);
+  // Hide blank entries left over from the old "+" buttons unless being edited
+  const visibleEntries = entries.filter(
+    (e) => e.content.trim().length > 0 || editingId === e.id
+  );
+  const emptyLines = Math.max(lines - visibleEntries.length, 1);
 
   const addAndEdit = async () => {
     const card = await onAddLine(dayIndex);
