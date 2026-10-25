@@ -960,20 +960,20 @@ const RouteOnePage = () => {
                 New Job
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-6xl w-[95vw] h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
+            <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
               <DialogHeader className="px-5 py-4 border-b border-border pr-12 shrink-0">
                 <DialogTitle>{jobForm.job_type === "exchange" ? "New exchange" : "New job"}</DialogTitle>
                 <p className="text-sm text-muted-foreground break-words">{[jobForm.customer_name, jobForm.site_name].filter(Boolean).join(" · ") || "New booking"}</p>
               </DialogHeader>
-              <JobPriceSummary form={jobForm} />
               <div className="overflow-y-auto flex-1 min-h-0 px-5 py-3"><JobFormFields form={jobForm} setForm={setJobForm} drivers={drivers} exchangeMode={jobForm.job_type === "exchange"} allowPrevious={jobForm.job_type !== "exchange"} /></div>
-              <DialogFooter className="gap-2 sm:gap-2 p-4 border-t border-border shrink-0 bg-background">
+              <DialogFooter className="flex-row flex-wrap items-center gap-2 sm:gap-2 p-4 border-t border-border shrink-0 bg-background">
+                <div className="mr-auto"><JobPriceSummary form={jobForm} /></div>
                 <Button variant="ghost" onClick={closeNewJob}><X className="h-4 w-4 mr-2" />Cancel</Button>
-                <Button variant="outline" onClick={() => createJob.mutate({ form: jobForm, send: false })} disabled={!jobForm.customer_name || createJob.isPending} className="sm:flex-1">
+                <Button variant="outline" onClick={() => createJob.mutate({ form: jobForm, send: false })} disabled={!jobForm.customer_name || createJob.isPending}>
                   Save as draft
                 </Button>
-                <Button onClick={() => createJob.mutate({ form: jobForm, send: true })} disabled={!jobForm.customer_name || !jobForm.assigned_driver_id || createJob.isPending} className="sm:flex-1" title={!jobForm.assigned_driver_id ? "Choose a driver to send the job" : undefined}>
-                  {createJob.isPending ? "Saving..." : "Save & send to driver"}
+                <Button onClick={() => createJob.mutate({ form: jobForm, send: true })} disabled={!jobForm.customer_name || !jobForm.assigned_driver_id || createJob.isPending} title={!jobForm.assigned_driver_id ? "Choose a driver to send the job" : undefined}>
+                  {createJob.isPending ? "Saving..." : `Book and send${drivers.find(d => d.id === jobForm.assigned_driver_id)?.driver_name ? ` to ${drivers.find(d => d.id === jobForm.assigned_driver_id)?.driver_name}` : " to driver"}`}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -1075,7 +1075,6 @@ const RouteOnePage = () => {
             <DialogTitle className="flex flex-wrap items-center gap-2">Job #{editingJob?.job_number}<Badge variant="secondary">{editingJob?.status?.replace(/_/g, " ")}</Badge><Badge variant="outline">{editingJob?.is_live ? "Sent" : "Draft"}</Badge></DialogTitle>
             <p className="text-sm font-medium break-words">{[editForm.customer_name, editForm.site_name].filter(Boolean).join(" · ")}</p>
           </DialogHeader>
-          <JobPriceSummary form={editForm} />
           <Tabs value={workspaceTab} onValueChange={setWorkspaceTab} className="flex-1 min-h-0 flex flex-col">
             <TabsList className="mx-5 mt-3 self-start shrink-0"><TabsTrigger value="booking">Job booking</TabsTrigger><TabsTrigger value="paperwork">Photos & paperwork</TabsTrigger></TabsList>
             <div className="overflow-y-auto flex-1 min-h-0 px-5 py-3">
@@ -1089,6 +1088,7 @@ const RouteOnePage = () => {
             </div>
           </Tabs>
           <DialogFooter className="flex-row flex-wrap sm:justify-between items-center gap-2 p-4 border-t border-border shrink-0 bg-background">
+            <div className="w-full"><JobPriceSummary form={editForm} /></div>
             <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={printSavedJob}><Printer className="h-4 w-4 mr-2" />Print ticket</Button><Button variant="outline" onClick={() => editingJob && startExchange(editingJob)} disabled={updateJob.isPending || exchangeLoading}><Repeat2 className="h-4 w-4 mr-2" />{exchangeLoading ? "Loading…" : "New exchange"}</Button></div>
             <div className="flex gap-2"><Button variant="ghost" onClick={closeEditor} disabled={updateJob.isPending}><X className="h-4 w-4 mr-2" />Cancel</Button><Button onClick={saveEditedJob} disabled={!editForm.customer_name || updateJob.isPending}><Save className="h-4 w-4 mr-2" />{updateJob.isPending ? "Saving…" : "Save"}</Button></div>
           </DialogFooter>
