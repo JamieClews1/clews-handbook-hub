@@ -314,7 +314,7 @@ export function RebateCheckReport() {
           Rebate Check Report
         </CardTitle>
         <CardDescription>
-          View all rebateable waste types by customer from Performance Hub data (Midweigh &
+          View all rebateable waste types by customer from Data Hub data (Midweigh &
           Skiptrak). This shows all customers with mapped waste types, regardless of Customer Setup
           configuration.
         </CardDescription>

@@ -1021,7 +1021,7 @@ export function SkipRoroRebateTab({ siteId, customerId, dateRange, siteDataHubMa
       <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground">
         <p className="font-medium mb-1">Data Source:</p>
         <p>
-          Jobs are pulled from Performance Hub data matching "Roll on Roll off" and "Skips" categories
+          Jobs are pulled from Data Hub data matching "Roll on Roll off" and "Skips" categories
           for sites mapped to this customer. Rates are from the Skip/RoRo rebate configuration.
         </p>
       </div>

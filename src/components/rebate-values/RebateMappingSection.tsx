@@ -242,7 +242,7 @@ export const RebateMappingSection = ({ canEdit }: RebateMappingSectionProps) => 
           <div>
             <CardTitle>Rebate Mapping</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Map Performance Hub waste descriptions (last 6 months) to rebate pricing items.
+              Map Data Hub waste descriptions (last 6 months) to rebate pricing items.
             </p>
           </div>
           <div className="flex gap-2">
