@@ -8781,6 +8781,54 @@ export type Database = {
           },
         ]
       }
+      route_one_recent_sites: {
+        Row: {
+          address: string
+          area: string
+          contact: string
+          customer: string
+          last_used: string
+          phone: string
+          postcode: string
+          search_text: string
+          sic: string
+          site: string
+          site_key: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string
+          area?: string
+          contact?: string
+          customer: string
+          last_used: string
+          phone?: string
+          postcode?: string
+          search_text: string
+          sic?: string
+          site: string
+          site_key: string
+          source: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          area?: string
+          contact?: string
+          customer?: string
+          last_used?: string
+          phone?: string
+          postcode?: string
+          search_text?: string
+          sic?: string
+          site?: string
+          site_key?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       route_one_routing_rules: {
         Row: {
           created_at: string
@@ -10724,6 +10772,45 @@ export type Database = {
         }[]
       }
       next_invoice_number: { Args: never; Returns: string }
+      record_recent_booking_site: {
+        Args: {
+          p_address: string
+          p_area: string
+          p_contact: string
+          p_customer: string
+          p_date: string
+          p_phone: string
+          p_postcode: string
+          p_sic: string
+          p_site: string
+          p_source: string
+        }
+        Returns: undefined
+      }
+      search_recent_booking_sites: {
+        Args: { p_customer?: string; p_limit?: number; p_query?: string }
+        Returns: {
+          address: string
+          area: string
+          contact: string
+          customer: string
+          last_used: string
+          phone: string
+          postcode: string
+          search_text: string
+          sic: string
+          site: string
+          site_key: string
+          source: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "route_one_recent_sites"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       set_company_pl_access: {
         Args: { _enabled: boolean; _user_id: string }
         Returns: undefined

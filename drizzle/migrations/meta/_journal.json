@@ -232,6 +232,13 @@
       "when": 1792854534718,
       "tag": "0032_routeone_weighone_invoicing_link",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792933804889,
+      "tag": "0033_recent_booking_site_bank",
+      "breakpoints": true
     }
   ]
 }
