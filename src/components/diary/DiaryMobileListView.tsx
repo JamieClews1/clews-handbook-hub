@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Plus, Trash2, Copy, Check } from "lucide-react";
 import type { DiaryCard } from "./DiaryWeekView";
 import { DIARY_CATEGORIES, CATEGORY_COLORS } from "./DiaryWeekView";
+import { localCalendarKey } from "@/lib/ui-calendar";
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -12,7 +13,7 @@ function addDays(date: Date, days: number): Date {
 }
 
 function formatDate(date: Date): string {
-  return date.toISOString().split("T")[0];
+  return localCalendarKey(date);
 }
 
 interface MobileCardProps {
@@ -72,12 +73,14 @@ const MobileCard = ({ card, onUpdate, onDelete, onDuplicate }: MobileCardProps) 
 
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
         <button
+          aria-label="Duplicate diary note"
           onClick={() => onDuplicate(card)}
           className="p-1.5 rounded-full hover:bg-muted transition-colors"
         >
           <Copy className="h-3.5 w-3.5 text-muted-foreground" />
         </button>
         <button
+          aria-label="Delete diary note"
           onClick={() => onDelete(card.id)}
           className="p-1.5 rounded-full hover:bg-destructive/10 transition-colors"
         >
@@ -145,6 +148,7 @@ export const DiaryMobileListView = ({
                   <div className="flex items-center justify-between mb-1">
                     <span className={`text-xs font-semibold ${colorClasses.text}`}>{cat.label}</span>
                     <button
+                      aria-label={`Add ${cat.label} note for ${DAY_NAMES[i]}`}
                       onClick={() => onAddCard(i, cat.key)}
                       className="text-muted-foreground/40 hover:text-muted-foreground transition-colors"
                     >

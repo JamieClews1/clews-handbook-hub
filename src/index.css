@@ -9,45 +9,50 @@
 
 @layer base {
   :root {
-    --background: 150 10% 97%;
-    --foreground: 160 20% 15%;
+    --background: 120 5.88% 96.67%;
+    --foreground: 150 18.52% 10.59%;
 
     --card: 0 0% 100%;
-    --card-foreground: 160 20% 15%;
+    --card-foreground: 150 18.52% 10.59%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 160 20% 15%;
+    --popover-foreground: 150 18.52% 10.59%;
 
     /* WasteOne Fresh Green - Primary (from logo #4ECB71) */
-    --primary: 145 57% 38%;
+    --primary: 148.35 59.48% 30%;
     --primary-foreground: 0 0% 100%;
 
     /* Slightly darker green - Secondary */
-    --secondary: 151 60% 30%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 140 9.68% 93.92%;
+    --secondary-foreground: 150 18.52% 10.59%;
 
-    --muted: 145 8% 93%;
-    --muted-foreground: 158 12% 32%;
+    --muted: 140 9.68% 93.92%;
+    --muted-foreground: 165 8.33% 37.65%;
 
     /* Green accent */
-    --accent: 145 57% 38%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 140 9.68% 93.92%;
+    --accent-foreground: 150 18.52% 10.59%;
 
     /* Semantic palette — strict, one meaning each */
-    --success: 145 57% 38%;
+    --success: 148.35 59.48% 30%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 40 100% 12%;
-    --destructive: 0 84% 60%;
+    --destructive: 4.23 76.47% 40%;
     --destructive-foreground: 0 0% 100%;
-    --info: 217 91% 60%;
+    --info: 217.98 80.34% 45.88%;
     --info-foreground: 0 0% 100%;
+    --primary-subtle: 141.82 31.43% 93.14%;
+    --destructive-subtle: 7.5 88.89% 96.47%;
+    --warning-text: 21.85 91.53% 37.06%;
+    --warning-subtle: 35 92.31% 94.9%;
+    --info-subtle: 213.75 100% 96.86%;
 
-    --border: 145 8% 88%;
+    --border: 144 9.8% 90%;
     /* Hairline border for flat, data-dense card surfaces */
     --border-hairline: 220 12% 90%;
-    --input: 145 8% 90%;
-    --ring: 145 57% 38%;
+    --input: 145.71 9.09% 84.9%;
+    --ring: 148.35 59.48% 30%;
 
     /* Radius scale: 8 controls / 12 cards / 16 modals */
     --radius: 0.75rem;
@@ -70,15 +75,15 @@
     --shadow-hover: 0 4px 14px -6px hsl(220 40% 12% / 0.12);
 
     /* Sidebar — near-black surface so brand green reads as accent */
-    --sidebar-background: 220 10% 9%;
-    --sidebar-foreground: 220 8% 72%;
-    --sidebar-primary: 145 55% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    /* Filled green pill for the active nav item */
-    --sidebar-accent: 145 55% 46%;
+    --sidebar-background: 144 12.82% 7.65%;
+    --sidebar-foreground: 146.67 9.09% 80.59%;
+    --sidebar-primary: 143.57 48.84% 66.27%;
+    --sidebar-primary-foreground: 144 12.82% 7.65%;
+    /* Neutral active surface keeps navigation distinct from primary actions. */
+    --sidebar-accent: 142.5 11.76% 13.33%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 220 10% 16%;
-    --sidebar-ring: 145 55% 50%;
+    --sidebar-ring: 143.57 48.84% 66.27%;
   }
 
   .dark {
@@ -91,8 +96,8 @@
     --popover: 160 18% 11%;
     --popover-foreground: 150 10% 95%;
 
-    --primary: 145 55% 50%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 143.57 48.84% 66.27%;
+    --primary-foreground: 144 12.82% 7.65%;
 
     --secondary: 150 40% 42%;
     --secondary-foreground: 0 0% 100%;
@@ -104,13 +109,18 @@
     --accent-foreground: 0 0% 100%;
 
     --success: 145 55% 50%;
-    --success-foreground: 0 0% 100%;
+    --success-foreground: 144 12.82% 7.65%;
     --warning: 38 90% 55%;
     --warning-foreground: 40 100% 10%;
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
     --info: 217 88% 62%;
     --info-foreground: 0 0% 100%;
+    --primary-subtle: 148 28% 15%;
+    --destructive-subtle: 4 35% 15%;
+    --warning-text: 35 90% 72%;
+    --warning-subtle: 35 35% 15%;
+    --info-subtle: 218 35% 16%;
 
     --border: 150 10% 18%;
     --border-hairline: 150 10% 20%;
@@ -132,7 +142,7 @@
     --sidebar-foreground: 220 8% 78%;
     --sidebar-primary: 145 55% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 145 55% 46%;
+    --sidebar-accent: 142.5 11.76% 13.33%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 220 12% 14%;
     --sidebar-ring: 145 55% 50%;
@@ -140,7 +150,7 @@
 }
 
 /* Sidebar hover: subtle neutral tint so hover doesn't flash brand green
-   (active state still uses the filled green pill via sidebar-accent) */
+   (active state uses the dark neutral sidebar-accent) */
 @layer components {
   [data-sidebar="menu-button"]:not([data-active="true"]):hover,
   [data-sidebar="menu-sub-button"]:not([data-active="true"]):hover {
@@ -158,7 +168,9 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
   }
 }
 
@@ -230,11 +242,11 @@
     --board-avatar: 217.50 75.00% 93.73%;
     --board-avatar-text: 218.90 66.82% 42.55%;
     --board-track: 240.00 6.85% 85.69%;
-    --board-available: 152.38 67.02% 36.86%;
+    --board-available: var(--primary);
     --board-busy: 43.12 100.00% 43.92%;
-    --board-over: 358.09 75.12% 59.02%;
+    --board-over: var(--destructive);
     --board-tabs: 240.00 6.25% 93.73%;
-    background: hsl(var(--board-page)); color: hsl(var(--board-text)); font-family: system-ui, sans-serif;
+    background: hsl(var(--board-page)); color: hsl(var(--board-text)); font-family: inherit;
     --board-shadow: 0 2px 6px hsl(0 0% 0% / .08);
     --board-drag-shadow: 0 8px 20px hsl(0 0% 0% / .18);
   }
@@ -274,24 +286,24 @@
     --job-border: 213.75 15.69% 80.00%;
     --job-accent: 215.29 25.00% 26.67%;
   }
-  .routeone-tinted-job { background: hsl(var(--job-tint)); border: 1px solid hsl(var(--job-border)); border-radius: 12px; padding: 11px 12px; display: flex; flex-direction: column; gap: 4px; cursor: grab; position: relative; transition: border-color .15s, transform .15s, box-shadow .15s; }
+  .routeone-tinted-job { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-left: 3px solid hsl(var(--job-tag)); border-radius: 8px; padding: 11px 12px; display: flex; flex-direction: column; gap: 4px; cursor: grab; position: relative; transition: border-color .15s, transform .15s, box-shadow .15s; }
   .routeone-tinted-job[data-unconfirmed="true"] { border: 1.5px dashed hsl(var(--job-accent)); }
   .routeone-tinted-job:hover { border-color: hsl(var(--job-tag)); transform: translateY(-1px); box-shadow: var(--board-shadow); }
   .routeone-tinted-job[data-dragging="true"] { opacity: 1; box-shadow: var(--board-drag-shadow); }
   .routeone-tinted-job:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
-  .routeone-job-tag { background: hsl(var(--job-tag)); color: hsl(var(--job-tag-text)); font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+  .routeone-job-tag { background: hsl(var(--job-tag)); color: hsl(var(--job-tag-text)); font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
   .routeone-job-customer { color: hsl(var(--board-text)); }
   .routeone-job-detail { color: hsl(var(--board-detail)); }
   .routeone-job-accent { color: hsl(var(--job-accent)); }
   .routeone-job-divider { height: 1px; background: hsl(var(--job-border)); margin: 3px 0; }
   .routeone-day .routeone-driver-column { background: hsl(var(--board-column)); border-radius: 14px; padding: 10px; width: max(220px, calc((100cqw - 260px) / 6)); }
   .routeone-driver-header { position: sticky; top: 0; z-index: 10; background: hsl(var(--board-column)); padding-bottom: 10px; }
-  .routeone-driver-avatar { width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; background: hsl(var(--board-avatar)); color: hsl(var(--board-avatar-text)); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+  .routeone-driver-avatar { width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; background: hsl(var(--board-avatar)); color: hsl(var(--board-avatar-text)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
   .routeone-capacity { height: 4px; border-radius: 2px; background: hsl(var(--board-track)); overflow: hidden; margin-top: 10px; }
   .routeone-capacity-fill { height: 100%; width: var(--capacity); background: hsl(var(--board-available)); }
   .routeone-capacity-fill[data-tone="busy"] { background: hsl(var(--board-busy)); }
   .routeone-capacity-fill[data-tone="over"] { background: hsl(var(--board-over)); }
-  .routeone-room { border: 1px dashed hsl(var(--board-track)); border-radius: 8px; padding: 16px 4px; text-align: center; color: hsl(var(--board-detail)); font-size: 11px; }
+  .routeone-room { border: 1px dashed hsl(var(--board-track)); border-radius: 8px; padding: 16px 4px; text-align: center; color: hsl(var(--board-detail)); font-size: 12px; }
   .routeone-unassigned { background: hsl(var(--board-panel)); border: 1px solid hsl(var(--board-track)); border-radius: 14px; width: 190px; flex-shrink: 0; padding: 10px; }
   .routeone-day .routeone-view-tabs { background: hsl(var(--board-tabs)); }
   .routeone-day .routeone-view-tabs [data-state="active"] { background: hsl(var(--board-panel)); color: hsl(var(--board-text)); box-shadow: var(--board-shadow); }
@@ -318,8 +330,13 @@
   .routeone-booking-flow .booking-container-choice { background: hsl(var(--background)); color: hsl(var(--foreground)); border-color: hsl(var(--border)); }
   .routeone-booking-flow .booking-container-choice[aria-pressed="true"] { border-color: hsl(var(--foreground)); background: hsl(var(--muted)); }
   .booking-step { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 600; color: hsl(var(--foreground)); }
-  .booking-step > span { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; background: hsl(var(--muted)); color: hsl(var(--muted-foreground)); font-size: 11px; }
+  .booking-step > span { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; background: hsl(var(--muted)); color: hsl(var(--muted-foreground)); font-size: 12px; }
   .routeone-booking-flow .booking-type-choice { background: hsl(var(--job-tint)); color: hsl(var(--job-accent)); border-color: hsl(var(--job-border)); gap: 6px; }
   .routeone-booking-flow .booking-type-choice:hover { background: hsl(var(--job-tint)); border-color: hsl(var(--job-tag)); }
   .routeone-booking-flow .booking-type-choice[aria-pressed="true"] { background: hsl(var(--job-tag)); color: hsl(var(--job-tag-text)); border-color: hsl(var(--job-tag)); }
+}
+
+@layer utilities {
+  .tracking-tight, .tracking-tighter { letter-spacing: 0; }
+  .text-\[10px\], .text-\[11px\] { font-size: 12px; }
 }

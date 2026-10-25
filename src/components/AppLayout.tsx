@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { QUICK_LINKS, STAFF_NAV_GROUPS } from "@/lib/staff-navigation";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,6 +30,14 @@ export function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  useEffect(() => {
+    const item = [...QUICK_LINKS, ...STAFF_NAV_GROUPS.flatMap(group => group.items)]
+      .filter(item => pathname === item.path || pathname.startsWith(`${item.path}/`))
+      .sort((a, b) => b.path.length - a.path.length)[0];
+    const names: Record<string, string> = { "/portal": "Dashboard", "/diary": "Diary", "/help": "Help", "/route-one": "RouteOne", "/weigh-one": "WeighOne" };
+    document.title = `${names[pathname] || item?.label || "Portal"} · WasteOne`;
+  }, [pathname]);
+
   const handleSignOut = async () => {
     await signOut();
     toast({ title: "Signed out", description: "You have been signed out successfully." });
@@ -46,6 +56,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-2 focus:z-50 rounded-md bg-card px-4 py-2 text-foreground ring-2 ring-ring">Skip to content</a>
         <UrgentContaminationPopup />
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
@@ -64,7 +75,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               {/* Quick Actions */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
+                  <Button variant="ghost" size="sm" aria-label="Quick add" className="gap-1.5 text-muted-foreground">
                     <Plus className="h-4 w-4" />
                     <span className="hidden sm:inline text-sm">Quick Add</span>
                   </Button>
@@ -84,7 +95,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               {/* User Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="text-muted-foreground">
+                  <Button variant="ghost" size="icon" aria-label="Account menu" className="text-muted-foreground">
                     <User className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -102,7 +113,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 overflow-auto">
+          <main id="main-content" tabIndex={-1} className="flex-1 overflow-auto">
             {children}
           </main>
         </div>

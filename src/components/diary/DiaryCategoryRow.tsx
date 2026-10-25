@@ -3,6 +3,8 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { Plus } from "lucide-react";
 import { DiaryCardItem } from "./DiaryCardItem";
 import type { DiaryCard } from "./DiaryWeekView";
+import { localCalendarKey } from "@/lib/ui-calendar";
+import { Button } from "@/components/ui/button";
 
 interface DiaryCategoryRowProps {
   categoryKey: string | null;
@@ -23,7 +25,7 @@ function addDays(date: Date, days: number): Date {
 }
 
 function formatDate(date: Date): string {
-  return date.toISOString().split("T")[0];
+  return localCalendarKey(date);
 }
 
 export const DiaryCategoryRow = ({
@@ -40,7 +42,7 @@ export const DiaryCategoryRow = ({
   const today = formatDate(new Date());
 
   return (
-    <div className="grid grid-cols-[repeat(5,1fr)_0.5fr_0.5fr] border-b border-border/10">
+    <div className="grid grid-cols-7 border-b border-border/10">
       {Array.from({ length: 7 }, (_, dayIndex) => {
         const dayDate = addDays(weekStart, dayIndex);
         const dayStr = formatDate(dayDate);
@@ -119,12 +121,12 @@ const DroppableDay = ({
           ))}
         </SortableContext>
       </div>
-      <button
+      <Button variant="ghost" size="sm" aria-label={`Add diary note for day ${dayIndex + 1}`}
         onClick={() => onAddCard(dayIndex, categoryKey)}
-        className="w-full flex items-center justify-center py-0.5 rounded text-muted-foreground/50 hover:text-muted-foreground transition-all mt-0.5"
+        className="w-full flex items-center justify-center text-muted-foreground mt-0.5"
       >
         <Plus className="h-3 w-3" />
-      </button>
+      </Button>
     </div>
   );
 };

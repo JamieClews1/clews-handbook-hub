@@ -1129,8 +1129,7 @@ const RouteOnePage = () => {
           <DialogHeader className="px-5 py-4 border-b border-border pr-12 shrink-0">
             <DialogTitle className="flex flex-wrap items-center gap-2">
               <Truck className="h-4 w-4" />
-              Skiptrak Job Details
-              {viewingSkiptrakJob?.job_number && <Badge variant="secondary">#{viewingSkiptrakJob.job_number}</Badge>}
+              Job {viewingSkiptrakJob?.job_number} · {viewingSkiptrakJob?.customer || "Customer"}
             </DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto flex-1 min-h-0 px-5 py-4">
@@ -1157,7 +1156,7 @@ const RouteOnePage = () => {
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="space-y-1.5">
-                    <p className="text-xs font-medium text-muted-foreground">Re-assign Driver</p>
+                    <label id="imported-job-driver-label" className="text-xs font-medium text-muted-foreground">Re-assign Driver</label>
                     <Select
                       value={(viewingSkiptrakJob.driver || "").trim() || "__none__"}
                       onValueChange={(v) => {
@@ -1167,7 +1166,7 @@ const RouteOnePage = () => {
                       }}
                       disabled={updateSkiptrakDriver.isPending}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger aria-labelledby="imported-job-driver-label">
                         <SelectValue placeholder="Select driver" />
                       </SelectTrigger>
                       <SelectContent>

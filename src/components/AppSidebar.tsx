@@ -40,7 +40,7 @@ function NavGroup({ title, icon: Icon, items, initialOpen, storageKey, collapsed
     <SidebarGroup className="gap-1">
       <Collapsible open={open} onOpenChange={setOpen}>
         <CollapsibleTrigger asChild>
-          <SidebarGroupLabel title={title} className="h-9 cursor-pointer rounded-md px-3 text-[11px] font-semibold text-sidebar-foreground/70 hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring">
+          <SidebarGroupLabel title={title} aria-label={title} className="h-9 cursor-pointer rounded-md px-3 text-xs font-semibold text-sidebar-foreground hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring">
             {collapsed && <Icon className="h-4 w-4" />}
             {!collapsed && <><span>{title}</span><ChevronDown className="ml-auto h-4 w-4" /></>}
           </SidebarGroupLabel>
@@ -49,11 +49,11 @@ function NavGroup({ title, icon: Icon, items, initialOpen, storageKey, collapsed
           <SidebarGroupContent>
             <SidebarMenu>
               {available.map((item) => (
-                <SidebarMenuItem key={item.path} className={item.key && hidden.has(item.key) ? "opacity-45" : undefined}>
+                <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton asChild isActive={navigationActive(item.path, currentPath)} tooltip={item.label}>
                     <Link to={item.path} onClick={() => { if (isMobile) setOpenMobile(false); }}>
                       <item.icon className="h-[18px] w-[18px]" />
-                      {!collapsed && <span>{item.label}</span>}
+                      {!collapsed && <><span>{item.label}</span>{item.key && hidden.has(item.key) && <span className="ml-auto text-xs">Hidden</span>}</>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -79,7 +79,7 @@ export function AppSidebar() {
   const groups = STAFF_NAV_GROUPS.map(group => ({ ...group, items: group.items.filter(item => navigationAllowed(item, access)) }));
   return (
     <Sidebar collapsible="icon" className="border-r-0">
-      <SidebarContent className="pt-2">
+      <SidebarContent className="pt-2" role="navigation" aria-label="Main navigation">
         <div className="mb-2 px-4 py-3">
           <Link to="/portal" aria-label="WasteOne home" className="flex items-center gap-2" onClick={() => { if (isMobile) setOpenMobile(false); }}>
             <img src="/logo.png" alt="" className="h-8 w-8 rounded-md" />

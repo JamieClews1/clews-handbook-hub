@@ -15,11 +15,12 @@ import { WeighbridgeAttachments } from "./WeighbridgeAttachments";
 import { MidweighPrintButton } from "./MidweighPrintButton";
 import { SkiptrakPrintButton } from "./SkiptrakPrintButton";
 import type { Database } from "@/integrations/supabase/types";
+import { londonCalendarKey, ticketDateLabel, ticketPage, ticketStateLabel } from "@/lib/ui-calendar";
 
 type RouteJob = Database["public"]["Tables"]["route_one_jobs"]["Row"];
 type HubJob = Database["public"]["Tables"]["data_hub_jobs"]["Row"];
 
-const dateLabel = (date: string | null) => parseLoadReportDate(date)?.toLocaleDateString("en-GB", { timeZone: "UTC" }) ?? "—";
+const dateLabel = ticketDateLabel;
 
 /** First non-empty string among raw spreadsheet columns (used for postcode/address search). */
 const rawStr = (raw: unknown, ...keys: string[]) => {
@@ -33,9 +34,9 @@ const rawStr = (raw: unknown, ...keys: string[]) => {
 };
 
 export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
-  const now = new Date();
-  const [start, setStart] = useState(`${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-01`);
-  const [end, setEnd] = useState(now.toISOString().slice(0, 10));
+  const [start, setStart] = useState(() => londonCalendarKey());
+  const [end, setEnd] = useState(() => londonCalendarKey());
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [source, setSource] = useState("all");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -87,10 +88,14 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
     return (source === "all" || (source === "routeone" ? ticket.source !== "midweigh" : ticket.source === source)) && (!term || [ticket.ticket, ticket.customer, ticket.vehicle, ticket.site, ticket.siteAddress, ticket.postcode, ticket.waste, ticket.driver, ticket.ewc].some(value => value?.toLowerCase().includes(term)));
   }), [tickets, search, source]);
 
+  useEffect(() => { setPage(1); setExpanded(null); }, [start, end, search, source]);
+  const pagination = ticketPage(filtered, page);
+
   const shiftDays = (days: number) => {
     if (invalidDates) return;
     const move = (value: string) => {
-      const d = new Date(`${value}T00:00:00Z`);
+      const d = parseLoadReportDate(value);
+      if (!d) return value;
       d.setUTCDate(d.getUTCDate() + days);
       return d.toISOString().slice(0, 10);
     };
@@ -109,6 +114,7 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
         <label className="space-y-1 text-xs text-muted-foreground">From<Input aria-label="Tickets from date" type="date" value={start} onChange={e => setStart(e.target.value)} className="w-40" /></label>
         <label className="space-y-1 text-xs text-muted-foreground">To<Input aria-label="Tickets to date" type="date" value={end} onChange={e => setEnd(e.target.value)} className="w-40" /></label>
         <Button variant="outline" size="sm" aria-label="Show next day" title="Next day" onClick={() => shiftDays(1)} disabled={invalidDates}>Next<ChevronRight className="h-4 w-4" /></Button>
+        <Button variant="outline" size="sm" onClick={() => { const today = londonCalendarKey(); setStart(today); setEnd(today); }}>Today</Button>
         <Select value={source} onValueChange={setSource}>
           <SelectTrigger aria-label="Ticket source" className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent><SelectItem value="all">All sources</SelectItem><SelectItem value="routeone">RouteOne</SelectItem><SelectItem value="midweigh">Midweigh</SelectItem></SelectContent>
@@ -119,7 +125,7 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
       {invalidDates ? <p role="alert" className="text-destructive">Choose a valid date range.</p> : error ? <div role="alert" className="text-destructive">Tickets could not be loaded. <Button variant="outline" onClick={() => refetch()}>Retry</Button></div> : isLoading ? <p className="py-10 text-center text-muted-foreground">Loading tickets…</p> : (
         <>
         {tablet && <div className="divide-y divide-border border-y border-border">
-          {filtered.map(ticket => {
+          {pagination.items.map(ticket => {
             const key = `${ticket.source}:${ticket.id}`;
             const open = expanded === key;
             return <div key={key}>
@@ -145,7 +151,7 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
         {!tablet && <Table>
           <TableHeader><TableRow><TableHead>Ticket</TableHead><TableHead>Source</TableHead><TableHead>Date</TableHead><TableHead>Customer / Site</TableHead><TableHead>Vehicle</TableHead><TableHead>Waste</TableHead><TableHead>Movement / Status</TableHead><TableHead className="text-right">Net (t)</TableHead><TableHead className="w-12">Details</TableHead></TableRow></TableHeader>
           <TableBody>
-            {filtered.map(ticket => {
+            {pagination.items.map(ticket => {
               const key = `${ticket.source}:${ticket.id}`;
               const open = expanded === key;
               return <Fragment key={key}>
@@ -156,7 +162,7 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
                   <TableCell className="min-w-44"><p>{ticket.customer || "—"}</p><p className="text-xs text-muted-foreground">{ticket.site}</p></TableCell>
                   <TableCell className="whitespace-nowrap font-mono">{ticket.vehicle || "—"}</TableCell>
                   <TableCell className="min-w-40">{ticket.waste || "—"}<p className="text-xs text-muted-foreground">{ticket.ewc}</p></TableCell>
-                  <TableCell className="text-xs"><p>{ticket.movement?.replace(/_/g, " ") || "—"}</p><p className="text-muted-foreground">{ticket.status?.replace(/_/g, " ")}</p></TableCell>
+                  <TableCell className="text-xs"><p>{ticketStateLabel(ticket.movement)}</p>{ticket.status && <p className="text-muted-foreground">{ticketStateLabel(ticket.status)}</p>}</TableCell>
                   <TableCell className="text-right font-semibold tabular-nums">{ticket.weightTonnes?.toFixed(3) ?? "—"}</TableCell>
                   <TableCell onClick={e => e.stopPropagation()}><Button variant="ghost" size="icon" aria-label={`${open ? "Hide" : "View"} ${ticket.source !== "midweigh" ? "RouteOne" : "Midweigh"} ticket ${ticket.ticket}`} aria-expanded={open} onClick={() => setExpanded(open ? null : key)}>{open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</Button></TableCell>
                 </TableRow>
@@ -174,6 +180,10 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
             {!filtered.length && <TableRow><TableCell colSpan={9} className="py-12 text-center text-muted-foreground">No tickets found for this period.</TableCell></TableRow>}
           </TableBody>
         </Table>}
+        {filtered.length > 0 && <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+          <p className="text-sm text-muted-foreground">{((pagination.page - 1) * 50 + 1).toLocaleString()}–{Math.min(pagination.page * 50, filtered.length).toLocaleString()} of {filtered.length.toLocaleString()} tickets</p>
+          <div className="flex items-center gap-3"><Button variant="outline" size="icon" aria-label="Previous ticket page" disabled={pagination.page === 1} onClick={() => { setPage(pagination.page - 1); setExpanded(null); }}><ChevronLeft className="h-4 w-4" /></Button><span className="text-sm tabular-nums">Page {pagination.page} of {pagination.pages}</span><Button variant="outline" size="icon" aria-label="Next ticket page" disabled={pagination.page === pagination.pages} onClick={() => { setPage(pagination.page + 1); setExpanded(null); }}><ChevronRight className="h-4 w-4" /></Button></div>
+        </div>}
         </>
       )}
     </div>
