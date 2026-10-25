@@ -19,6 +19,9 @@ import { boardJobType } from "@/lib/route-board-presentation";
 import { JobPricingPicker } from "./JobPricingPicker";
 import { EwcCodePicker, SicCodePicker } from "@/components/codes/CodePicker";
 import { EstablishedSitePicker } from "./EstablishedSitePicker";
+import { pricingContainerOptions, type PricingSize } from "@/lib/booking-container-options";
+import { BookingRentalSection } from "./BookingRentalSection";
+import { Switch } from "@/components/ui/switch";
 import { BookingFuelSurcharge } from "./BookingFuelSurcharge";
 import { importedBookingPrices } from "@/lib/route-booking-pricing";
 import { loadExchangeBookingDate } from "@/lib/load-exchange-booking-date";
@@ -189,7 +192,7 @@ export function JobFormFields({
   const [prevLoading, setPrevLoading] = useState(false);
   const [itemsOpen, setItemsOpen] = useState(false);
   const [catalogue, setCatalogue] = useState<any[]>([]);
-  const [containerTypes, setContainerTypes] = useState<string[]>([]);
+  const [pricingSizes, setPricingSizes] = useState<PricingSize[]>([]);
   const { types: jobTypes } = useJobTypes();
   const { zoneFor } = usePostcodeZoneLookup();
   const queryZone = zoneFor(postcodeQuery);
@@ -247,11 +250,11 @@ export function JobFormFields({
 
   useEffect(() => {
     supabase
-      .from("route_one_container_types")
-      .select("name")
+      .from("pricing_skip_sizes")
+      .select("size_code,display_name,is_active")
       .eq("is_active", true)
       .order("display_order")
-      .then(({ data }) => setContainerTypes((data ?? []).map((r: any) => r.name).filter(Boolean)));
+      .then(({ data }) => setPricingSizes(data ?? []));
   }, []);
 
   const fetchCustomers = async (query: string): Promise<string[]> => {
@@ -562,11 +565,11 @@ export function JobFormFields({
       <section className="booking-section space-y-4">
         <h4 className="booking-step"><span>2</span>{exchangeMode ? "Exchange job" : "Job"}</h4>
         <div className="space-y-2"><Label className="text-xs">Job type *</Label><div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {jobTypes.map(t => { const presentation = boardJobType(t.key, t.label); return <Button key={t.key} type="button" variant="outline" data-job-palette={presentation.palette} aria-pressed={form.job_type === t.key} className="booking-type-choice" onClick={() => setForm({ ...form, job_type: t.key })}>{form.job_type === t.key && <Check className="h-3.5 w-3.5 shrink-0" />}{presentation.label}</Button>; })}
+          {jobTypes.map(t => { const presentation = boardJobType(t.key, t.label); return <Button key={t.key} type="button" variant="outline" data-job-palette={presentation.palette} aria-pressed={form.job_type === t.key} className="booking-type-choice" onClick={() => setForm({ ...form, job_type: t.key })}>{form.job_type === t.key && <Check className="h-3.5 w-3.5 shrink-0" />}{t.key === "pickup" ? presentation.label : t.label}</Button>; })}
         </div></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-2"><Label className="text-xs">Container</Label><div className="flex flex-wrap gap-1.5">{["Skip", "Ro Ro", "Compactor", "Trailer"].map(label => { const match = containerTypes.find(c => c.toLowerCase() === label.toLowerCase()) || containerTypes.find(c => c.toLowerCase().includes(label.toLowerCase())) || label; return <Button type="button" key={label} size="sm" variant="outline" aria-pressed={form.container_type === match} className="booking-container-choice h-8 px-3 text-xs" onClick={() => setForm({ ...form, container_type: match })}>{label}</Button>; })}</div><Select value={form.container_type || ""} onValueChange={v => setForm({ ...form, container_type: v })}><SelectTrigger aria-label="Container type"><SelectValue placeholder="Other container" /></SelectTrigger><SelectContent>{containerTypes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}{form.container_type && !containerTypes.includes(form.container_type) && <SelectItem value={form.container_type}>{form.container_type}</SelectItem>}</SelectContent></Select></div>
-          <div className="space-y-2"><Label className="text-xs">Size</Label><div className="flex flex-wrap gap-1.5">{(/ro\s*ro/i.test(form.container_type || "") ? ["20yd", "35yd", "40yd"] : ["4yd", "6yd", "8yd", "12yd", "16yd"]).map(size => <Button type="button" key={size} size="sm" variant={form.container_size === size ? "secondary" : "outline"} aria-pressed={form.container_size === size} className="h-8 px-3 text-xs" onClick={() => setForm({ ...form, container_size: size })}>{size}</Button>)}</div><Input aria-label="Container size" value={form.container_size || ""} onChange={e => setForm({ ...form, container_size: e.target.value })} placeholder="Other size" /></div>
+          <div className="space-y-2"><Label className="text-xs">Container</Label><div className="flex flex-wrap gap-1.5">{["Skip", "Enclosed Skip", "Ro Ro"].map(type => <Button type="button" key={type} size="sm" variant="outline" aria-pressed={form.container_type === type} className="booking-container-choice" onClick={() => setForm({ ...form, container_type: type, container_size: "" })}>{type}</Button>)}</div><div className="flex items-center gap-2"><Switch id="own-container" checked={!!form.own_container} onCheckedChange={own => setForm({ ...form, own_container: own, rental_enabled: own ? false : form.rental_enabled })} /><Label htmlFor="own-container">Own Container</Label></div>{form.container_type && !["Skip", "Enclosed Skip", "Ro Ro"].includes(form.container_type) && <p className="text-xs text-muted-foreground">Current: {form.container_type}</p>}</div>
+          <div className="space-y-2"><Label className="text-xs">Size</Label><div className="flex flex-wrap gap-1.5">{pricingContainerOptions(pricingSizes, form.container_type).map(size => <Button type="button" key={size.size_code} size="sm" variant={form.container_size === size.size_code ? "secondary" : "outline"} aria-pressed={form.container_size === size.size_code} onClick={() => setForm({ ...form, container_size: size.size_code })}>{size.display_name}</Button>)}</div>{form.container_size && !pricingSizes.some(s => s.size_code === form.container_size) && <p className="text-xs text-muted-foreground">Current: {form.container_size}</p>}</div>
         </div>
       </section>
       <section className="booking-section space-y-3">
@@ -756,6 +759,7 @@ export function JobFormFields({
       {/* Pricing (Pricing CMS: tier × zone) */}
       <details className="border-t border-border pt-3"><summary className="text-sm font-semibold cursor-pointer">Rate card lookup</summary><div className="pt-3"><JobPricingPicker form={form} setForm={setForm} /></div></details>
 
+      <BookingRentalSection form={form} setForm={setForm} />
       {/* Costs */}
 
       <section className="space-y-3">

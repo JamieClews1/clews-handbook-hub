@@ -1,3 +1,4 @@
+import { bookingRentalText } from "./booking-container-options";
 import jsPDF from "jspdf";
 import type { WasteClassification } from "@/components/dwt/WasteClassificationFields";
 
@@ -25,6 +26,11 @@ export type WtnJob = {
   job_type?: string | null;
   container_type?: string | null;
   container_size?: string | null;
+  own_container?: boolean;
+  rental_enabled?: boolean;
+  rental_free_days?: number | null;
+  rental_weekly_rate?: number | null;
+  rental_start_date?: string | null;
   waste_type?: string | null;
   ewc_code?: string | null;
   waste_classification?: WasteClassification | null;
@@ -196,7 +202,9 @@ const TYPE_LABELS: Record<string, string> = {
   collection: "Collect",
   waste_truck: "Waste Truck",
   wasted_journey: "Wasted Journey",
-  waste_out_skip: "Waste Out Skip",
+  waste_out_skip: "Waste Out",
+  pickup_truck: "Pickup Truck",
+  third_party_booking: "Third Party Booking",
 };
 
 
@@ -550,8 +558,8 @@ function drawCopy(
   y += bandH + 2;
 
   /* ── Rental / hire terms — dedicated highlighted space ── */
-  if (opts.showHireNote && opts.hireNote) {
-    const termLines = doc.splitTextToSize(opts.hireNote, W - 34) as string[];
+  if (bookingRentalText(job) || (opts.showHireNote && opts.hireNote)) {
+    const termLines = doc.splitTextToSize(bookingRentalText(job) || opts.hireNote, W - 34) as string[];
     const boxH = 5.5 + termLines.length * 2.8;
     doc.setFillColor(254, 243, 199); // amber highlight
     doc.setDrawColor(160);
@@ -762,8 +770,8 @@ function drawModernCopy(
   }
 
   /* ── Rental / hire terms — dedicated highlighted space ── */
-  if (opts.showHireNote && opts.hireNote) {
-    const termLines = doc.splitTextToSize(opts.hireNote, W - 36) as string[];
+  if (bookingRentalText(job) || (opts.showHireNote && opts.hireNote)) {
+    const termLines = doc.splitTextToSize(bookingRentalText(job) || opts.hireNote, W - 36) as string[];
     const boxH = 5.5 + termLines.length * 2.8;
     doc.setFillColor(254, 243, 199);
     doc.roundedRect(L, y, W, boxH, 1.2, 1.2, "F");
@@ -956,8 +964,8 @@ function drawFieldCopy(
   y += 20;
 
   /* Rental / hire terms — dedicated highlighted space */
-  if (opts.showHireNote && opts.hireNote) {
-    const termLines = doc.splitTextToSize(opts.hireNote, W - 40) as string[];
+  if (bookingRentalText(job) || (opts.showHireNote && opts.hireNote)) {
+    const termLines = doc.splitTextToSize(bookingRentalText(job) || opts.hireNote, W - 40) as string[];
     const boxH = 6 + termLines.length * 3.2;
     doc.setFillColor(254, 243, 199);
     doc.roundedRect(L, y, W, boxH, 1.5, 1.5, "F");
