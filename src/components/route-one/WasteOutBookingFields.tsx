@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { EwcCodePicker } from "@/components/codes/CodePicker";
 import { CONTAINER_GROUPS, containerGroup } from "@/lib/container-taxonomy";
 import { wasteOutEstimate } from "@/lib/waste-out-job";
+import { useOutgoingSites } from "@/hooks/useOutgoingSites";
 
 const money = (n: number) => n.toLocaleString("en-GB", { style: "currency", currency: "GBP" });
 
@@ -17,12 +18,13 @@ export function WasteOutBookingFields({ form, setForm, drivers }: { form: any; s
     setForm({ ...next, site_name: next.destination_name, site_address: next.destination_address, site_postcode: next.destination_postcode ?? next.site_postcode });
   };
   const est = wasteOutEstimate(form);
+  const { data: outgoing = [] } = useOutgoingSites();
   return (
     <div className="grid gap-0">
       <section className="booking-section space-y-3">
         <h4 className="booking-step"><span>1</span>Tipping site</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div><Label className="text-xs" htmlFor="tip-name">Tipping site *</Label><Input id="tip-name" autoFocus value={form.destination_name || ""} onChange={e => setTip({ destination_name: e.target.value })} placeholder="e.g. Nevis Resources Ltd" /></div>
+          <div><Label className="text-xs" htmlFor="tip-name">Tipping site *</Label><Input id="tip-name" autoFocus value={form.destination_name || ""} onChange={e => setTip({ destination_name: e.target.value })} placeholder="Search outgoing sites…" list="outgoing-sites" autoComplete="off" /><datalist id="outgoing-sites">{outgoing.map(o => <option key={o.site_name} value={o.site_name}>{`${o.loads} loads`}</option>)}</datalist></div>
           <div><Label className="text-xs" htmlFor="tip-address">Address</Label><Input id="tip-address" value={form.destination_address || ""} onChange={e => setTip({ destination_address: e.target.value })} /></div>
           <div><Label className="text-xs" htmlFor="tip-postcode">Postcode</Label><Input id="tip-postcode" value={form.destination_postcode ?? form.site_postcode ?? ""} onChange={e => setTip({ destination_postcode: e.target.value.toUpperCase() })} /></div>
         </div>
@@ -33,7 +35,7 @@ export function WasteOutBookingFields({ form, setForm, drivers }: { form: any; s
       </section>
       <section className="booking-section space-y-3">
         <h4 className="booking-step"><span>3</span>Waste</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><Label className="text-xs">Waste type</Label><Input aria-label="Waste type" value={form.waste_type || ""} onChange={e => setForm({ ...form, waste_type: e.target.value })} placeholder="Mixed waste" /></div><div><Label className="text-xs">EWC code</Label><EwcCodePicker value={form.ewc_code || ""} onChange={v => setForm({ ...form, ewc_code: v })} /></div></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><Label className="text-xs">EWC code</Label><EwcCodePicker value={form.ewc_code || ""} onChange={v => setForm({ ...form, ewc_code: v })} /></div><div><Label className="text-xs">Waste type</Label><Input aria-label="Waste type" value={form.waste_type || ""} onChange={e => setForm({ ...form, waste_type: e.target.value })} placeholder="Mixed waste" /></div></div>
       </section>
       <section className="booking-section space-y-3">
         <h4 className="booking-step"><span>4</span>Schedule</h4>

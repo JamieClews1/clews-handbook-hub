@@ -1,3 +1,4 @@
+import { useOutgoingSites } from "@/hooks/useOutgoingSites";
 import { RouteOneArrivalPicker, type ArrivingJob } from "@/components/weighone/RouteOneArrivalPicker";
 import { CONTAINER_GROUPS, bookingContainerLabel } from "@/lib/container-taxonomy";
 import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
@@ -231,6 +232,7 @@ const WeighOnePage = () => {
   // New transaction form
   const [formData, setFormData] = useState(emptyForm);
   const [arrivingJob, setArrivingJob] = useState<ArrivingJob | null>(null);
+  const { data: outgoingSites = [] } = useOutgoingSites();
   /** Prefill the weigh-in from a RouteOne job so nothing is retyped. */
   const applyRouteOneJob = (job: ArrivingJob) => {
     setArrivingJob(job);
@@ -1364,11 +1366,11 @@ const WeighOnePage = () => {
                       <div className="p-3 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
-                          <Label className="text-xs">Customer</Label>
+                          <Label className="text-xs">{formData.job_type === "waste_out" ? "Outgoing site" : "Customer"}</Label>
                           <div className="relative">
                             <Input
                               className="h-9"
-                              placeholder="Search customer..."
+                              placeholder={formData.job_type === "waste_out" ? "Search outgoing sites..." : "Search customer..."}
                               value={formData.customer}
                               onChange={(e) => {
                                 setFormData((p) => ({ ...p, customer: e.target.value }));
@@ -1382,7 +1384,7 @@ const WeighOnePage = () => {
                             />
                             {customerSearch && formData.customer && (
                               <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                                {midweighCustomers
+                                {(formData.job_type === "waste_out" ? outgoingSites.map(o => ({ id: o.site_name, customer_name: o.site_name })) : midweighCustomers)
                                   .filter(c => c.customer_name.toLowerCase().includes(formData.customer.toLowerCase()))
                                   .slice(0, 20)
                                   .map(c => (
