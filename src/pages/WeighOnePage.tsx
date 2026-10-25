@@ -1055,6 +1055,14 @@ const WeighOnePage = () => {
     ? secondWeighWeightCharge + (selectedTransaction?.additional_items_total ?? 0)
     : null;
 
+  const londonTodayLabel = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London", weekday: "short", day: "numeric", month: "short",
+  }).format(new Date()).replace(",", "");
+
+  const midweighSyncedLabel = lastMidweighUploadAt
+    ? formatDistanceToNow(new Date(lastMidweighUploadAt), { addSuffix: true })
+    : null;
+
   return (
     <div className={tablet ? "p-3 sm:p-4 w-full max-w-none min-h-dvh space-y-4" : fullScreen ? "fixed inset-0 z-40 overflow-y-auto bg-background p-4 md:p-6 space-y-6" : "p-4 md:p-6 max-w-screen-2xl mx-auto space-y-6"}>
       {/* Header */}
