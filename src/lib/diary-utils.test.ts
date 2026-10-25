@@ -121,7 +121,7 @@ describe("repeatOccurrences", () => {
   it("daily covers every day of the next 4 weeks without duplicating the original day", () => {
     const occ = repeatOccurrences(base, "daily");
     expect(occ).toHaveLength(28);
-    expect(occ[0]).toEqual({ week_start: "2026-10-19", day_of_week: 3 - 2 });
+    expect(occ[0]).toEqual({ week_start: "2026-10-19", day_of_week: 1 });
     expect(occ.every((o) => !(o.week_start === "2026-10-19" && o.day_of_week === 2))).toBe(true);
   });
 });
