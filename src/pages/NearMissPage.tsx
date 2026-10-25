@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
+import { PageHeading } from "@/components/PageHeading";
 import NearMissReportsList from "@/components/duty-of-care/NearMissReportsList";
 
 const NearMissPage = () => {
@@ -31,7 +32,7 @@ const NearMissPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
+      <header className="hidden">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -49,15 +50,7 @@ const NearMissPage = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg">
-              <AlertTriangle className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Near Miss Reporting</h1>
-              <p className="text-muted-foreground">Track and manage workplace near miss incidents</p>
-            </div>
-          </div>
+          <PageHeading title="Near Misses" description="Workplace near miss incidents" />
         </div>
 
         <NearMissReportsList />

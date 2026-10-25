@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { ArrowLeft, DollarSign, Save, Link2, Settings, Send, FileSpreadsheet, ClipboardList, Inbox, MailCheck } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
+import { PageHeading } from "@/components/PageHeading";
 import { RebateMappingSection } from "@/components/rebate-values/RebateMappingSection";
 import { RebateSettingsSection } from "@/components/rebate-values/RebateSettingsSection";
 import { RebateScreenshotUpload } from "@/components/rebate-values/RebateScreenshotUpload";
@@ -247,7 +248,7 @@ const RebateValuesPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
+      <header className="hidden">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -268,6 +269,7 @@ const RebateValuesPage = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6">
+        <PageHeading title="Rebates" />
         <div className="max-w-screen-2xl mx-auto space-y-6">
           <Tabs defaultValue="monthly-generation" className="w-full">
             <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 mb-6 h-auto">

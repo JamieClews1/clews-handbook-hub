@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ScrollText } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
+import { PageHeading } from "@/components/PageHeading";
 
 const PoliciesPage = () => {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ const PoliciesPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
+      <header className="hidden">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -50,13 +51,7 @@ const PoliciesPage = () => {
 
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center mx-auto mb-6 shadow-lg">
-            <ScrollText className="h-10 w-10 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-foreground mb-4">Policies</h1>
-          <p className="text-muted-foreground text-lg mb-8">
-            Company policies and compliance documentation coming soon.
-          </p>
+          <PageHeading title="Policies" description="Company policies and compliance documentation" />
           <div className="bg-muted/50 rounded-lg p-8 border border-border">
             <p className="text-muted-foreground">
               This section will contain environmental policies, quality policies, and compliance certificates.

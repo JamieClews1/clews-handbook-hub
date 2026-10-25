@@ -1,4 +1,5 @@
 import { PoundSterling } from "lucide-react";
+import { PageHeading } from "@/components/PageHeading";
 import { useFinanceAccess } from "@/hooks/useFinanceAccess";
 import PayrollTab from "@/components/finance/payroll/PayrollTab";
 
@@ -22,17 +23,7 @@ export default function PayrollPage() {
 
   return (
     <div className="mx-auto max-w-screen-2xl space-y-6 p-6">
-      <header className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <PoundSterling className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Payroll &amp; Time</h1>
-          <p className="text-sm text-muted-foreground">
-            Uploaded timesheets, clocked hours and weekly pay for Yard, Driver and Office staff.
-          </p>
-        </div>
-      </header>
+      <PageHeading title="Payroll & Time" description="Timesheets, clocked hours and weekly pay" />
 
       <PayrollTab />
     </div>

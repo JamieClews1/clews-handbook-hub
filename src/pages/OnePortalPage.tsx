@@ -20,6 +20,7 @@ import {
   PoundSterling,
 } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
+import { PageHeading } from "@/components/PageHeading";
 import { useEffect } from "react";
 
 const sections = [
@@ -66,7 +67,7 @@ const OnePortalPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
+      <header className="hidden">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to="/portal">
@@ -82,9 +83,7 @@ const OnePortalPage = () => {
 
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold text-center text-foreground mb-12">
-            ONEPORTAL
-          </h1>
+          <PageHeading title="OnePortal" />
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {sections

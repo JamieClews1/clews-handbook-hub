@@ -11,6 +11,7 @@ import { toast as sonnerToast } from "sonner";
 import { ArrowLeft, CheckCircle, AlertCircle, FileText, User, Clock, BookOpen, MessageSquare, HardHat } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import clewsLogo from "@/assets/clews-logo.png";
+import { PageHeading } from "@/components/PageHeading";
 
 interface Profile {
   id: string;
@@ -223,7 +224,7 @@ const MyProfilePage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
+      <header className="hidden">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
@@ -238,6 +239,7 @@ const MyProfilePage = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <PageHeading title="My Profile" />
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Handbook Status Banner */}
           <Card className={`${handbookSignature ? 'border-primary bg-primary/5' : 'border-destructive bg-destructive/5'}`}>

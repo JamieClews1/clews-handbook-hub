@@ -301,7 +301,7 @@ const DigitalWasteTrackingPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
+      <header className="hidden">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to="/portal">
@@ -320,7 +320,7 @@ const DigitalWasteTrackingPage = () => {
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold text-foreground">Digital Waste Tracking</h1>
+                <h1 className="text-2xl font-bold text-foreground">Digital Waste Tracking</h1>
                 <Badge variant="outline" className="gap-1.5">
                   <Radio className="h-3 w-3" /> DEFRA sandbox
                 </Badge>

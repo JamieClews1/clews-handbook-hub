@@ -26,7 +26,7 @@ const DiaryPage = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-background">
-      <header className="sticky top-0 z-50 bg-white dark:bg-background border-b border-border/30">
+      <header className="hidden">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to="/one-portal">
