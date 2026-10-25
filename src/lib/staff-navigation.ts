@@ -1,4 +1,4 @@
-import { Inbox, Route, Scale, Box, Radio, FileCheck, PoundSterling, Container, Users, AlertTriangle, CalendarCheck, FileText, Package, Building2, FileSpreadsheet, Fuel, Upload, BarChart3, Gauge, TrendingUp, ClipboardList, Gem, ShieldCheck, HardHat, MessageSquare, Flame, BookOpen, ScrollText, Smartphone, Settings } from "lucide-react";
+import { Inbox, Route, Scale, Box, Radio, FileCheck, PoundSterling, Container, Users, AlertTriangle, CalendarCheck, CalendarDays, FileText, Package, Building2, FileSpreadsheet, Fuel, Upload, BarChart3, Gauge, TrendingUp, ClipboardList, Gem, ShieldCheck, HardHat, MessageSquare, Flame, BookOpen, ScrollText, Smartphone, Settings } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type NavigationAccess = { isAdmin: boolean; canAccessFinance: boolean; canAccessPl: boolean };
@@ -8,6 +8,7 @@ export const QUICK_LINKS: StaffNavItem[] = [
   { label: "Inbox", path: "/inbox", icon: Inbox, key: "crm" },
   { label: "Scheduling", path: "/route-one", icon: Route, key: "route-one" },
   { label: "Weighbridge", path: "/weigh-one", icon: Scale, key: "weigh-one" },
+  { label: "Diary", path: "/diary", icon: CalendarDays, key: "diary" },
 ];
 export const STAFF_NAV_GROUPS: StaffNavGroup[] = [
   { title: "RouteOne", icon: Route, key: "nav-routeone", items: [
@@ -45,6 +46,7 @@ export const STAFF_NAV_GROUPS: StaffNavGroup[] = [
     { label: "Projections", path: "/performance-hub/projections", icon: TrendingUp, key: "performance-projections" },
   ] },
   { title: "Operations", icon: ClipboardList, key: "nav-site-operations", items: [
+    QUICK_LINKS[3],
     { label: "Site Reports", path: "/site-reports", icon: ClipboardList, key: "duty-of-care" },
     { label: "Non-Ferrous Metals", path: "/metals", icon: Gem, key: "metals" },
   ] },
