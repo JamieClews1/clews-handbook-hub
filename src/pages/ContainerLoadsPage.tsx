@@ -180,45 +180,59 @@ const ContainerLoadsPage = () => {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex flex-col gap-2">
                   {filtered.map((l) => {
                     const meta = CONTAINER_STATUS_META[l.status];
+                    const materials = l.material
+                      ? l.material.split(",").map((m) => m.trim()).filter(Boolean)
+                      : [];
                     return (
                       <button
                         key={l.id}
                         onClick={() => setSelectedId(l.id)}
-                        className="text-left"
+                        className="text-left w-full"
                       >
-                        <Card className="h-full hover:shadow-md transition-shadow hover:border-primary/40">
-                          <CardContent className="p-4 space-y-3">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-bold text-lg">{containerLoadTitle(l)}</span>
-                              <Badge variant="outline" className={meta.badgeClass}>
-                                {meta.label}
-                              </Badge>
+                        <Card className="hover:shadow-md transition-shadow hover:border-primary/40">
+                          <CardContent className="p-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+                            <div className="min-w-[180px]">
+                              <div className="font-bold text-lg">{containerLoadTitle(l)}</div>
+                              <div className="text-sm font-medium">
+                                {l.customer_name || (
+                                  <span className="text-muted-foreground italic">Unassigned</span>
+                                )}
+                              </div>
                             </div>
-                            <div className="text-sm font-medium">
-                              {l.customer_name || (
-                                <span className="text-muted-foreground italic">Unassigned</span>
-                              )}
-                            </div>
-                            <div className="text-sm text-muted-foreground space-y-0.5">
-                              <div>{l.material || "—"}</div>
-                              <div className="flex flex-wrap gap-x-3">
+                            <div className="flex-1 min-w-[240px] space-y-1">
+                              <div className="flex items-center flex-wrap gap-1.5">
+                                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                  Material
+                                </span>
+                                {materials.length > 0 ? (
+                                  materials.map((m) => (
+                                    <Badge key={m} variant="outline" className="font-medium">
+                                      {m}
+                                    </Badge>
+                                  ))
+                                ) : (
+                                  <span className="text-sm text-muted-foreground italic">Not set</span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-x-3 text-sm text-muted-foreground">
                                 <span>{l.bale_count} bales</span>
                                 {l.container_number && <span>· {l.container_number}</span>}
                                 {l.photos.length > 0 && <span>· {l.photos.length} photos</span>}
                               </div>
-                              {(l.destination_country || l.export_date) && (
-                                <div className="flex flex-wrap gap-x-3 pt-1">
-                                  {l.destination_country && <span>{l.destination_country}</span>}
-                                  {l.export_date && (
-                                    <span>
-                                      {new Date(l.export_date).toLocaleDateString("en-GB")}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              <Badge variant="outline" className={meta.badgeClass}>
+                                {meta.label}
+                              </Badge>
+                              <div className="flex flex-wrap justify-end gap-x-3 text-sm text-muted-foreground">
+                                {l.destination_country && <span>{l.destination_country}</span>}
+                                {l.export_date && (
+                                  <span>{new Date(l.export_date).toLocaleDateString("en-GB")}</span>
+                                )}
+                              </div>
                             </div>
                           </CardContent>
                         </Card>
