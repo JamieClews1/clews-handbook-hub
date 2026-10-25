@@ -4,8 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { Search, X } from "lucide-react";
 import {
   DiaryCard,
-  CATEGORY_DOT_CLASS,
+  DiaryCategory,
   categoryKeyOf,
+  dotClassFor,
   searchEntries,
   addDays,
   getMonday,
@@ -13,11 +14,17 @@ import {
 
 interface DiarySearchOverlayProps {
   open: boolean;
+  categories: DiaryCategory[];
   onClose: () => void;
   onJumpToEntry: (card: DiaryCard) => void;
 }
 
-export const DiarySearchOverlay = ({ open, onClose, onJumpToEntry }: DiarySearchOverlayProps) => {
+export const DiarySearchOverlay = ({
+  open,
+  categories,
+  onClose,
+  onJumpToEntry,
+}: DiarySearchOverlayProps) => {
   const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [allCards, setAllCards] = useState<DiaryCard[]>([]);
@@ -90,7 +97,10 @@ export const DiarySearchOverlay = ({ open, onClose, onJumpToEntry }: DiarySearch
                 className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left hover:bg-muted/50"
               >
                 <span
-                  className={`h-2 w-2 rounded-full shrink-0 ${CATEGORY_DOT_CLASS[categoryKeyOf(card)]}`}
+                  className={`h-2.5 w-2.5 rounded-full shrink-0 ${dotClassFor(
+                    categoryKeyOf(card),
+                    categories
+                  )}`}
                 />
                 <span
                   className={`flex-1 truncate text-sm ${

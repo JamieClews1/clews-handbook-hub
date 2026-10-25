@@ -281,6 +281,13 @@
       "when": 1792949218470,
       "tag": "0039_diary_entry_details",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1792950003767,
+      "tag": "0040_diary_categories",
+      "breakpoints": true
     }
   ]
 }

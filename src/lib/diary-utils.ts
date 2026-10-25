@@ -15,27 +15,53 @@ export interface DiaryCard {
   repeat: string | null;
 }
 
-export const DIARY_CATEGORIES = [
-  { key: "general", label: "General" },
-  { key: "drivers", label: "Drivers" },
-  { key: "loads_in", label: "Loads In" },
-  { key: "loads_out", label: "Loads Out" },
-  { key: "maintenance", label: "Maintenance" },
-] as const;
+export interface DiaryCategory {
+  key: string;
+  label: string;
+  color: string;
+}
 
-export type DiaryCategoryKey = (typeof DIARY_CATEGORIES)[number]["key"];
-
-export const CATEGORY_DOT_CLASS: Record<DiaryCategoryKey, string> = {
-  general: "bg-slate-400",
-  drivers: "bg-blue-500",
-  loads_in: "bg-emerald-500",
-  loads_out: "bg-amber-500",
-  maintenance: "bg-rose-500",
+/** Named colour palette for category dots. */
+export const DIARY_COLOR_DOT: Record<string, string> = {
+  grey: "bg-slate-400",
+  blue: "bg-blue-500",
+  green: "bg-emerald-500",
+  orange: "bg-amber-500",
+  red: "bg-rose-500",
+  purple: "bg-violet-500",
+  yellow: "bg-yellow-400",
+  teal: "bg-teal-500",
 };
 
-export function categoryKeyOf(card: Pick<DiaryCard, "category">): DiaryCategoryKey {
-  const key = (card.category ?? "general") as DiaryCategoryKey;
-  return key in CATEGORY_DOT_CLASS ? key : "general";
+export const DIARY_COLOR_NAMES = Object.keys(DIARY_COLOR_DOT);
+
+export const DEFAULT_DIARY_CATEGORIES: DiaryCategory[] = [
+  { key: "general", label: "General", color: "grey" },
+  { key: "drivers", label: "Drivers", color: "blue" },
+  { key: "loads_in", label: "Loads In", color: "green" },
+  { key: "loads_out", label: "Loads Out", color: "orange" },
+  { key: "maintenance", label: "Maintenance", color: "red" },
+];
+
+export function categoryKeyOf(card: Pick<DiaryCard, "category">): string {
+  return card.category ?? "general";
+}
+
+export function dotClassFor(categoryKey: string, categories: DiaryCategory[]): string {
+  const color = categories.find((c) => c.key === categoryKey)?.color ?? "grey";
+  return DIARY_COLOR_DOT[color] ?? DIARY_COLOR_DOT.grey;
+}
+
+export function slugifyCategoryKey(label: string, existingKeys: string[]): string {
+  const base =
+    label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "") || "category";
+  if (!existingKeys.includes(base)) return base;
+  let i = 2;
+  while (existingKeys.includes(`${base}_${i}`)) i++;
+  return `${base}_${i}`;
 }
 
 export function getMonday(date: Date): Date {

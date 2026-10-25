@@ -13,8 +13,8 @@ import {
 import { Trash2 } from "lucide-react";
 import {
   DiaryCard,
-  DIARY_CATEGORIES,
-  CATEGORY_DOT_CLASS,
+  DiaryCategory,
+  DIARY_COLOR_DOT,
   addDays,
   DiaryRepeat,
 } from "@/lib/diary-utils";
@@ -22,6 +22,7 @@ import {
 interface DiaryEntryModalProps {
   card: DiaryCard | null;
   weekStart: Date;
+  categories: DiaryCategory[];
   open: boolean;
   onClose: () => void;
   onUpdate: (id: string, updates: Partial<DiaryCard>) => void;
@@ -32,6 +33,7 @@ interface DiaryEntryModalProps {
 export const DiaryEntryModal = ({
   card,
   weekStart,
+  categories,
   open,
   onClose,
   onUpdate,
@@ -104,7 +106,7 @@ export const DiaryEntryModal = ({
           <div>
             <label className="text-xs font-medium text-muted-foreground">Category</label>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {DIARY_CATEGORIES.map((cat) => {
+              {categories.map((cat) => {
                 const selected = (card.category ?? "general") === cat.key;
                 return (
                   <button
@@ -112,13 +114,17 @@ export const DiaryEntryModal = ({
                     onClick={() =>
                       onUpdate(card.id, { category: cat.key === "general" ? null : cat.key })
                     }
-                    className={`flex items-center gap-1.5 rounded-full px-3 h-7 text-xs font-medium border transition-colors ${
+                    className={`flex items-center gap-1.5 rounded-full px-3 h-8 text-sm font-medium border transition-colors ${
                       selected
                         ? "border-foreground/60 bg-muted text-foreground"
                         : "border-border text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    <span className={`h-2 w-2 rounded-full ${CATEGORY_DOT_CLASS[cat.key]}`} />
+                    <span
+                      className={`h-2.5 w-2.5 rounded-full ${
+                        DIARY_COLOR_DOT[cat.color] ?? DIARY_COLOR_DOT.grey
+                      }`}
+                    />
                     {cat.label}
                   </button>
                 );
