@@ -1,8 +1,6 @@
 import { useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
 import { DiaryWeekView } from "@/components/diary/DiaryWeekView";
 
 const DiaryPage = () => {
@@ -24,8 +22,7 @@ const DiaryPage = () => {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-background">
-
+    <div className="min-h-screen bg-background">
       <main className="mx-auto px-6 py-6 max-w-[1600px]">
         <DiaryWeekView />
       </main>
