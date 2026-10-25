@@ -3,11 +3,9 @@ import { computeJobTotals } from "./JobFormFields";
 const money = (value: unknown) => Number(value || 0).toLocaleString("en-GB", { style: "currency", currency: "GBP" });
 export function JobPriceSummary({ form }: { form: any }) {
   const totals = computeJobTotals(form);
-  return <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs border-b border-border bg-muted/40 px-5 py-2">
-    <span>Booked charge <strong>{money(form.haulage_cost)}</strong></span>
-    <span>Per tonne <strong>{money(form.charge_per_tonne)}</strong></span>
-    <span>Extras <strong>{money(totals.items + Number(form.contamination_charge || 0))}</strong></span>
-    <span className="sm:ml-auto">Net <strong>{money(totals.net)}</strong></span>
-    <span>Inc VAT <strong className="text-primary">{money(totals.gross)}</strong></span>
+  return <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs">
+    <span className="text-muted-foreground">Haulage {money(form.haulage_cost)} · {money(form.charge_per_tonne)}/t</span>
+    <span>Net <strong className="text-base text-foreground">{money(totals.net)}</strong></span>
+    <span className="text-muted-foreground">{money(totals.gross)} inc VAT</span>
   </div>;
 }
