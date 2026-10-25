@@ -77,13 +77,13 @@
     /* Sidebar — near-black surface so brand green reads as accent */
     --sidebar-background: 144 12.82% 7.65%;
     --sidebar-foreground: 146.67 9.09% 80.59%;
-    --sidebar-primary: 143.57 48.84% 66.27%;
+    --sidebar-primary: 147.07 59.64% 56.27%;
     --sidebar-primary-foreground: 144 12.82% 7.65%;
     /* Neutral active surface keeps navigation distinct from primary actions. */
     --sidebar-accent: 142.5 11.76% 13.33%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 220 10% 16%;
-    --sidebar-ring: 143.57 48.84% 66.27%;
+    --sidebar-ring: 147.07 59.64% 56.27%;
   }
 
   .dark {
@@ -140,12 +140,12 @@
 
     --sidebar-background: 220 12% 7%;
     --sidebar-foreground: 220 8% 78%;
-    --sidebar-primary: 143.57 48.84% 66.27%;
+    --sidebar-primary: 147.07 59.64% 56.27%;
     --sidebar-primary-foreground: 144 12.82% 7.65%;
     --sidebar-accent: 142.5 11.76% 13.33%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 220 12% 14%;
-    --sidebar-ring: 143.57 48.84% 66.27%;
+    --sidebar-ring: 147.07 59.64% 56.27%;
   }
 }
 
