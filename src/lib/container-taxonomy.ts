@@ -14,7 +14,8 @@ export const CONTAINER_GROUPS = [
     { code: "curtain", label: "Curtain" }, { code: "walking_floor", label: "Walking Floor" },
     { code: "ejector", label: "Ejector" },
   ] },
-  { label: "PICKUP", value: "Pickup", sizes: [{ code: "7_5_tonne", label: "7.5 TONNE" }] },
+  { label: "PICKUP", value: "Pickup", sizes: [{ code: "pickup", label: "Pickup" }] },
+  { label: "7.5 TONNE", value: "7.5 Tonne", sizes: [{ code: "7_5_tonne", label: "7.5 TONNE" }] },
 ] as const;
 
 export function containerGroup(value: string) {
@@ -28,7 +29,7 @@ export function containerSize(code: string) {
 export function pricingSizeLabel(code: string, fallback: string) {
   const group = CONTAINER_GROUPS.find(g => g.sizes.some(s => s.code === code));
   const size = containerSize(code);
-  return group && size ? `${group.label} · ${size.label}` : fallback;
+  return group && size ? (["Pickup", "7.5 Tonne"].includes(group.value) ? group.label : `${group.label} · ${size.label}`) : fallback;
 }
 
 /** Format native jobs without changing the stored code or legacy text. */
