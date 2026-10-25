@@ -3177,37 +3177,49 @@ export type Database = {
       }
       diary_cards: {
         Row: {
+          assignee: string | null
           category: string | null
           color: string | null
           content: string
           created_at: string
           day_of_week: number
           display_order: number
+          done: boolean
           id: string
+          notes: string | null
+          repeat: string | null
           updated_at: string
           user_id: string
           week_start: string
         }
         Insert: {
+          assignee?: string | null
           category?: string | null
           color?: string | null
           content?: string
           created_at?: string
           day_of_week: number
           display_order?: number
+          done?: boolean
           id?: string
+          notes?: string | null
+          repeat?: string | null
           updated_at?: string
           user_id: string
           week_start: string
         }
         Update: {
+          assignee?: string | null
           category?: string | null
           color?: string | null
           content?: string
           created_at?: string
           day_of_week?: number
           display_order?: number
+          done?: boolean
           id?: string
+          notes?: string | null
+          repeat?: string | null
           updated_at?: string
           user_id?: string
           week_start?: string
