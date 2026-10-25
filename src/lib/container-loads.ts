@@ -1,6 +1,6 @@
 // Shared types and helpers for the Container Loads (export) feature.
 
-export type ContainerStatus = "prepping" | "loaded" | "paperwork_ready" | "exported";
+export type ContainerStatus = "prepping" | "loaded" | "paperwork_ready" | "exported" | "completed";
 
 export interface PackingRow {
   bale_no: string;
@@ -143,6 +143,12 @@ export const CONTAINER_STATUS_META: Record<
       "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800",
     order: 3,
   },
+  completed: {
+    label: "Completed · sent",
+    badgeClass:
+      "bg-primary/10 text-primary border-primary/30",
+    order: 4,
+  },
 };
 
 export const CONTAINER_STATUS_ORDER: ContainerStatus[] = [
@@ -150,13 +156,15 @@ export const CONTAINER_STATUS_ORDER: ContainerStatus[] = [
   "loaded",
   "paperwork_ready",
   "exported",
+  "completed",
 ];
 
 /** Normalise a raw row from the database into a typed ContainerLoad. */
 export function normalizeContainerLoad(row: any): ContainerLoad {
   return {
     ...row,
-    status: (row.status ?? "prepping") as ContainerStatus,
+    // A load whose paperwork email has been sent is complete.
+    status: (row.sent_at ? "completed" : row.status ?? "prepping") as ContainerStatus,
     bale_count: row.bale_count ?? 0,
     photos: Array.isArray(row.photos) ? (row.photos as ContainerPhoto[]) : [],
     packing: Array.isArray(row.packing) ? (row.packing as PackingRow[]) : [],
