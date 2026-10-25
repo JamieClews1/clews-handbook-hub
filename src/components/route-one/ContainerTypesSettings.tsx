@@ -21,7 +21,7 @@ export function ContainerTypesSettings() {
   return <div className="space-y-4">
     <div className="flex items-center justify-between gap-3">
       <h3 className="font-semibold">Containers</h3>
-      <Button asChild variant="outline" size="sm"><Link to="/pricing-cms"><Settings className="h-4 w-4 mr-2" />Pricing containers</Link></Button>
+      <Button asChild variant="outline" size="sm"><Link to="/admin/pricing"><Settings className="h-4 w-4 mr-2" />Pricing containers</Link></Button>
     </div>
     {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : error ? <div role="alert">Could not load containers.<Button variant="link" onClick={load}>Try again</Button></div> :
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">{CONTAINER_GROUPS.map(group => <section key={group.value} className="space-y-2">
