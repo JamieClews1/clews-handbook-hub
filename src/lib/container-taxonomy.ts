@@ -14,7 +14,8 @@ export const CONTAINER_GROUPS = [
     { code: "curtain", label: "Curtain" }, { code: "walking_floor", label: "Walking Floor" },
     { code: "ejector", label: "Ejector" },
   ] },
-  { label: "PICKUP", value: "Pickup", sizes: [{ code: "7_5_tonne", label: "7.5 TONNE" }] },
+  { label: "PICKUP", value: "Pickup", sizes: [] },
+  { label: "7.5 TONNE", value: "7.5 Tonne", sizes: [{ code: "7_5_tonne", label: "7.5 TONNE" }] },
 ] as const;
 
 export function containerGroup(value: string) {
