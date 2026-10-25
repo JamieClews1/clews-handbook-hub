@@ -140,17 +140,17 @@
 
     --sidebar-background: 220 12% 7%;
     --sidebar-foreground: 220 8% 78%;
-    --sidebar-primary: 145 55% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary: 143.57 48.84% 66.27%;
+    --sidebar-primary-foreground: 144 12.82% 7.65%;
     --sidebar-accent: 142.5 11.76% 13.33%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 220 12% 14%;
-    --sidebar-ring: 145 55% 50%;
+    --sidebar-ring: 143.57 48.84% 66.27%;
   }
 }
 
 /* Sidebar hover: subtle neutral tint so hover doesn't flash brand green
-   (active state uses the dark neutral sidebar-accent) */
+   (selected links use the mint sidebar-primary pill with near-black text) */
 @layer components {
   [data-sidebar="menu-button"]:not([data-active="true"]):hover,
   [data-sidebar="menu-sub-button"]:not([data-active="true"]):hover {
