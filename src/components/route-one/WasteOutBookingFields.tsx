@@ -41,7 +41,7 @@ export function WasteOutBookingFields({ form, setForm, drivers }: { form: any; s
       <section className="booking-section space-y-2">
         <h4 className="booking-step"><span>2</span>Vehicle and container</h4>
         <div className="flex flex-wrap gap-1.5">{CONTAINER_GROUPS.map(g => <Button type="button" key={g.value} size="sm" variant="outline" aria-pressed={containerGroup(form.container_type || "")?.value === g.value} className="booking-container-choice" onClick={() => setForm({ ...form, container_type: g.value, container_size: "" })}>{g.label}</Button>)}</div>
-        {sizeOptions.length > 0 && <div className="space-y-1.5 pt-1"><Label className="text-xs">{form.container_type === "Artic" ? "Trailer type" : "Container type"}</Label><div className="flex flex-wrap gap-1.5">{sizeOptions.map(o => <Button type="button" key={o.size_code} size="sm" variant={form.container_size === o.size_code ? "secondary" : "outline"} aria-pressed={form.container_size === o.size_code} onClick={() => setForm({ ...form, container_size: o.size_code })}>{o.display_name}</Button>)}</div></div>}
+        {sizeOptions.length > 0 && <div className="space-y-1.5 pt-1"><Label className="text-xs">{form.container_type === "Artic" ? "Trailer type" : "Container type"}</Label><div className="flex flex-wrap gap-1.5">{sizeOptions.map(o => <Button type="button" key={o.size_code} size="sm" variant="outline" aria-pressed={form.container_size === o.size_code} className="booking-container-choice" onClick={() => setForm({ ...form, container_size: o.size_code })}>{o.display_name}</Button>)}</div></div>}
       </section>
       <section className="booking-section space-y-3">
         <h4 className="booking-step"><span>3</span>Waste</h4>
@@ -56,7 +56,7 @@ export function WasteOutBookingFields({ form, setForm, drivers }: { form: any; s
         <div className="space-y-2">
           <Label className="text-xs">Load cost estimate (optional)</Label>
           <div className="flex flex-wrap items-center gap-2">
-            {([["", "None"], ["gate_fee", "Gate fee"], ["rebate", "Rebate"]] as const).map(([v, l]) => <Button key={l} type="button" size="sm" variant="outline" aria-pressed={(form.waste_out_estimate_type || "") === v} onClick={() => setForm({ ...form, waste_out_estimate_type: v, waste_out_estimate_per_tonne: v ? form.waste_out_estimate_per_tonne : "" })}>{l}</Button>)}
+            {([["", "None"], ["gate_fee", "Gate fee"], ["rebate", "Rebate"]] as const).map(([v, l]) => <Button key={l} type="button" size="sm" variant="outline" aria-pressed={(form.waste_out_estimate_type || "") === v} className="booking-container-choice" onClick={() => setForm({ ...form, waste_out_estimate_type: v, waste_out_estimate_per_tonne: v ? form.waste_out_estimate_per_tonne : "" })}>{l}</Button>)}
             {form.waste_out_estimate_type && <><Input aria-label="Rate per tonne" type="number" step="0.01" className="w-28" value={form.waste_out_estimate_per_tonne ?? ""} onChange={e => setForm({ ...form, waste_out_estimate_per_tonne: e.target.value })} placeholder="£ / tonne" /><Input aria-label="Estimated tonnes" type="number" step="0.01" className="w-28" value={form.weight_included_t ?? ""} onChange={e => setForm({ ...form, weight_included_t: e.target.value })} placeholder="Est. tonnes" /></>}
           </div>
           {est && <p className="text-sm">{est.type === "gate_fee" ? "Estimated cost" : "Estimated rebate"}: <strong>{money(est.total)}</strong> <span className="text-muted-foreground">— a guide only, never invoiced.</span></p>}
