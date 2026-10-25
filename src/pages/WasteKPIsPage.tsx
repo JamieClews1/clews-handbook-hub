@@ -7,6 +7,7 @@ import { ArrowLeft, Gauge, GitCompareArrows, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, subMonths, subYears, startOfMonth, endOfMonth, startOfYear } from "date-fns";
 import clewsLogo from "@/assets/clews-logo.png";
+import { PageHeading } from "@/components/PageHeading";
 import WasteKPIGradeCWood from "@/components/data-hub/WasteKPIGradeCWood";
 import TotalWasteHandled from "@/components/data-hub/TotalWasteHandled";
 import WasteNotOnMidweigh from "@/components/data-hub/WasteNotOnMidweigh";
@@ -99,13 +100,13 @@ const WasteKPIsPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
+      <header className="hidden">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to="/performance-hub">
               <Button variant="ghost" size="sm" className="gap-2">
                 <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Back to Performance Hub</span>
+                <span className="hidden sm:inline">Back</span>
               </Button>
             </Link>
             <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
@@ -115,17 +116,7 @@ const WasteKPIsPage = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-screen-2xl mx-auto space-y-8">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
-              <Gauge className="h-7 w-7 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Performance Hub · Waste KPIs</h1>
-              <p className="text-muted-foreground">
-                Total waste handled and Grade C Wood recovery metrics
-              </p>
-            </div>
-          </div>
+          <PageHeading title="Waste KPIs" description="Total waste handled and Grade C Wood recovery metrics" />
 
           <Tabs defaultValue="kpis" className="space-y-8">
             <TabsList>

@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, BarChart3, Sparkles, Settings2, Info } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth, startOfYear } from "date-fns";
 import clewsLogo from "@/assets/clews-logo.png";
+import { PageHeading } from "@/components/PageHeading";
 import DataHubAIChat from "@/components/data-hub/DataHubAIChat";
 import DataHubAnalytics from "@/components/data-hub/DataHubAnalytics";
 import ZeroToLandfillChart from "@/components/data-hub/ZeroToLandfillChart";
@@ -73,13 +74,13 @@ const PerformanceHubReportsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
+      <header className="hidden">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to="/performance-hub">
               <Button variant="ghost" size="sm" className="gap-2">
                 <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Back to Performance Hub</span>
+                <span className="hidden sm:inline">Back</span>
               </Button>
             </Link>
             <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
@@ -89,17 +90,7 @@ const PerformanceHubReportsPage = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-screen-2xl mx-auto space-y-8">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
-              <BarChart3 className="h-7 w-7 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Performance Hub · Business Reports</h1>
-              <p className="text-muted-foreground">
-                Analytics, data tracking, and AI-powered insights
-              </p>
-            </div>
-          </div>
+          <PageHeading title="Business Reports" description="Analytics, data tracking and insights" />
 
           {/* Shared Period Selection */}
           <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-4">

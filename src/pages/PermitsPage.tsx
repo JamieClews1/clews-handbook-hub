@@ -1,4 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeading } from "@/components/PageHeading";
 import { FileCheck, Clock, Settings } from "lucide-react";
 import { PermitApplicationsTab } from "@/components/permits/PermitApplicationsTab";
 import { PermitExpiryTab } from "@/components/permits/PermitExpiryTab";
@@ -8,12 +9,7 @@ const PermitsPage = () => {
   return (
     <>
       <div className="p-4 md:p-6 max-w-screen-2xl mx-auto w-full space-y-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Permits</h1>
-          <p className="text-sm text-muted-foreground">
-            Skip road permits — council lookup by postcode, applications, and expiry tracking.
-          </p>
-        </div>
+        <PageHeading title="Permits" description="Skip road permits — applications and expiry tracking" />
 
         <Tabs defaultValue="applications" className="space-y-4">
           <TabsList>

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { PageHeading } from "@/components/PageHeading";
 import { ArrowLeft, Fuel } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -30,10 +31,10 @@ export default function FuelSurchargesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
+      <header className="hidden">
         <div className="container max-w-screen-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/performance-hub">
-            <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Performance Hub</Button>
+            <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Back</Button>
           </Link>
           <div className="flex items-center gap-2">
             <Fuel className="h-5 w-5 text-primary" />
@@ -44,6 +45,7 @@ export default function FuelSurchargesPage() {
       </header>
 
       <main className="container max-w-screen-2xl mx-auto px-4 py-6">
+        <PageHeading title="Fuel Surcharges" />
         <Tabs defaultValue="dashboard" className="space-y-4">
           <TabsList>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>

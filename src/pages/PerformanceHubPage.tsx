@@ -18,7 +18,7 @@ const sections: { title: string; description: string; path: string; icon: Lucide
 export default function PerformanceHubPage() {
   return (
     <div className="mx-auto max-w-screen-2xl px-4 py-8 sm:px-6">
-      <PageHeading title="Performance Hub" section={{ label: "Home", href: "/portal" }} description="Explore operational and business reports." />
+      <PageHeading title="Insights & Data" description="Operational and business reports" />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {sections.map(({ title, description, path, icon: Icon }) => (
           <Link key={path} to={path} className="group flex min-h-32 items-start gap-4 rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
