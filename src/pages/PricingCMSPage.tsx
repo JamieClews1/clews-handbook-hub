@@ -50,7 +50,7 @@ type PricingEntry = {
   tier: PricingTier;
 };
 
-const PricingCMSPage = () => {
+export const PricingCMSContent = () => {
   const { toast } = useToast();
   const { zones, loading: zonesLoading } = usePostcodeZones();
   const [skipSizes, setSkipSizes] = useState<SkipSize[]>([]);
@@ -120,11 +120,11 @@ const PricingCMSPage = () => {
   };
 
   if (loading || zonesLoading) {
-    return <AdminPageLayout title="Pricing CMS"><div className="p-8 text-center text-muted-foreground">Loading pricing data...</div></AdminPageLayout>;
+    return <div className="p-8 text-center text-muted-foreground">Loading pricing data...</div>;
   }
 
   return (
-    <AdminPageLayout title="Pricing CMS" description="Manage skip & container pricing. Changes are reflected on the marketing site via the API.">
+    <>
       <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm font-medium text-amber-700 dark:text-amber-400">
         ⚠️ All pricing shown and entered is <strong>exclusive of VAT</strong>.
       </div>
@@ -221,7 +221,7 @@ const PricingCMSPage = () => {
           <WasteTypesManager wasteTypes={wasteTypes} onRefresh={fetchAll} />
         </TabsContent>
       </Tabs>
-    </AdminPageLayout>
+    </>
   );
 };
 
@@ -408,4 +408,9 @@ const WasteTypesManager = ({ wasteTypes, onRefresh }: { wasteTypes: WasteType[];
   );
 };
 
+const PricingCMSPage = () => {
+  const { isAdmin } = useAuth();
+  if (!isAdmin) return null;
+  return <AdminPageLayout title="Pricing CMS"><PricingCMSContent /></AdminPageLayout>;
+};
 export default PricingCMSPage;

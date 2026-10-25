@@ -1,3 +1,6 @@
+import { useSearchParams } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { PricingCMSContent } from "./PricingCMSPage";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +37,10 @@ type CustomerOption = { id: string; customer_name: string };
 
 const PricingPage = () => {
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get("tab") || "rate-cards";
+  const tab = requestedTab === "cms" && !isAdmin ? "rate-cards" : requestedTab;
   const { cards, loading, refresh } = useRateCards();
   const [activeType, setActiveType] = useState<CustomerType>("residential");
   const [selectedCardId, setSelectedCardId] = useState<Record<CustomerType, string>>({
@@ -96,8 +103,8 @@ const PricingPage = () => {
       title="Pricing"
       description="Manage rate cards and build customer quotes. All figures are exclusive of VAT unless a card states otherwise."
     >
-      <Tabs defaultValue="rate-cards">
-        <TabsList className="mb-6">
+      <Tabs value={tab} onValueChange={value => setSearchParams(prev => { const next = new URLSearchParams(prev); next.set("tab", value); return next; })}>
+        <TabsList className="mb-6 flex h-auto flex-wrap justify-start gap-1">
           <TabsTrigger value="rate-cards">
             <LayoutGrid className="h-4 w-4 mr-2" /> Rate Cards
           </TabsTrigger>
@@ -110,6 +117,7 @@ const PricingPage = () => {
           <TabsTrigger value="settings">
             <Settings2 className="h-4 w-4 mr-2" /> Settings
           </TabsTrigger>
+          {isAdmin && <TabsTrigger value="cms"><Settings2 className="h-4 w-4 mr-2" />Pricing CMS</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="rate-cards" className="space-y-6">
@@ -153,6 +161,8 @@ const PricingPage = () => {
         <TabsContent value="email">
           <EmailPriceLookup />
         </TabsContent>
+
+        {isAdmin && <TabsContent value="cms"><PricingCMSContent /></TabsContent>}
 
         <TabsContent value="settings">
           <PricingSettings />
