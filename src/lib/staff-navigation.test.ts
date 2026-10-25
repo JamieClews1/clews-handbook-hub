@@ -1,6 +1,6 @@
 import { it } from "node:test";
 import assert from "node:assert/strict";
-import { STAFF_NAV_GROUPS, navigationAllowed, navigationActive } from "./staff-navigation";
+import { QUICK_LINKS, STAFF_NAV_GROUPS, navigationAllowed, navigationActive } from "./staff-navigation";
 const all = STAFF_NAV_GROUPS.flatMap(g => g.items);
 const staff = { isAdmin: false, canAccessFinance: false, canAccessPl: false };
 it("moving admin pages does not expose them to ordinary staff", () => {
@@ -38,4 +38,12 @@ it("nested P&L pages keep the most specific selection", () => {
 it("Invoicing still selects Finance itself", () => {
   assert.equal(navigationActive("/finance", "/finance"), true);
   assert.equal(navigationActive("/finance/company-pl", "/finance"), false);
+});
+it("Diary sits in quick links and under Operations, and selects only itself", () => {
+  const quick = QUICK_LINKS.find(item => item.path === "/diary");
+  const operations = STAFF_NAV_GROUPS.find(g => g.key === "nav-site-operations")?.items.some(item => item.path === "/diary");
+  assert.ok(quick);
+  assert.equal(operations, true);
+  assert.equal(navigationActive("/diary", "/diary"), true);
+  assert.deepEqual(all.filter(item => navigationActive(item.path, "/diary")).map(item => item.path), ["/diary"]);
 });

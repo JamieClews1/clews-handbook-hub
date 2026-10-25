@@ -1,0 +1,1 @@
+update public.portal_section_visibility set hidden = false where section_key = 'diary';
