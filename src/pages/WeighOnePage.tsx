@@ -17,9 +17,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Scale, Activity, Truck, Plus, Printer, Search, ArrowDownUp, Clock, CheckCircle2, XCircle, Weight, FileText, Trash2, PoundSterling, Settings, Database, HardHat, Users, Pencil, Maximize2, Minimize2, AlertTriangle as AlertTriangleIcon } from "lucide-react";
+import { Scale, Activity, Truck, Plus, Printer, Search, ArrowDownUp, Clock, CheckCircle2, XCircle, Weight, FileText, Trash2, PoundSterling, Settings, Database, HardHat, Users, Pencil, Maximize2, Minimize2, ChevronDown, AlertTriangle as AlertTriangleIcon } from "lucide-react";
 import { WeighOneCMS } from "@/components/weighone/WeighOneCMS";
 import MidweighHistory from "@/components/weighone/MidweighHistory";
 import { WeighbridgeRatesSettings, useWeighbridgeRates, resolveRate } from "@/components/weighone/WeighbridgeRatesSettings";
@@ -28,7 +29,7 @@ import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import { WtnTemplateEditor, useWtnTemplate } from "@/components/weighone/WtnTemplateEditor";
 import { StagedAttachmentPicker, WeighbridgeAttachments, uploadWeighbridgeAttachments, type StagedAttachment } from "@/components/weighone/WeighbridgeAttachments";
 import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib/wtn-ticket-template";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { SignatureField } from "@/components/SignatureField";
 import { WeighOnePaymentPanel } from "@/components/weighone/WeighOnePaymentPanel";
@@ -430,6 +431,23 @@ const WeighOnePage = () => {
       return (data ?? []) as { container_type: string; vehicle_type: string }[];
     },
     staleTime: 1000 * 60 * 60,
+  });
+
+  // Last Midweigh upload (Data Uploads log) for the header sync label
+  const { data: lastMidweighUploadAt } = useQuery({
+    queryKey: ["weighone-last-midweigh-upload"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("data_upload_log")
+        .select("uploaded_at")
+        .eq("source", "midweigh")
+        .order("uploaded_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as { uploaded_at: string } | null)?.uploaded_at ?? null;
+    },
+    staleTime: 1000 * 60 * 5,
   });
 
   const containerTypeOptions = Array.from(
@@ -1037,44 +1055,64 @@ const WeighOnePage = () => {
     ? secondWeighWeightCharge + (selectedTransaction?.additional_items_total ?? 0)
     : null;
 
+  const londonTodayLabel = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London", weekday: "short", day: "numeric", month: "short",
+  }).format(new Date()).replace(",", "");
+
+  const midweighSyncedLabel = lastMidweighUploadAt
+    ? formatDistanceToNow(new Date(lastMidweighUploadAt), { addSuffix: true })
+    : null;
+
   return (
     <div className={tablet ? "p-3 sm:p-4 w-full max-w-none min-h-dvh space-y-4" : fullScreen ? "fixed inset-0 z-40 overflow-y-auto bg-background p-4 md:p-6 space-y-6" : "p-4 md:p-6 max-w-screen-2xl mx-auto space-y-6"}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-secondary to-primary flex items-center justify-center">
-              <Scale className="h-5 w-5 text-primary-foreground" />
-            </div>
-            WeighOne
-          </h1>
-          {!tablet && <p className="text-muted-foreground mt-1">Weighbridge & waste measurement</p>}
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 min-w-0">
+          <h1 className="text-2xl font-bold text-foreground">WeighOne</h1>
+          <span className="text-sm text-muted-foreground truncate">
+            {londonTodayLabel}
+            {midweighSyncedLabel && <> · Midweigh synced {midweighSyncedLabel}</>}
+          </span>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="h-12 gap-2" onClick={() => setTablet(!tablet)}>
-            <Scale className="h-4 w-4" />{tablet ? "Exit tablet view" : "Tablet view"}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" className={tablet ? "h-12 gap-2" : "gap-2"} onClick={() => setTablet(!tablet)}>
+            {tablet ? "Exit tablet mode" : "Tablet mode"}
           </Button>
-          <Button asChild variant="ghost" className="h-12"><Link to="/help?guide=weighone-tablet">Install WeighOne</Link></Button>
-          <Button variant="outline" className={tablet ? "h-12 gap-2" : "gap-2"} onClick={toggleFullScreen}>
-            {fullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-            {fullScreen ? "Exit full screen" : "Full screen"}
-          </Button>
-          <Button variant="outline" className={tablet ? "hidden" : "gap-2"} onClick={() => setCmsDialogOpen(true)}>
-            <Database className="h-4 w-4" /> Vehicles & Customers
-          </Button>
-          <Button variant="outline" className={tablet ? "hidden" : "gap-2"} onClick={() => setWasteTypesDialogOpen(true)}>
-            <Settings className="h-4 w-4" /> Waste Types
-          </Button>
-          <Button variant="outline" className={tablet ? "hidden" : "gap-2"} onClick={() => setRatesDialogOpen(true)}>
-            <PoundSterling className="h-4 w-4" /> Prices & Rates
-          </Button>
-          <Button variant="outline" className={tablet ? "hidden" : "gap-2"} onClick={() => setWtnDialogOpen(true)}>
-            <FileText className="h-4 w-4" /> WTN Design
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className={tablet ? "h-12 gap-2" : "gap-2"}>
+                Setup <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={toggleFullScreen}>
+                {fullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                {fullScreen ? "Exit full screen" : "Full screen"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setCmsDialogOpen(true)}>
+                <Database className="h-4 w-4" /> Vehicles & Customers
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setWasteTypesDialogOpen(true)}>
+                <Settings className="h-4 w-4" /> Waste Types
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setRatesDialogOpen(true)}>
+                <PoundSterling className="h-4 w-4" /> Prices & Rates
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setWtnDialogOpen(true)}>
+                <FileText className="h-4 w-4" /> WTN Design
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/help?guide=weighone-tablet">Install WeighOne</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Dialog open={newDialogOpen} onOpenChange={(open) => { setNewDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
-              <Button className="h-12 gap-2">
-                <Plus className="h-4 w-4" /> New Weigh-In
+              <Button className={tablet ? "h-12 gap-2" : "gap-2"}>
+                <Plus className="h-4 w-4" /> New weigh-in
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-[1500px] w-[97vw] max-h-[92vh] p-0 gap-0 flex flex-col overflow-hidden bg-background">
