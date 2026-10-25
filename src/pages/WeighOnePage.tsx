@@ -29,7 +29,7 @@ import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import { WtnTemplateEditor, useWtnTemplate } from "@/components/weighone/WtnTemplateEditor";
 import { StagedAttachmentPicker, WeighbridgeAttachments, uploadWeighbridgeAttachments, type StagedAttachment } from "@/components/weighone/WeighbridgeAttachments";
 import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib/wtn-ticket-template";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { SignatureField } from "@/components/SignatureField";
 import { WeighOnePaymentPanel } from "@/components/weighone/WeighOnePaymentPanel";
