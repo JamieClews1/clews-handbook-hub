@@ -10,10 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchAllRows } from "@/lib/fetch-all";
 import { importedSiteDetails, applyBookingSite, type BookingSite } from "@/lib/route-booking-sites";
-import { History, Plus, Trash2, AlertTriangle, ExternalLink, MapPin } from "lucide-react";
+import { History, Plus, Trash2, AlertTriangle, ExternalLink, MapPin, Check, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePostcodeZoneLookup } from "@/hooks/usePostcodeZoneLookup";
 import { useJobTypes } from "./jobTypes";
+import { boardJobType } from "@/lib/route-board-presentation";
 
 import { JobPricingPicker } from "./JobPricingPicker";
 import { EwcCodePicker, SicCodePicker } from "@/components/codes/CodePicker";
@@ -283,24 +284,25 @@ export function JobFormFields({
     const variants = postcodeVariants(input);
     const orFilter = variants.map((v) => `postcode.ilike.%${v}%`).join(",");
     const roOrFilter = variants.map((v) => `site_postcode.ilike.%${v}%`).join(",");
+    const query = input.replace(/[,().%]/g, " ").trim();
 
     const [{ data: ro }, { data: hub }] = await Promise.all([
       supabase
         .from("route_one_jobs")
         .select("customer_name, site_name, site_address, site_postcode, container_type, container_size, waste_type, scheduled_date")
-        .or(roOrFilter)
+        .or(`${roOrFilter},customer_name.ilike.%${query}%,site_name.ilike.%${query}%`)
         .order("scheduled_date", { ascending: false })
         .limit(50),
       supabase
         .from("data_hub_jobs")
         .select("customer, site, postcode, container_type, waste_description, job_date, raw")
-        .or(orFilter)
+        .or(`${orFilter},customer.ilike.%${query}%,site.ilike.%${query}%`)
         .limit(200),
     ]);
 
     const byKey = new Map<string, PostcodeMatch>();
     for (const j of (ro ?? []) as any[]) {
-      const key = `${(j.site_name || "").toLowerCase()}|${(j.site_postcode || "").toLowerCase()}`;
+      const key = `${(j.customer_name || "").toLowerCase()}|${(j.site_name || "").toLowerCase()}|${(j.site_postcode || "").toLowerCase()}`;
       if (byKey.has(key)) continue;
       byKey.set(key, {
         customer: j.customer_name || "",
@@ -314,7 +316,7 @@ export function JobFormFields({
       });
     }
     for (const j of (hub ?? []) as any[]) {
-      const key = `${(j.site || "").toLowerCase()}|${(j.postcode || "").toLowerCase()}`;
+      const key = `${(j.customer || "").toLowerCase()}|${(j.site || "").toLowerCase()}|${(j.postcode || "").toLowerCase()}`;
       if (byKey.has(key)) continue;
       byKey.set(key, {
         customer: j.customer || "",
@@ -463,14 +465,14 @@ export function JobFormFields({
   const totals = useMemo(() => computeJobTotals(form), [form]);
 
   return (
-    <div className="grid gap-4">
+    <div className="routeone-booking-flow">
       <Tabs value={bookingTab} onValueChange={setBookingTab}>
         <TabsList className="sticky top-0 z-10 w-full justify-start bg-background border border-border">
           <TabsTrigger value="booking">{exchangeMode ? "Exchange details" : "Booking"}</TabsTrigger>
           <TabsTrigger value="site">Site details</TabsTrigger>
           <TabsTrigger value="costs">Business costs</TabsTrigger>
         </TabsList>
-      <TabsContent value="booking" className={exchangeMode ? "grid gap-4" : "grid gap-5 lg:grid-cols-2"}>
+      <TabsContent value="booking" className="grid gap-0">
       {exchangeMode && (
         <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3">
           <div className="min-w-0 space-y-1">
@@ -482,9 +484,9 @@ export function JobFormFields({
         </div>
       )}
       {/* Customer & site */}
-      {!exchangeMode && <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Customer &amp; Site</h4>
+      {!exchangeMode && <section className="booking-section space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h4 className="booking-step"><span>1</span>Customer and site</h4>
           {allowPrevious && <Button type="button" variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={loadPreviousJobs}>
             <History className="h-3.5 w-3.5" />
             Use previous job / exchange
@@ -492,9 +494,9 @@ export function JobFormFields({
         </div>
 
         {/* Postcode-first lookup — start the call here */}
-        <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
+        <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <Label className="text-xs font-semibold">Start with the postcode</Label>
+            <Label className="text-xs font-semibold">Customer, site or postcode</Label>
             {queryZone && (
               <Badge className="gap-1 text-[10px]">
                 <MapPin className="h-3 w-3" /> {queryZone}
@@ -504,14 +506,14 @@ export function JobFormFields({
           <div className="flex gap-2">
             <Input
               value={postcodeQuery}
-              onChange={(e) => setPostcodeQuery(e.target.value.toUpperCase())}
+              onChange={(e) => setPostcodeQuery(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); searchPostcode(); } }}
-              placeholder="e.g. NN6 7XY — what postcode needs the job?"
-              className="font-mono uppercase"
+              placeholder="Search customer, site or postcode…" aria-label="Search customer, site or postcode"
+              className="border-primary"
               autoFocus
             />
             <Button type="button" variant="secondary" size="sm" className="shrink-0" onClick={searchPostcode} disabled={postcodeSearching}>
-              {postcodeSearching ? "Searching..." : "Find site"}
+              <Search className="h-4 w-4" />{postcodeSearching ? "Searching..." : "Search"}
             </Button>
           </div>
           {postcodeQuery.trim().length >= 3 && !queryZone && (
@@ -519,7 +521,7 @@ export function JobFormFields({
           )}
           {postcodeSearched && postcodeMatches.length === 0 && (
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-[11px] text-muted-foreground">No jobs found at this postcode.</p>
+              <p className="text-[11px] text-muted-foreground">No matching sites found.</p>
               <Button type="button" size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={startNewSite}>
                 <Plus className="h-3.5 w-3.5" /> New site &amp; delivery
               </Button>
@@ -528,14 +530,14 @@ export function JobFormFields({
           {postcodeMatches.length > 0 && (
             <div className="rounded-md border border-border bg-background divide-y divide-border max-h-56 overflow-y-auto">
               {postcodeMatches.map((m, i) => (
-                <button
+                <Button variant="ghost"
                   key={i}
                   type="button"
-                  className="w-full text-left px-3 py-2 hover:bg-accent text-xs"
+                  className="h-auto w-full text-left px-3 py-2 text-xs flex-col items-stretch rounded-none"
                   onClick={() => applyPostcodeMatch(m)}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium truncate">{m.site || m.address || m.postcode}</span>
+                    <span className="font-medium truncate">{m.customer} · {m.site || m.address || m.postcode}</span>
                     <span className="font-mono text-muted-foreground shrink-0">{m.postcode}</span>
                   </div>
                   <div className="text-muted-foreground truncate">
@@ -544,19 +546,15 @@ export function JobFormFields({
                     {m.waste_type ? ` · ${m.waste_type}` : ""}
                     {m.last_date ? ` · last job ${new Date(m.last_date).toLocaleDateString("en-GB")}` : ""}
                   </div>
-                </button>
+                </Button>
               ))}
             </div>
           )}
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] text-muted-foreground">Pick a match to auto-fill customer, site &amp; address — then use "Use previous job / exchange" for repeat pricing.</p>
-            <Button type="button" size="sm" variant="ghost" className="h-7 text-xs gap-1 shrink-0" onClick={startNewSite}>
-              <Plus className="h-3.5 w-3.5" /> New site
-            </Button>
-          </div>
+          <Button type="button" size="sm" variant="link" className="px-0" onClick={() => { startNewSite(); setBookingTab("site"); }}><Plus className="h-3.5 w-3.5 mr-1" />New customer or site</Button>
         </div>
 
 
+        <details className="text-sm"><summary className="cursor-pointer text-muted-foreground">Customer and established sites</summary>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">Customer *</Label>
@@ -590,92 +588,35 @@ export function JobFormFields({
 
           </div>
         </div>
+        </details>
         {siteLoadError && <p role="alert" className="text-sm text-destructive">{siteLoadError}<Button type="button" variant="link" onClick={() => setSiteRetry(n => n + 1)}>Try again</Button></p>}
         <div className="flex items-start justify-between gap-3 border-t border-border pt-3">
           <p className="text-sm whitespace-pre-line">{[form.site_address, form.site_address_2, form.site_postcode].filter(Boolean).join("\n") || "Site address not recorded"}</p>
           <Button type="button" variant="outline" size="sm" onClick={() => setBookingTab("site")}>Full site details</Button>
         </div>
         </section>}
-      {/* Job details */}
-      <section className="space-y-3">
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Job Details</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {exchangeMode && <>
-            <div><Label className="text-xs" htmlFor="exchange-date">Exchange date</Label><Input id="exchange-date" autoFocus type="date" value={form.scheduled_date || ""} onChange={(e) => setForm({ ...form, scheduled_date: e.target.value })} /></div>
-            <div className="col-span-2"><Label className="text-xs">Assign Driver</Label><Select value={form.assigned_driver_id || "unassigned"} onValueChange={(v) => setForm({ ...form, assigned_driver_id: v === "unassigned" ? "" : v })}><SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger><SelectContent><SelectItem value="unassigned">Unassigned</SelectItem>{drivers.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.driver_name}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label className="text-xs" htmlFor="exchange-po">PO Number</Label><Input id="exchange-po" value={form.po_number || ""} onChange={(e) => setForm({ ...form, po_number: e.target.value })} /></div>
-          </>}
-          <div>
-            <Label className="text-xs">Job Type *</Label>
-            <Select value={form.job_type} onValueChange={(v) => setForm({ ...form, job_type: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {jobTypes.map((t) => (
-                  <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>
-                ))}
-                {form.job_type && !jobTypes.some((t) => t.key === form.job_type) && (
-                  <SelectItem value={form.job_type}>
-                    {JOB_TYPE_LABELS[form.job_type] ?? form.job_type}
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs">Container Type</Label>
-            <Select value={form.container_type || ""} onValueChange={(v) => setForm({ ...form, container_type: v })}>
-              <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-              <SelectContent className="max-h-64">
-                {containerTypes.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-                {form.container_type && !containerTypes.includes(form.container_type) && (
-                  <SelectItem value={form.container_type}>{form.container_type}</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs">Container Size</Label>
-            <Input value={form.container_size || ""} onChange={(e) => setForm({ ...form, container_size: e.target.value })} placeholder="e.g. 8yd, 20yd" />
-          </div>
-          <div>
-            <Label className="text-xs">Waste Type</Label>
-            <Input value={form.waste_type || ""} onChange={(e) => setForm({ ...form, waste_type: e.target.value })} placeholder="e.g. Mixed Waste" />
-          </div>
-          <div className="col-span-2">
-            <Label className="text-xs">EWC Code</Label>
-            <EwcCodePicker value={form.ewc_code || ""} onChange={(v) => setForm({ ...form, ewc_code: v })} />
-          </div>
-
-          {!exchangeMode && <><div>
-            <Label className="text-xs">Date</Label>
-            <Input type="date" value={form.scheduled_date || ""} onChange={(e) => setForm({ ...form, scheduled_date: e.target.value })} />
-          </div>
-          <div>
-            <Label className="text-xs">PO Number</Label>
-            <Input value={form.po_number || ""} onChange={(e) => setForm({ ...form, po_number: e.target.value })} />
-          </div>
-          <div className="col-span-2">
-            <Label className="text-xs">Assign Driver</Label>
-            <Select
-              value={form.assigned_driver_id || "unassigned"}
-              onValueChange={(v) => setForm({ ...form, assigned_driver_id: v === "unassigned" ? "" : v })}
-            >
-              <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {drivers.map((d: any) => (
-                  <SelectItem key={d.id} value={d.id}>{d.driver_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div></>}
+      <section className="booking-section space-y-4">
+        <h4 className="booking-step"><span>2</span>{exchangeMode ? "Exchange job" : "Job"}</h4>
+        <div className="space-y-2"><Label className="text-xs">Job type *</Label><div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {jobTypes.map(t => { const presentation = boardJobType(t.key, t.label); return <Button key={t.key} type="button" variant="outline" data-job-palette={presentation.palette} aria-pressed={form.job_type === t.key} className="booking-type-choice" onClick={() => setForm({ ...form, job_type: t.key })}>{form.job_type === t.key && <Check className="h-3.5 w-3.5 shrink-0" />}{presentation.label}</Button>; })}
+        </div></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2"><Label className="text-xs">Container</Label><div className="flex flex-wrap gap-1.5">{containerTypes.map(c => <Button type="button" key={c} size="sm" variant={form.container_type === c ? "secondary" : "outline"} aria-pressed={form.container_type === c} className="h-8 px-3 text-xs" onClick={() => setForm({ ...form, container_type: c })}>{c}</Button>)}</div><Input aria-label="Container type" value={form.container_type || ""} onChange={e => setForm({ ...form, container_type: e.target.value })} placeholder="Other container" /></div>
+          <div className="space-y-2"><Label className="text-xs">Size</Label><div className="flex flex-wrap gap-1.5">{(/ro\s*ro/i.test(form.container_type || "") ? ["20yd", "35yd", "40yd"] : ["4yd", "6yd", "8yd", "12yd", "16yd"]).map(size => <Button type="button" key={size} size="sm" variant={form.container_size === size ? "secondary" : "outline"} aria-pressed={form.container_size === size} className="h-8 px-3 text-xs" onClick={() => setForm({ ...form, container_size: size })}>{size}</Button>)}</div><Input aria-label="Container size" value={form.container_size || ""} onChange={e => setForm({ ...form, container_size: e.target.value })} placeholder="Other size" /></div>
         </div>
-        <div>
-          <Label className="text-xs">Notes</Label>
-          <Textarea value={form.notes || ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
+      </section>
+      <section className="booking-section space-y-3">
+        <h4 className="booking-step"><span>3</span>Waste</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><Label className="text-xs">Waste type</Label><Input aria-label="Waste type" value={form.waste_type || ""} onChange={e => setForm({ ...form, waste_type: e.target.value })} placeholder="Mixed waste" /></div><div><Label className="text-xs">EWC code</Label><EwcCodePicker value={form.ewc_code || ""} onChange={v => setForm({ ...form, ewc_code: v })} /></div></div>
+      </section>
+      <section className="booking-section space-y-3">
+        <h4 className="booking-step"><span>4</span>{exchangeMode ? "Exchange schedule" : "Schedule"}</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div><Label className="text-xs" htmlFor="booking-date">{exchangeMode ? "Exchange date" : "Date"}</Label><Input id="booking-date" autoFocus={exchangeMode} type="date" value={form.scheduled_date || ""} onChange={e => setForm({ ...form, scheduled_date: e.target.value })} /></div>
+          <div><Label className="text-xs">Driver</Label><Select value={form.assigned_driver_id || "unassigned"} onValueChange={v => setForm({ ...form, assigned_driver_id: v === "unassigned" ? "" : v })}><SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger><SelectContent><SelectItem value="unassigned">Unassigned</SelectItem>{drivers.map(d => <SelectItem key={d.id} value={d.id}>{d.driver_name}</SelectItem>)}</SelectContent></Select></div>
+          <div><Label className="text-xs">PO number (optional)</Label><Input aria-label="PO number" value={form.po_number || ""} onChange={e => setForm({ ...form, po_number: e.target.value })} /></div>
         </div>
+        <div><Label className="text-xs">Notes (optional)</Label><Textarea aria-label="Booking notes" value={form.notes || ""} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} /></div>
       </section>
 
       </TabsContent>
@@ -774,8 +715,8 @@ export function JobFormFields({
       <TabsContent value="booking" className="space-y-4">
       {form.job_type === "waste_out_skip" && <WasteOutSkipPanel form={form} setForm={setForm} />}
 
-      <details open={exchangeMode ? undefined : true} className="space-y-3 border-t border-border pt-4">
-        <summary className="text-sm font-semibold cursor-pointer">Additional considerations · POPs &amp; added items{items.length ? ` (${items.length})` : ""}</summary>
+      <details open={asClassification(form.waste_classification).contains_pops || undefined} className="space-y-3 border-t border-border pt-4">
+        <summary className="text-sm font-semibold cursor-pointer">Hazardous, POPs and extra items{items.length ? ` (${items.length})` : ""}</summary>
         <WasteClassificationFields value={asClassification(form.waste_classification)} onChange={(v) => setForm({ ...form, waste_classification: v })} ewcCode={form.ewc_code || ""} />
         {/* Added items */}
         <div className="space-y-2">
@@ -849,12 +790,12 @@ export function JobFormFields({
 
       </details>
       {/* Pricing (Pricing CMS: tier × zone) */}
-      {exchangeMode ? <details className="border-t border-border pt-3"><summary className="text-sm font-semibold cursor-pointer">Rate card lookup</summary><div className="pt-3"><JobPricingPicker form={form} setForm={setForm} /></div></details> : <JobPricingPicker form={form} setForm={setForm} />}
+      <details className="border-t border-border pt-3"><summary className="text-sm font-semibold cursor-pointer">Rate card lookup</summary><div className="pt-3"><JobPricingPicker form={form} setForm={setForm} /></div></details>
 
       {/* Costs */}
 
       <section className="space-y-3">
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Customer pricing</h4>
+        <h4 className="booking-step"><span>5</span>Customer pricing</h4>
         <BookingFuelSurcharge form={form} setForm={setForm} />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div>
