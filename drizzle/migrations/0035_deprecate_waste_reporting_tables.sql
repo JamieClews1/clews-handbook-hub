@@ -1,0 +1,2 @@
+COMMENT ON TABLE public.facility_recycling_forms IS 'DEPRECATED: Waste Reporting section removed 2026-10-25; no longer used by the app.';
+COMMENT ON TABLE public.facility_recycling_waste_entries IS 'DEPRECATED: Waste Reporting section removed 2026-10-25; no longer used by the app.';
