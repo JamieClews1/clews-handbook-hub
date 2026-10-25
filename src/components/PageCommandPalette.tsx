@@ -34,7 +34,6 @@ const pages: PageEntry[] = [
   { name: "Projections", path: "/performance-hub/projections", key: "performance-projections" },
   { name: "STACI Reports", path: "/staci-reports", key: "staci-reports" },
   { name: "Customer Reporting", path: "/customer-reporting", key: "customer-reporting" },
-  { name: "Waste Reporting", path: "/waste-reporting", key: "waste-reporting" },
   { name: "RAMS", path: "/rams", key: "hs-rams" },
   { name: "Toolbox Talks", path: "/toolbox-talks", key: "hs-toolbox-talks" },
   { name: "Near Misses", path: "/near-miss", key: "hs-near-miss" },

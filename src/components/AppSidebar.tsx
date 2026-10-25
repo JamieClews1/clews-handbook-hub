@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Bot, Route, Scale, Radio, Truck, PoundSterling, FileCheck,
-  FileSpreadsheet, AlertTriangle, Box, ShieldCheck, ClipboardList, ScrollText, BookOpen, Recycle,
+  FileSpreadsheet, AlertTriangle, Box, ShieldCheck, ClipboardList, ScrollText, BookOpen,
   Container, Calendar, CalendarCheck, Inbox, Users, HardHat, Flame, MessageSquare,
   FileText, Gauge, TrendingUp, BarChart3, Upload, Fuel, Package, Building2,
   Smartphone, DollarSign, Settings, ChevronDown,
@@ -63,7 +63,6 @@ const insights: NavItem[] = [
   { label: "Projections", path: "/performance-hub/projections", icon: TrendingUp, key: "performance-projections" },
   { label: "STACI Reports", path: "/staci-reports", icon: Package, key: "staci-reports" },
   { label: "Customer Reports", path: "/customer-reporting", icon: FileText, key: "customer-reporting" },
-  { label: "Waste Reporting", path: "/waste-reporting", icon: Recycle, key: "waste-reporting" },
 ];
 const safety: NavItem[] = [
   { label: "RAMS", path: "/rams", icon: FileText, key: "hs-rams" },

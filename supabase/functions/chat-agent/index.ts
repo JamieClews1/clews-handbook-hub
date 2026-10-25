@@ -62,8 +62,6 @@ const READ_WHITELIST = new Set<string>([
   "staci_pallet_entries",
   "staci_pallet_rates",
   "staci_pallet_charges",
-  "facility_recycling_forms",
-  "facility_recycling_waste_entries",
   // CRM
   "crm_tickets",
   "crm_ticket_messages",
