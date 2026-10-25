@@ -237,7 +237,7 @@ const WeighOnePage = () => {
     const wt = activeWasteTypes.find(w => (w.waste_type || "").toLowerCase() === (job.waste_type || "").toLowerCase());
     setFormData(p => ({
       ...p,
-      job_type: "skip",
+      job_type: job.job_type === "waste_out_skip" ? "waste_out" : "skip",
       linked_job_number: job.job_number ?? "",
       linked_job_source: "routeone",
       linked_job_date: job.scheduled_date,

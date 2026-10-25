@@ -4,6 +4,7 @@ import { Search, Truck, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export interface ArrivingJob {
   id: string;
@@ -22,6 +23,8 @@ export interface ArrivingJob {
   status: string;
   driver_name: string | null;
   weigh_count: number;
+  job_type: string | null;
+  destination_name: string | null;
 }
 
 /** Search RouteOne jobs (today ± 2 days) arriving at the weighbridge, so nothing is retyped. */
@@ -44,9 +47,8 @@ export function RouteOneArrivalPicker({ selected, onPick, onClear, vehicleReg }:
       const to = format(addDays(new Date(), 2), "yyyy-MM-dd");
       let query = supabase
         .from("route_one_jobs")
-        .select("id, job_number, scheduled_date, customer_name, site_name, site_postcode, vehicle_reg, container_type, container_size, waste_type, ewc_code, po_number, charge_per_tonne, status, route_one_drivers(driver_name), route_one_job_weighings(id)")
+        .select("id, job_number, scheduled_date, customer_name, site_name, site_postcode, vehicle_reg, container_type, container_size, waste_type, ewc_code, po_number, charge_per_tonne, status, job_type, destination_name, route_one_drivers(driver_name), route_one_job_weighings(id)")
         .gte("scheduled_date", from).lte("scheduled_date", to)
-        .neq("job_type", "waste_out_skip")
         .neq("status", "unassigned")
         .order("scheduled_date", { ascending: false })
         .limit(12);
@@ -66,7 +68,7 @@ export function RouteOneArrivalPicker({ selected, onPick, onClear, vehicleReg }:
       <div className="rounded-md border border-primary/40 bg-primary/5 p-2.5 text-sm flex items-start gap-2">
         <Truck className="h-4 w-4 text-primary mt-0.5 shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-foreground">RouteOne job {selected.job_number} · {selected.customer_name}</div>
+          <div className="font-semibold text-foreground"><KindBadge job={selected} /> RouteOne job {selected.job_number} · {selected.job_type === "waste_out_skip" ? `to ${selected.destination_name || "tipping site"}` : selected.customer_name}</div>
           <div className="text-xs text-muted-foreground truncate">
             {[selected.site_name, selected.waste_type, selected.driver_name, selected.vehicle_reg].filter(Boolean).join(" · ")}
             {selected.weigh_count > 0 && ` · ${selected.weigh_count} earlier ticket${selected.weigh_count > 1 ? "s" : ""} on this job`}
@@ -88,7 +90,7 @@ export function RouteOneArrivalPicker({ selected, onPick, onClear, vehicleReg }:
         {!loading && results.length === 0 && <div className="px-3 py-2 text-xs text-muted-foreground">No RouteOne jobs found for today ± 2 days</div>}
         {results.map(j => (
           <button key={j.id} type="button" onClick={() => onPick(j)} className="w-full text-left px-3 py-1.5 hover:bg-muted text-sm">
-            <span className="font-semibold text-foreground">{j.job_number ?? "—"}</span> · {j.customer_name}
+            <KindBadge job={j} /> <span className="font-semibold text-foreground">{j.job_number ?? "—"}</span> · {j.job_type === "waste_out_skip" ? `to ${j.destination_name || "tipping site"}` : j.customer_name}
             <span className="block text-xs text-muted-foreground truncate">
               {format(new Date(`${j.scheduled_date}T00:00:00`), "EEE d MMM")} · {[j.site_name, j.waste_type, j.driver_name, j.vehicle_reg].filter(Boolean).join(" · ")}
               {j.weigh_count > 0 && ` · ${j.weigh_count} ticket${j.weigh_count > 1 ? "s" : ""}`}
@@ -98,4 +100,10 @@ export function RouteOneArrivalPicker({ selected, onPick, onClear, vehicleReg }:
       </div>
     </div>
   );
+}
+
+/** Distinguishes a customer ticket from a Waste Out load at the weighbridge. */
+function KindBadge({ job }: { job: Pick<ArrivingJob, "job_type"> }) {
+  const out = job.job_type === "waste_out_skip";
+  return <Badge variant={out ? "secondary" : "outline"} className={out ? "bg-warning-subtle text-warning-text border-transparent" : ""}>{out ? "Waste Out" : "Customer"}</Badge>;
 }

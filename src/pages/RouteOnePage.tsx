@@ -603,6 +603,7 @@ const RouteOnePage = () => {
       outbound_weight_t: editForm.outbound_weight_t === "" || editForm.outbound_weight_t == null ? null : Number(editForm.outbound_weight_t),
       destination_name: editForm.destination_name || null,
       destination_address: editForm.destination_address || null,
+      ...(editForm.job_type === "waste_out_skip" ? { waste_out_estimate_type: editForm.waste_out_estimate_type || null, waste_out_estimate_per_tonne: editForm.waste_out_estimate_type && editForm.waste_out_estimate_per_tonne !== "" && editForm.waste_out_estimate_per_tonne != null ? Number(editForm.waste_out_estimate_per_tonne) : null } : {}),
       job_type: editForm.job_type,
       container_type: editForm.container_type || null,
       container_size: editForm.container_size || null,
