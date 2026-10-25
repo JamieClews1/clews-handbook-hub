@@ -244,7 +244,7 @@ const WeighOnePage = () => {
       site: job.site_name || p.site,
       driver_name: job.driver_name || p.driver_name,
       vehicle_reg: (job.vehicle_reg || p.vehicle_reg || "").toUpperCase(),
-      container_type: [job.container_size, job.container_type].filter(Boolean).join(" ") || p.container_type,
+      container_type: bookingContainerLabel(job.container_type, job.container_size) || p.container_type,
       waste_type_id: wt?.id ?? p.waste_type_id,
       ewc_code: job.ewc_code || wt?.ewc_code || p.ewc_code,
       notes: job.po_number && !p.notes ? `PO ${job.po_number}` : p.notes,
