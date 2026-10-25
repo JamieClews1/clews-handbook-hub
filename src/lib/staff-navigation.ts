@@ -76,6 +76,9 @@ export function navigationAllowed(item: StaffNavItem, access: NavigationAccess) 
 }
 
 export function navigationActive(path: string, pathname: string) {
-  if (path === "/weigh-one" && pathname === "/weigh-one/pricing") return false;
-  return pathname === path || pathname.startsWith(`${path}/`) || (path === "/admin/apps" && pathname === "/admin/driver-app");
+  const matchedPath = pathname === "/admin/driver-app" ? "/admin/apps" : pathname;
+  const candidates = [...QUICK_LINKS, ...STAFF_NAV_GROUPS.flatMap(group => group.items)]
+    .filter(item => matchedPath === item.path || matchedPath.startsWith(`${item.path}/`))
+    .sort((a, b) => b.path.length - a.path.length);
+  return candidates[0]?.path === path;
 }
