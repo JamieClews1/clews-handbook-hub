@@ -17,6 +17,13 @@ export function ticketDateLabel(value: string | null): string {
 
 export const TICKET_PAGE_SIZE = 50;
 
+/** Presentation only: preserve source meaning while removing raw casing. */
+export function ticketStateLabel(value: string | null): string {
+  if (!value?.trim()) return "—";
+  const text = value.trim().replace(/_/g, " ").toLowerCase();
+  return text[0].toUpperCase() + text.slice(1);
+}
+
 export function ticketPage<T>(items: T[], requestedPage: number) {
   const pages = Math.max(1, Math.ceil(items.length / TICKET_PAGE_SIZE));
   const page = Math.max(1, Math.min(requestedPage, pages));

@@ -15,7 +15,7 @@ import { WeighbridgeAttachments } from "./WeighbridgeAttachments";
 import { MidweighPrintButton } from "./MidweighPrintButton";
 import { SkiptrakPrintButton } from "./SkiptrakPrintButton";
 import type { Database } from "@/integrations/supabase/types";
-import { londonCalendarKey, ticketDateLabel, ticketPage } from "@/lib/ui-calendar";
+import { londonCalendarKey, ticketDateLabel, ticketPage, ticketStateLabel } from "@/lib/ui-calendar";
 
 type RouteJob = Database["public"]["Tables"]["route_one_jobs"]["Row"];
 type HubJob = Database["public"]["Tables"]["data_hub_jobs"]["Row"];
@@ -162,7 +162,7 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
                   <TableCell className="min-w-44"><p>{ticket.customer || "—"}</p><p className="text-xs text-muted-foreground">{ticket.site}</p></TableCell>
                   <TableCell className="whitespace-nowrap font-mono">{ticket.vehicle || "—"}</TableCell>
                   <TableCell className="min-w-40">{ticket.waste || "—"}<p className="text-xs text-muted-foreground">{ticket.ewc}</p></TableCell>
-                  <TableCell className="text-xs"><p>{ticket.movement?.replace(/_/g, " ") || "—"}</p><p className="text-muted-foreground">{ticket.status?.replace(/_/g, " ")}</p></TableCell>
+                  <TableCell className="text-xs"><p>{ticketStateLabel(ticket.movement)}</p>{ticket.status && <p className="text-muted-foreground">{ticketStateLabel(ticket.status)}</p>}</TableCell>
                   <TableCell className="text-right font-semibold tabular-nums">{ticket.weightTonnes?.toFixed(3) ?? "—"}</TableCell>
                   <TableCell onClick={e => e.stopPropagation()}><Button variant="ghost" size="icon" aria-label={`${open ? "Hide" : "View"} ${ticket.source !== "midweigh" ? "RouteOne" : "Midweigh"} ticket ${ticket.ticket}`} aria-expanded={open} onClick={() => setExpanded(open ? null : key)}>{open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</Button></TableCell>
                 </TableRow>

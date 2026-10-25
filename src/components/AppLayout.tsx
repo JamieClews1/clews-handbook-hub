@@ -81,9 +81,9 @@ export function AppLayout({ children }: AppLayoutProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => navigate("/route-one")}>Add Job</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => navigate("/admin/customers")}>Add Customer</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => navigate("/weigh-one?tab=vehicles")}>Add Vehicle</DropdownMenuItem>
+                  <DropdownMenuItem>Add Job</DropdownMenuItem>
+                  <DropdownMenuItem>Add Customer</DropdownMenuItem>
+                  <DropdownMenuItem>Add Vehicle</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
 
