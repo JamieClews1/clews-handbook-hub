@@ -58,7 +58,7 @@ export const DiaryWeekNote = ({ weekStart }: DiaryWeekNoteProps) => {
           saveNote(e.target.value);
         }}
         placeholder="Week note — what's the theme this week?"
-        className="w-full bg-transparent border-0 border-b border-border/30 focus:border-primary/40 outline-none text-base text-foreground placeholder:text-muted-foreground/30 py-2 transition-colors font-light tracking-wide"
+        className="w-full bg-transparent border-0 border-b border-border/30 focus:border-primary/40 outline-none text-lg text-foreground placeholder:text-muted-foreground/30 py-2 transition-colors font-light tracking-wide"
       />
     </div>
   );

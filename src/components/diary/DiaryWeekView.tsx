@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useDiaryCategories } from "@/hooks/useDiaryCategories";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Settings2 } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -20,10 +21,10 @@ import { DiaryDayColumn } from "./DiaryDayColumn";
 import { DiaryEntryModal } from "./DiaryEntryModal";
 import { DiarySearchOverlay } from "./DiarySearchOverlay";
 import { DiaryMobileDayView } from "./DiaryMobileDayView";
+import { DiarySettingsDialog } from "./DiarySettingsDialog";
 import {
   DiaryCard,
-  DIARY_CATEGORIES,
-  CATEGORY_DOT_CLASS,
+  DIARY_COLOR_DOT,
   getMonday,
   addDays,
   formatDate,
@@ -38,12 +39,19 @@ export const DiaryWeekView = () => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { toast } = useToast();
+  const {
+    categories,
+    addCategory,
+    updateCategory,
+    deleteCategory,
+  } = useDiaryCategories();
   const [cards, setCards] = useState<DiaryCard[]>([]);
   const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
   const [loading, setLoading] = useState(true);
   const [activeCard, setActiveCard] = useState<DiaryCard | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [modalCardId, setModalCardId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState(() => (new Date().getDay() + 6) % 7);
@@ -211,14 +219,14 @@ export const DiaryWeekView = () => {
       const target = e.target as HTMLElement;
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
         return;
-      if (modalCardId || searchOpen) return;
+      if (modalCardId || searchOpen || settingsOpen) return;
       if (e.key === "ArrowLeft") goToPrevWeek();
       else if (e.key === "ArrowRight") goToNextWeek();
       else if (e.key.toLowerCase() === "t") goToThisWeek();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [modalCardId, searchOpen]);
+  }, [modalCardId, searchOpen, settingsOpen]);
 
   const isCurrentWeek = formatDate(getMonday(new Date())) === weekStartStr;
   const today = formatDate(new Date());
@@ -229,6 +237,7 @@ export const DiaryWeekView = () => {
   const columnProps = {
     weekStart,
     today,
+    categories,
     editingId,
     onAddLine: addCard,
     onRequestEdit: setEditingId,
@@ -239,12 +248,12 @@ export const DiaryWeekView = () => {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header: month + week number, search / today / nav */}
+    <div className="space-y-5">
+      {/* Header: month + week number, search / today / nav / settings */}
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h2 className="text-3xl font-black text-foreground tracking-tight">
+        <h2 className="text-4xl font-black text-foreground tracking-tight">
           {monthYear}{" "}
-          <span className="text-xl font-semibold text-muted-foreground/60">W{weekNumber}</span>
+          <span className="text-2xl font-semibold text-muted-foreground/60">W{weekNumber}</span>
         </h2>
         <div className="flex items-center gap-1.5">
           <Button
@@ -252,7 +261,7 @@ export const DiaryWeekView = () => {
             size="icon"
             aria-label="Search diary"
             onClick={() => setSearchOpen(true)}
-            className="h-8 w-8 rounded-full"
+            className="h-9 w-9 rounded-full"
           >
             <Search className="h-4 w-4" />
           </Button>
@@ -261,7 +270,7 @@ export const DiaryWeekView = () => {
               variant="outline"
               size="sm"
               onClick={goToThisWeek}
-              className="text-xs rounded-full px-3 h-8"
+              className="text-sm rounded-full px-4 h-9"
             >
               Today
             </Button>
@@ -271,7 +280,7 @@ export const DiaryWeekView = () => {
             size="icon"
             aria-label="Previous week"
             onClick={goToPrevWeek}
-            className="h-8 w-8 rounded-full"
+            className="h-9 w-9 rounded-full"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -280,27 +289,36 @@ export const DiaryWeekView = () => {
             size="icon"
             aria-label="Next week"
             onClick={goToNextWeek}
-            className="h-8 w-8 rounded-full"
+            className="h-9 w-9 rounded-full"
           >
             <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Diary settings"
+            onClick={() => setSettingsOpen(true)}
+            className="h-9 w-9 rounded-full"
+          >
+            <Settings2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       {/* Category filter chips */}
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-2">
         <FilterChip
           active={categoryFilter === "all"}
           onClick={() => setCategoryFilter("all")}
           label="All"
         />
-        {DIARY_CATEGORIES.map((cat) => (
+        {categories.map((cat) => (
           <FilterChip
             key={cat.key}
             active={categoryFilter === cat.key}
             onClick={() => setCategoryFilter(cat.key)}
             label={cat.label}
-            dotClass={CATEGORY_DOT_CLASS[cat.key]}
+            dotClass={DIARY_COLOR_DOT[cat.color] ?? DIARY_COLOR_DOT.grey}
           />
         ))}
       </div>
@@ -353,8 +371,8 @@ export const DiaryWeekView = () => {
 
           <DragOverlay>
             {activeCard ? (
-              <div className="bg-card rounded px-2 py-1.5 shadow-lg border border-border/30 opacity-90 rotate-1 max-w-[200px]">
-                <p className="text-[13px] text-foreground truncate">
+              <div className="bg-card rounded px-2 py-1.5 shadow-lg border border-border/30 opacity-90 rotate-1 max-w-[220px]">
+                <p className="text-sm text-foreground truncate">
                   {activeCard.content || "Empty"}
                 </p>
               </div>
@@ -366,6 +384,7 @@ export const DiaryWeekView = () => {
       <DiaryEntryModal
         card={modalCard}
         weekStart={weekStart}
+        categories={categories}
         open={!!modalCard}
         onClose={() => setModalCardId(null)}
         onUpdate={updateCard}
@@ -375,12 +394,22 @@ export const DiaryWeekView = () => {
 
       <DiarySearchOverlay
         open={searchOpen}
+        categories={categories}
         onClose={() => setSearchOpen(false)}
         onJumpToEntry={(card) => {
           setWeekStart(getMonday(new Date(card.week_start + "T00:00:00")));
           setModalCardId(card.id);
           setSearchOpen(false);
         }}
+      />
+
+      <DiarySettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        categories={categories}
+        onAdd={addCategory}
+        onUpdate={updateCategory}
+        onDelete={deleteCategory}
       />
     </div>
   );
@@ -399,13 +428,13 @@ const FilterChip = ({
 }) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-1.5 rounded-full px-3 h-7 text-xs font-medium border transition-colors ${
+    className={`flex items-center gap-1.5 rounded-full px-3.5 h-8 text-sm font-medium border transition-colors ${
       active
         ? "bg-primary text-primary-foreground border-primary"
         : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
     }`}
   >
-    {dotClass && <span className={`h-2 w-2 rounded-full ${dotClass}`} />}
+    {dotClass && <span className={`h-2.5 w-2.5 rounded-full ${dotClass}`} />}
     {label}
   </button>
 );
