@@ -27,7 +27,7 @@ export function WasteOutBookingFields({ form, setForm, drivers }: { form: any; s
     supabase.from("pricing_skip_sizes").select("size_code,display_name,is_active").eq("is_active", true).order("display_order")
       .then(({ data }) => setSizes((data ?? []) as PricingSize[]));
   }, []);
-  const sizeOptions = form.container_type ? pricingContainerOptions(sizes, form.container_type) : [];
+  const sizeOptions = form.container_type && !["Pickup", "7.5 Tonne"].includes(form.container_type) ? pricingContainerOptions(sizes, form.container_type) : [];
   return (
     <div className="grid gap-0">
       <section className="booking-section space-y-3">
@@ -41,7 +41,7 @@ export function WasteOutBookingFields({ form, setForm, drivers }: { form: any; s
       <section className="booking-section space-y-2">
         <h4 className="booking-step"><span>2</span>Vehicle and container</h4>
         <div className="flex flex-wrap gap-1.5">{CONTAINER_GROUPS.map(g => <Button type="button" key={g.value} size="sm" variant="outline" aria-pressed={containerGroup(form.container_type || "")?.value === g.value} className="booking-container-choice" onClick={() => setForm({ ...form, container_type: g.value, container_size: "" })}>{g.label}</Button>)}</div>
-        {sizeOptions.length > 0 && <div className="space-y-1.5 pt-1"><Label className="text-xs">{form.container_type === "ARTIC" ? "Trailer type" : "Container type"}</Label><div className="flex flex-wrap gap-1.5">{sizeOptions.map(o => <Button type="button" key={o.size_code} size="sm" variant={form.container_size === o.size_code ? "secondary" : "outline"} aria-pressed={form.container_size === o.size_code} onClick={() => setForm({ ...form, container_size: o.size_code })}>{o.display_name}</Button>)}</div></div>}
+        {sizeOptions.length > 0 && <div className="space-y-1.5 pt-1"><Label className="text-xs">{form.container_type === "Artic" ? "Trailer type" : "Container type"}</Label><div className="flex flex-wrap gap-1.5">{sizeOptions.map(o => <Button type="button" key={o.size_code} size="sm" variant={form.container_size === o.size_code ? "secondary" : "outline"} aria-pressed={form.container_size === o.size_code} onClick={() => setForm({ ...form, container_size: o.size_code })}>{o.display_name}</Button>)}</div></div>}
       </section>
       <section className="booking-section space-y-3">
         <h4 className="booking-step"><span>3</span>Waste</h4>
