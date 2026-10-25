@@ -8624,6 +8624,8 @@ export type Database = {
           vat_rate: number
           vehicle_reg: string | null
           waste_classification: Json
+          waste_out_estimate_per_tonne: number | null
+          waste_out_estimate_type: string | null
           waste_type: string | null
           weighbridge_ticket_number: string | null
           weighbridge_transaction_id: string | null
@@ -8695,6 +8697,8 @@ export type Database = {
           vat_rate?: number
           vehicle_reg?: string | null
           waste_classification?: Json
+          waste_out_estimate_per_tonne?: number | null
+          waste_out_estimate_type?: string | null
           waste_type?: string | null
           weighbridge_ticket_number?: string | null
           weighbridge_transaction_id?: string | null
@@ -8766,6 +8770,8 @@ export type Database = {
           vat_rate?: number
           vehicle_reg?: string | null
           waste_classification?: Json
+          waste_out_estimate_per_tonne?: number | null
+          waste_out_estimate_type?: string | null
           waste_type?: string | null
           weighbridge_ticket_number?: string | null
           weighbridge_transaction_id?: string | null

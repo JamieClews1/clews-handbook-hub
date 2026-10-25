@@ -253,6 +253,13 @@
       "when": 1792936046096,
       "tag": "0035_deprecate_waste_reporting_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792947217843,
+      "tag": "0036_waste_out_estimate",
+      "breakpoints": true
     }
   ]
 }
