@@ -432,6 +432,23 @@ const WeighOnePage = () => {
     staleTime: 1000 * 60 * 60,
   });
 
+  // Last Midweigh upload (Data Uploads log) for the header sync label
+  const { data: lastMidweighUploadAt } = useQuery({
+    queryKey: ["weighone-last-midweigh-upload"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("data_upload_log")
+        .select("uploaded_at")
+        .eq("source", "midweigh")
+        .order("uploaded_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as { uploaded_at: string } | null)?.uploaded_at ?? null;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
   const containerTypeOptions = Array.from(
     new Set(CONTAINER_GROUPS.flatMap(g => g.sizes.map(s => `${g.label} · ${s.label}`))),
   ).sort((a, b) => a.localeCompare(b));
