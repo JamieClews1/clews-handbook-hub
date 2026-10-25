@@ -524,6 +524,8 @@ const RouteOnePage = () => {
         scheduled_date: form.scheduled_date,
         assigned_driver_id: form.assigned_driver_id || null,
         status: form.assigned_driver_id ? "assigned" : "unassigned",
+        waste_out_estimate_type: form.job_type === "waste_out_skip" && (form as any).waste_out_estimate_type ? (form as any).waste_out_estimate_type : null,
+        waste_out_estimate_per_tonne: form.job_type === "waste_out_skip" && (form as any).waste_out_estimate_type && (form as any).waste_out_estimate_per_tonne !== "" ? Number((form as any).waste_out_estimate_per_tonne) : null,
         is_live: form.job_type === "waste_out_skip" || (send && !!form.assigned_driver_id),
         ...costFields(form),
       });
@@ -965,17 +967,17 @@ const RouteOnePage = () => {
             </DialogTrigger>
             <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
               <DialogHeader className="px-5 py-4 border-b border-border pr-12 shrink-0">
-                <DialogTitle>{jobForm.job_type === "exchange" ? "New exchange" : "New job"}</DialogTitle>
+                <DialogTitle>{jobForm.job_type === "exchange" ? "New exchange" : jobForm.job_type === "waste_out_skip" ? "New Waste Out load" : "New job"}</DialogTitle>
                 <p className="text-sm text-muted-foreground break-words">{[jobForm.customer_name, jobForm.site_name].filter(Boolean).join(" · ") || "New booking"}</p>
               </DialogHeader>
               <div className="overflow-y-auto flex-1 min-h-0 px-5 py-3"><JobFormFields form={jobForm} setForm={setJobForm} drivers={drivers} exchangeMode={jobForm.job_type === "exchange"} allowPrevious={jobForm.job_type !== "exchange"} /></div>
               <DialogFooter className="flex-row flex-wrap items-center gap-2 sm:gap-2 p-4 border-t border-border shrink-0 bg-background">
-                <div className="mr-auto"><JobPriceSummary form={jobForm} /></div>
+                <div className="mr-auto">{jobForm.job_type !== "waste_out_skip" && <JobPriceSummary form={jobForm} />}</div>
                 <Button variant="ghost" onClick={closeNewJob}><X className="h-4 w-4 mr-2" />Cancel</Button>
-                <Button variant="outline" onClick={() => createJob.mutate({ form: jobForm, send: false })} disabled={!jobForm.customer_name || createJob.isPending}>
+                <Button variant="outline" onClick={() => createJob.mutate({ form: jobForm, send: false })} disabled={!jobForm.customer_name || (jobForm.job_type === "waste_out_skip" && !jobForm.destination_name) || createJob.isPending}>
                   Save as draft
                 </Button>
-                <Button onClick={() => createJob.mutate({ form: jobForm, send: true })} disabled={!jobForm.customer_name || !jobForm.assigned_driver_id || createJob.isPending} title={!jobForm.assigned_driver_id ? "Choose a driver to send the job" : undefined}>
+                <Button onClick={() => createJob.mutate({ form: jobForm, send: true })} disabled={!jobForm.customer_name || (jobForm.job_type === "waste_out_skip" && !jobForm.destination_name) || !jobForm.assigned_driver_id || createJob.isPending} title={!jobForm.assigned_driver_id ? "Choose a driver to send the job" : undefined}>
                   {createJob.isPending ? "Saving..." : `Book and send${drivers.find(d => d.id === jobForm.assigned_driver_id)?.driver_name ? ` to ${drivers.find(d => d.id === jobForm.assigned_driver_id)?.driver_name}` : " to driver"}`}
                 </Button>
               </DialogFooter>

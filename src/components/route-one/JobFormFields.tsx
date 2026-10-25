@@ -27,6 +27,8 @@ import { BookingFuelSurcharge } from "./BookingFuelSurcharge";
 import { importedBookingPrices } from "@/lib/route-booking-pricing";
 import { loadExchangeBookingDate } from "@/lib/load-exchange-booking-date";
 import { WasteOutSkipPanel } from "./WasteOutSkipPanel";
+import { WasteOutBookingFields } from "./WasteOutBookingFields";
+import { applyBookingKind, isWasteOutJob } from "@/lib/waste-out-job";
 import { WasteClassificationFields, asClassification } from "@/components/dwt/WasteClassificationFields";
 
 /** Legacy static labels — configured job types come from route_one_job_types. */
@@ -432,8 +434,20 @@ export function JobFormFields({
 
   const totals = useMemo(() => computeJobTotals(form), [form]);
 
+  const wasteOut = isWasteOutJob(form.job_type);
+  const kindToggle = !exchangeMode && allowPrevious && (
+    <div role="radiogroup" aria-label="Booking kind" className="grid grid-cols-2 gap-2 pb-3">
+      {([["customer", "Customer job", "Collections, deliveries and exchanges for a customer"], ["waste_out", "Waste Out", "A load leaving the yard for a tipping site"]] as const).map(([k, l, d]) => {
+        const on = (k === "waste_out") === wasteOut;
+        return <Button key={k} type="button" role="radio" aria-checked={on} variant="outline" className={`h-auto flex-col items-start py-2 text-left ${on ? "border-primary bg-primary/5" : ""}`} onClick={() => { if (!on) setForm(applyBookingKind(form, k)); }}><span className="flex items-center gap-1.5 font-semibold">{on && <Check className="h-3.5 w-3.5" />}{l}</span><span className="text-xs font-normal text-muted-foreground whitespace-normal">{d}</span></Button>;
+      })}
+    </div>
+  );
+  if (wasteOut) return <div className="routeone-booking-flow">{kindToggle}<WasteOutBookingFields form={form} setForm={setForm} drivers={drivers} /></div>;
+
   return (
     <div className="routeone-booking-flow">
+      {kindToggle}
       <Tabs value={bookingTab} onValueChange={setBookingTab}>
         <TabsList className="sticky top-0 z-10 w-full justify-start bg-background border border-border">
           <TabsTrigger value="booking">{exchangeMode ? "Exchange details" : "Booking"}</TabsTrigger>
@@ -566,7 +580,7 @@ export function JobFormFields({
       <section className="booking-section space-y-4">
         <h4 className="booking-step"><span>2</span>{exchangeMode ? "Exchange job" : "Job"}</h4>
         <div className="space-y-2"><Label className="text-xs">Job type *</Label><div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {jobTypes.map(t => { const presentation = boardJobType(t.key, t.label); return <Button key={t.key} type="button" variant="outline" data-job-palette={presentation.palette} aria-pressed={form.job_type === t.key} className="booking-type-choice" onClick={() => setForm({ ...form, job_type: t.key })}>{form.job_type === t.key && <Check className="h-3.5 w-3.5 shrink-0" />}{t.key === "pickup" ? presentation.label : t.label}</Button>; })}
+          {jobTypes.filter(t => !isWasteOutJob(t.key)).map(t => { const presentation = boardJobType(t.key, t.label); return <Button key={t.key} type="button" variant="outline" data-job-palette={presentation.palette} aria-pressed={form.job_type === t.key} className="booking-type-choice" onClick={() => setForm({ ...form, job_type: t.key })}>{form.job_type === t.key && <Check className="h-3.5 w-3.5 shrink-0" />}{t.key === "pickup" ? presentation.label : t.label}</Button>; })}
         </div></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2"><Label className="text-xs">Vehicle Type</Label><div className="flex flex-wrap gap-1.5">{CONTAINER_GROUPS.map(group => <Button type="button" key={group.value} size="sm" variant="outline" aria-pressed={containerGroup(form.container_type || "")?.value === group.value} className="booking-container-choice" onClick={() => setForm({ ...form, container_type: group.value, container_size: group.value === "7.5 Tonne" ? "7_5_tonne" : "" })}>{group.label}</Button>)}</div><div className="flex items-center gap-2"><Switch id="own-container" checked={!!form.own_container} onCheckedChange={own => setForm({ ...form, own_container: own, rental_enabled: own ? false : form.rental_enabled })} /><Label htmlFor="own-container">Own Container</Label></div>{form.container_type && !containerGroup(form.container_type) && <p className="text-xs text-muted-foreground">Current: {form.container_type}</p>}</div>
