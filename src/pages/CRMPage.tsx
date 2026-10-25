@@ -634,8 +634,8 @@ export default function CRMPage() {
     <div className="w-full px-4 md:px-6 py-4 space-y-3">
       <Tabs defaultValue="inbox" className="space-y-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-            <Mail className="h-5 w-5 text-primary" /> Inbox
+          <h1 className="text-2xl font-bold text-foreground">
+            Inbox
           </h1>
           <TabsList>
             <TabsTrigger value="inbox" className="gap-1.5">

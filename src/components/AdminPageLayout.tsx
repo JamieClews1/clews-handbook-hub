@@ -5,7 +5,7 @@ import { ArrowLeft, Home, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import clewsLogo from "@/assets/clews-logo.png";
+import { PageHeading } from "@/components/PageHeading";
 
 interface AdminPageLayoutProps {
   children: ReactNode;
@@ -29,16 +29,8 @@ export const AdminPageLayout = ({ children, title, description }: AdminPageLayou
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-semibold text-foreground">{title}</h1>
-              </div>
-            </div>
+      <main className="container mx-auto px-4 py-6">
+        <PageHeading title={title} description={description} actions={
             <div className="flex items-center gap-2">
               <Link to="/admin">
                 <Button variant="ghost" size="sm" className="gap-2">
@@ -57,22 +49,7 @@ export const AdminPageLayout = ({ children, title, description }: AdminPageLayou
                 <span className="hidden sm:inline">Sign Out</span>
               </Button>
             </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Page Header */}
-      <div className="border-b border-border/50 bg-card/50">
-        <div className="container mx-auto px-4 py-6">
-          <h2 className="text-2xl font-bold text-foreground">{title}</h2>
-          {description && (
-            <p className="text-muted-foreground mt-1">{description}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Content */}
-      <main className="container mx-auto px-4 py-8">
+        } />
         {children}
       </main>
     </div>

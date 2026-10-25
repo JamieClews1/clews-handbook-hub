@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { PageHeading } from "@/components/PageHeading";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { withTimeout } from "@/lib/with-timeout";
 import type { TradingEvidence } from "@/lib/company-pl-trading";
@@ -66,13 +68,7 @@ export default function CompanyProfitLossPage() {
 
   return (
     <div className="mx-auto max-w-screen-2xl space-y-6 p-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Company P&L</h1>
-          <p className="text-sm text-muted-foreground">
-            Private company profit & loss workbooks. Access controlled by Jamie.
-          </p>
-        </div>
+      <PageHeading title="Company P&L" description="Private company profit & loss" actions={
         <div
           role="radiogroup"
           aria-label="Worksheet selection"
@@ -81,7 +77,7 @@ export default function CompanyProfitLossPage() {
           {PL_SHEET_NAMES.map((name) => {
             const active = source === name;
             return (
-              <button
+              <Button variant="ghost"
                 key={name}
                 type="button"
                 role="radio"
@@ -94,11 +90,11 @@ export default function CompanyProfitLossPage() {
                 }`}
               >
                 {plSheetLabel(name)}
-              </button>
+              </Button>
             );
           })}
         </div>
-      </header>
+      } />
       <Tabs defaultValue="performance">
         <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="performance">Performance</TabsTrigger>

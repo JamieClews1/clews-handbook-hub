@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { PageHeading } from "@/components/PageHeading";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -275,21 +276,12 @@ export function ProjectionsDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <TrendingUp className="h-6 w-6 text-primary" />
-            2026 Projections
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Actuals for completed months, projected for remaining months based on 2024–2025 trends
-          </p>
-        </div>
+      <PageHeading title="2026 Projections" description="Actuals and forecasts based on 2024–2025 trends" actions={
         <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowMethodology(!showMethodology)}>
           <Info className="h-4 w-4" />
           Methodology
         </Button>
-      </div>
+      } />
 
       {/* Legend for actual vs projected */}
       {summaryCards && (

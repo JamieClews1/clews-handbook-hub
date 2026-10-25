@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageHeading } from "@/components/PageHeading";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -146,15 +147,7 @@ const HSDocumentsPage = ({ category, heading, description, hideHeader }: Props) 
   return (
     <div className={hideHeader ? "space-y-6" : "p-4 md:p-6 space-y-6 max-w-screen-2xl mx-auto"}>
       {!hideHeader && (
-        <div className="flex items-start gap-3">
-          <div className="rounded-lg bg-primary/10 p-2.5">
-            <Icon className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">{heading}</h1>
-            <p className="text-muted-foreground">{description}</p>
-          </div>
-        </div>
+        <PageHeading title={heading} description={description} />
       )}
 
 

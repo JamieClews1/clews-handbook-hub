@@ -384,17 +384,14 @@ const HSDocumentDetailPage = () => {
 
       <Card className="overflow-hidden border-primary/20 shadow-sm">
         {/* Branded document header */}
-        <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-5 text-primary-foreground">
+        <div className="bg-card px-6 py-5 text-foreground">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="rounded-md bg-white/95 p-2">
-                <img src={clewsLogo} alt="Clews Recycling" className="h-9 w-auto" />
-              </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground/80">
+                <p className="text-sm text-muted-foreground">
                   {doc.category === "fire_safety" ? "Fire Safety" : "Site Induction"}
                 </p>
-                <h1 className="text-lg font-bold leading-tight md:text-xl">{title}</h1>
+                <h1 className="text-2xl font-bold leading-tight">{title}</h1>
               </div>
             </div>
             {signature && (

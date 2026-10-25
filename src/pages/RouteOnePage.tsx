@@ -893,11 +893,8 @@ const RouteOnePage = () => {
       {/* Header Bar */}
       <div className="px-4 py-2 border-b border-border bg-card flex items-center gap-3 shrink-0 overflow-x-auto">
         <div className="flex items-center gap-2 shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-            <Route className="h-4 w-4 text-primary-foreground" />
-          </div>
           <div>
-            <h1 className="text-lg font-bold text-foreground leading-tight">RouteOne</h1>
+            <h1 className="text-2xl font-bold text-foreground leading-tight">RouteOne</h1>
           </div>
         </div>
 

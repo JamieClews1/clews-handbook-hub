@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { PageHeading } from "@/components/PageHeading";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -68,11 +69,12 @@ export default function MetalsPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-screen-2xl mx-auto space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2"><Gem className="text-primary" />Non-Ferrous Metals</h1>
-          <p className="text-muted-foreground">Collection, sorting, stock, sales and prices. Yard staff record weights on the phone app.</p>
-        </div>
+      <PageHeading title="Non-Ferrous Metals" description="Collections, sorting, stock and sales" actions={
+        <>
+          <Button className="gap-2" onClick={() => setDispatchGrade("")}><Truck className="h-4 w-4" />Record metal leaving site</Button>
+          <Button asChild variant="outline" className="gap-2"><a href="/metals-yard" target="_blank" rel="noreferrer"><Smartphone className="h-4 w-4" />Yard app</a></Button>
+        </>
+      } />
         <div className="flex flex-wrap items-end gap-2">
           <div><label className="text-xs text-muted-foreground">From</label><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
           <div><label className="text-xs text-muted-foreground">To</label><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
@@ -80,10 +82,7 @@ export default function MetalsPage() {
             <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="all">All grades</SelectItem>{data.grades.map((g: any) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
           </Select>
-          <Button className="gap-2" onClick={() => setDispatchGrade("")}><Truck className="h-4 w-4" />Record metal leaving site</Button>
-          <Button asChild variant="outline" className="gap-2"><a href="/metals-yard" target="_blank" rel="noreferrer"><Smartphone className="h-4 w-4" />Yard app</a></Button>
         </div>
-      </div>
 
       {stock.filter((s) => s.alert !== "ok").map((s) => (
         <div key={s.grade.id} className={`rounded-lg border p-3 flex items-center gap-2 font-medium ${s.alert === "over" ? "border-destructive bg-destructive/10 text-destructive" : "border-[hsl(var(--warning))] bg-[hsl(var(--warning)/0.12)]"}`}>

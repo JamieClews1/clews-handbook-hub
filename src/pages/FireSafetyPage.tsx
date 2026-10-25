@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageHeading } from "@/components/PageHeading";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -84,18 +85,7 @@ const FireSafetyPage = () => {
 
   return (
     <div className="mx-auto max-w-screen-2xl space-y-6 p-4 md:p-6">
-      <div className="flex items-start gap-3">
-        <div className="rounded-lg bg-primary/10 p-2.5">
-          <Flame className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Fire Safety</h1>
-          <p className="text-muted-foreground">
-            The safety hub for Unit 17 — responsible people, fire plan and risk assessment, weekly and periodic
-            checks, drills and signed documents.
-          </p>
-        </div>
-      </div>
+      <PageHeading title="Fire Safety" description="Unit 17 · Checks, drills and signed documents" />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (
