@@ -17,6 +17,7 @@ import {
 } from "@dnd-kit/core";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DiaryMobileListView } from "./DiaryMobileListView";
+import { localCalendarKey } from "@/lib/ui-calendar";
 
 export const DIARY_CATEGORIES = [
   { key: null, label: "General", icon: "📝" },
@@ -57,7 +58,7 @@ function getMonday(date: Date): Date {
 }
 
 function formatDate(date: Date): string {
-  return date.toISOString().split("T")[0];
+  return localCalendarKey(date);
 }
 
 function addDays(date: Date, days: number): Date {
@@ -254,7 +255,7 @@ export const DiaryWeekView = () => {
           onDragEnd={handleDragEnd}
         >
           {/* Day headers — Tweek style */}
-          <div className="grid grid-cols-[repeat(5,1fr)_0.5fr_0.5fr] gap-0">
+          <div className="grid grid-cols-7 gap-0">
             {DAY_SHORT.map((day, i) => {
               const dayDate = addDays(weekStart, i);
               const dayStr = formatDate(dayDate);
@@ -265,16 +266,17 @@ export const DiaryWeekView = () => {
               return (
                 <div
                   key={i}
+                  aria-current={isToday ? "date" : undefined}
                   className={`px-2 pb-2 ${isToday ? "border-b-[3px] border-primary" : "border-b border-border/30"}`}
                 >
                   <div className="flex items-baseline justify-between">
                     <span className={`text-sm font-bold ${
-                      isToday ? "text-primary" : isPast ? "text-muted-foreground/40" : isWeekend ? "text-muted-foreground/50" : "text-foreground"
+                      isToday ? "text-primary" : isPast || isWeekend ? "text-muted-foreground" : "text-foreground"
                     }`}>
                       {dateLabel}
                     </span>
                     <span className={`text-xs font-semibold ${
-                      isToday ? "text-primary" : isPast ? "text-muted-foreground/30" : isWeekend ? "text-muted-foreground/40" : "text-muted-foreground/60"
+                      isToday ? "text-primary" : "text-muted-foreground"
                     }`}>
                       {day}
                     </span>
@@ -295,7 +297,7 @@ export const DiaryWeekView = () => {
               return (
                 <div key={catKey}>
                   {/* Subtle category divider */}
-                  <div className="grid grid-cols-[repeat(5,1fr)_0.5fr_0.5fr] gap-0">
+                  <div className="grid grid-cols-7 gap-0">
                     <div className="px-2 pt-2 pb-0.5 col-span-7">
                       <span className={`text-[10px] font-bold uppercase tracking-widest ${colorClasses.text}`}>
                         {categoryLabel(cat)}
