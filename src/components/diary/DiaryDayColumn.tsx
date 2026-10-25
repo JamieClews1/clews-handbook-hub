@@ -68,8 +68,8 @@ export const DiaryDayColumn = ({
         </span>
       </div>
 
-      <SortableContext items={entries.map((e) => e.id)} strategy={verticalListSortingStrategy}>
-        {entries.map((card) => (
+      <SortableContext items={visibleEntries.map((e) => e.id)} strategy={verticalListSortingStrategy}>
+        {visibleEntries.map((card) => (
           <DiaryEntryLine
             key={card.id}
             card={card}
