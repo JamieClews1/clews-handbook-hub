@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Save, Trash2, Plus } from "lucide-react";
+import { rateContainerLabel, rateContainerSection } from "@/lib/container-taxonomy";
 import {
   FLAT_ZONE,
   TONNAGE_SECTION,
@@ -122,7 +123,7 @@ export function RateCardEditor({ cardId, highlightZoneCode }: Props) {
         <Card key={section}>
           <CardContent className="p-0">
             <div className="flex items-center justify-between px-4 py-3 border-b">
-              <h3 className="font-semibold text-sm">{section}</h3>
+              <h3 className="font-semibold text-sm">{rateContainerSection(section)}</h3>
               <Button size="sm" variant="ghost" onClick={() => addRow(section)}>
                 <Plus className="h-3.5 w-3.5 mr-1" /> Add row
               </Button>
@@ -151,7 +152,7 @@ export function RateCardEditor({ cardId, highlightZoneCode }: Props) {
                   {secRows.map((row) => (
                     <TableRow key={row.id}>
                       <TableCell className="font-medium align-top">
-                        {row.label}
+                        {rateContainerLabel(row.label)}
                         {row.note && (
                           <p className="text-xs text-muted-foreground font-normal mt-0.5">{row.note}</p>
                         )}

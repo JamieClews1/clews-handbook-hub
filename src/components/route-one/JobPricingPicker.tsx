@@ -15,6 +15,7 @@ import {
   type RateCard,
 } from "@/components/pricing/useRateCard";
 import { matchMatrixPostcode, type MatrixPostcode } from "@/lib/matrix-postcode-zone";
+import { rateContainerLabel, rateContainerSection } from "@/lib/container-taxonomy";
 
 /** Rate-card zone codes keyed by the zone label held on pricing_zone_postcodes. */
 const POSTCODE_ZONE_TO_CODE: Record<string, string> = {
@@ -290,7 +291,7 @@ export function JobPricingPicker({ form, setForm }: { form: any; setForm: (f: an
             ) : (
               zoneSections.map((g) => (
                 <div key={g.section}>
-                  <div className="px-2 py-1 text-[11px] text-muted-foreground bg-muted/20">{g.section}</div>
+                  <div className="px-2 py-1 text-[11px] text-muted-foreground bg-muted/20">{rateContainerSection(g.section)}</div>
                   {g.items.map((it) => (
                     <button
                       key={it.id}
@@ -298,7 +299,7 @@ export function JobPricingPicker({ form, setForm }: { form: any; setForm: (f: an
                       onClick={() => applyHaulage(it.label, it.price)}
                       className="w-full flex items-center justify-between gap-2 px-2 py-1.5 text-xs hover:bg-accent text-left"
                     >
-                      <span className="truncate">{it.label}</span>
+                      <span className="truncate">{rateContainerLabel(it.label)}</span>
                       <span className="font-medium shrink-0">{money(it.price)}</span>
                     </button>
                   ))}

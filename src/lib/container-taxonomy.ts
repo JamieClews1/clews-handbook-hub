@@ -30,3 +30,24 @@ export function pricingSizeLabel(code: string, fallback: string) {
   const size = containerSize(code);
   return group && size ? `${group.label} · ${size.label}` : fallback;
 }
+
+/** Format native jobs without changing the stored code or legacy text. */
+export function bookingContainerLabel(type?: string | null, code?: string | null) {
+  const size = code ? containerSize(code) : undefined;
+  if (size && code) return pricingSizeLabel(code, size.label);
+  return [code, type].filter(Boolean).join(" ");
+}
+
+/** Display only: keep material restrictions, included tonnes and bespoke wording intact. */
+export function rateContainerLabel(label: string) {
+  return label
+    .replace(/\b35\s*(?:yd|yard)\s+compactor\b/gi, "35 yd Compactor")
+    .replace(/\b35\s*(?:yd|yard)\s+enclosed\b/gi, "35 yd Enclosed")
+    .replace(/\b14\s*\/\s*16\s*YD\s*open\b/gi, "14 / 16 yd")
+    .replace(/\b(6|8|12)\s*YD\s*open\b/gi, "$1 yd")
+    .replace(/\b12\s*YD\s*enclosed\b/gi, "12 yd enclosed")
+    .replace(/\b(6|8|12|20|25|35|40)\s*(?:cubic\s*yard|cu\s*yd|yd|yard)\b/gi, "$1 yd");
+}
+export function rateContainerSection(section: string) {
+  return section.replace(/^Skip Hire\b/i, "SKIP").replace(/^RoRo\b/i, "RORO").replace(/^Artic\b/i, "ARTIC");
+}
