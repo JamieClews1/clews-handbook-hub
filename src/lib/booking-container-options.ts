@@ -1,10 +1,13 @@
+import { containerGroup } from "./container-taxonomy";
 export type PricingSize = { size_code: string; display_name: string; is_active: boolean };
 export function pricingContainerOptions(sizes: PricingSize[], type: string) {
-  const active = sizes.filter(s => s.is_active);
-  if (type === "Enclosed Skip") return active.filter(s => /enclosed/i.test(s.display_name));
-  if (type === "Ro Ro") return active.filter(s => /roro|ro ro|35yd|40yd/i.test(`${s.size_code} ${s.display_name}`));
-  if (type === "Skip") return active.filter(s => !/enclosed|roro|ro ro|35yd|40yd/i.test(`${s.size_code} ${s.display_name}`));
-  return active;
+  const group = containerGroup(type);
+  if (!group) return [];
+  return group.sizes.flatMap(option => {
+    const size = sizes.find(s => s.is_active && s.size_code === option.code);
+    if (!size || (type === "Enclosed Skip" && option.code !== "12yd_enclosed")) return [];
+    return [{ ...size, display_name: option.label }];
+  });
 }
 export function bookingRentalFields(form: Record<string, any>) {
   const own = Boolean(form.own_container);

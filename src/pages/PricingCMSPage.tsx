@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from "@/components/ui/switch";
 import { Plus, Save, Trash2, Copy, ExternalLink, Settings2 } from "lucide-react";
 import { usePostcodeZones, type PostcodeZone } from "@/hooks/usePostcodeZones";
+import { pricingSizeLabel } from "@/lib/container-taxonomy";
 
 type SkipSize = {
   id: string;
@@ -145,7 +146,7 @@ const PricingCMSPage = () => {
       <Tabs defaultValue="matrix">
         <TabsList>
           <TabsTrigger value="matrix">Price Matrices</TabsTrigger>
-          <TabsTrigger value="sizes">Skip Sizes</TabsTrigger>
+          <TabsTrigger value="sizes">Containers</TabsTrigger>
           <TabsTrigger value="wastes">Waste Types</TabsTrigger>
         </TabsList>
 
@@ -166,7 +167,7 @@ const PricingCMSPage = () => {
               <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {skipSizes.filter(s => s.is_active).map(s => (
-                  <SelectItem key={s.id} value={s.id}>{s.display_name}</SelectItem>
+                  <SelectItem key={s.id} value={s.id}>{pricingSizeLabel(s.size_code, s.display_name)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -308,7 +309,7 @@ const SkipSizesManager = ({ skipSizes, onRefresh }: { skipSizes: SkipSize[]; onR
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Skip / Container Sizes</CardTitle>
+        <CardTitle className="text-base">Containers</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <Table>
@@ -324,7 +325,7 @@ const SkipSizesManager = ({ skipSizes, onRefresh }: { skipSizes: SkipSize[]; onR
           <TableBody>
             {skipSizes.map(s => (
               <TableRow key={s.id}>
-                <TableCell>{s.display_name}</TableCell>
+                <TableCell>{pricingSizeLabel(s.size_code, s.display_name)}</TableCell>
                 <TableCell><code className="text-xs bg-muted px-1 rounded">{s.size_code}</code></TableCell>
                 <TableCell>{s.display_order}</TableCell>
                 <TableCell><Switch checked={s.is_active} onCheckedChange={() => toggleActive(s.id, s.is_active)} /></TableCell>
