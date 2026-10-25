@@ -21,6 +21,7 @@
     /* WasteOne Fresh Green - Primary (from logo #4ECB71) */
     --primary: 148.35 59.48% 30%;
     --primary-foreground: 0 0% 100%;
+    --primary-hover: 148.35 59.48% 24%;
 
     /* Slightly darker green - Secondary */
     --secondary: 140 9.68% 93.92%;
@@ -98,6 +99,7 @@
 
     --primary: 143.57 48.84% 66.27%;
     --primary-foreground: 144 12.82% 7.65%;
+    --primary-hover: 143.57 48.84% 73%;
 
     --secondary: 150 40% 42%;
     --secondary-foreground: 0 0% 100%;
@@ -329,11 +331,14 @@
   .booking-section { padding-block: 20px; border-bottom: 1px solid hsl(var(--border)); }
   .routeone-booking-flow .booking-container-choice { background: hsl(var(--background)); color: hsl(var(--foreground)); border-color: hsl(var(--border)); }
   .routeone-booking-flow .booking-container-choice[aria-pressed="true"] { border-color: hsl(var(--primary)); background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-weight: 600; }
+  .routeone-booking-flow .booking-container-choice:not([aria-pressed="true"]):hover { background: hsl(var(--primary-subtle)); color: hsl(var(--primary)); border-color: hsl(var(--primary) / 0.45); }
+  .routeone-booking-flow .booking-container-choice[aria-pressed="true"]:hover { background: hsl(var(--primary-hover)); color: hsl(var(--primary-foreground)); border-color: hsl(var(--primary-hover)); }
   .booking-step { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 600; color: hsl(var(--foreground)); }
   .booking-step > span { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; background: hsl(var(--muted)); color: hsl(var(--muted-foreground)); font-size: 12px; }
   .routeone-booking-flow .booking-type-choice { background: hsl(var(--job-tint)); color: hsl(var(--job-accent)); border-color: hsl(var(--job-border)); gap: 6px; }
-  .routeone-booking-flow .booking-type-choice:hover { background: hsl(var(--job-tint)); border-color: hsl(var(--job-tag)); }
+  .routeone-booking-flow .booking-type-choice:hover { background: hsl(var(--job-border) / 0.35); color: hsl(var(--job-accent)); border-color: hsl(var(--job-tag)); }
   .routeone-booking-flow .booking-type-choice[aria-pressed="true"] { background: hsl(var(--job-tag)); color: hsl(var(--job-tag-text)); border-color: hsl(var(--job-tag)); }
+  .routeone-booking-flow .booking-type-choice[aria-pressed="true"]:hover { background: hsl(var(--job-tag)); color: hsl(var(--job-tag-text)); border-color: hsl(var(--job-tag)); filter: brightness(0.94); }
 }
 
 @layer utilities {
