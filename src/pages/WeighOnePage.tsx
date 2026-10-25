@@ -1,4 +1,5 @@
 import { RouteOneArrivalPicker, type ArrivingJob } from "@/components/weighone/RouteOneArrivalPicker";
+import { CONTAINER_GROUPS, bookingContainerLabel } from "@/lib/container-taxonomy";
 import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
 import { BanksmanSettings } from "@/components/banksman/BanksmanSettings";
 import { CombinedTicketList } from "@/components/weighone/CombinedTicketList";
@@ -243,7 +244,7 @@ const WeighOnePage = () => {
       site: job.site_name || p.site,
       driver_name: job.driver_name || p.driver_name,
       vehicle_reg: (job.vehicle_reg || p.vehicle_reg || "").toUpperCase(),
-      container_type: [job.container_size, job.container_type].filter(Boolean).join(" ") || p.container_type,
+      container_type: bookingContainerLabel(job.container_type, job.container_size) || p.container_type,
       waste_type_id: wt?.id ?? p.waste_type_id,
       ewc_code: job.ewc_code || wt?.ewc_code || p.ewc_code,
       notes: job.po_number && !p.notes ? `PO ${job.po_number}` : p.notes,
@@ -432,7 +433,7 @@ const WeighOnePage = () => {
   });
 
   const containerTypeOptions = Array.from(
-    new Set(midweighTypes.map((t) => t.container_type).filter(Boolean)),
+    new Set(CONTAINER_GROUPS.flatMap(g => g.sizes.map(s => `${g.label} · ${s.label}`))),
   ).sort((a, b) => a.localeCompare(b));
 
   const vehicleTypeOptions = Array.from(
@@ -441,7 +442,7 @@ const WeighOnePage = () => {
 
   /** Suggest the vehicle type that goes with a container type from Midweigh */
   const vehicleTypeForContainer = (container: string) =>
-    midweighTypes.find((t) => t.container_type === container)?.vehicle_type ?? "";
+    CONTAINER_GROUPS.find(g => container.startsWith(`${g.label} · `))?.value ?? midweighTypes.find((t) => t.container_type === container)?.vehicle_type ?? "";
 
   // Fetch additional items for selected transaction
   const { data: selectedAdditionalItems = [] } = useQuery({

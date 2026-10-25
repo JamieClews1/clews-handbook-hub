@@ -1,4 +1,5 @@
 import { bookingRentalFields } from "@/lib/booking-container-options";
+import { bookingContainerLabel } from "@/lib/container-taxonomy";
 import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -108,7 +109,7 @@ const LIST_COLUMNS: ListColumnDef[] = [
   { key: "customer", label: "Customer", defaultVisible: true, getNative: (j) => j.customer_name, getSkiptrak: (s) => s.customer || "Unknown" },
   { key: "site", label: "Site", defaultVisible: true, getNative: (j) => j.site_name || "—", getSkiptrak: (s) => s.site || "—" },
   { key: "type", label: "Type", defaultVisible: true, getNative: (j) => j.job_type, getSkiptrak: (s) => s.movement_type || "—" },
-  { key: "container", label: "Container", defaultVisible: true, getNative: (j) => j.container_type || "—", getSkiptrak: (s) => s.container_type || "—" },
+  { key: "container", label: "Container", defaultVisible: true, getNative: (j) => bookingContainerLabel(j.container_type, j.container_size) || "—", getSkiptrak: (s) => s.container_type || "—" },
   { key: "weight", label: "Net Weight", defaultVisible: true, getNative: (j) => fmtWeight(j.net_weight_t ?? j.weight_t), getSkiptrak: (s) => fmtWeight(s.weight_t) },
   { key: "waste", label: "Waste", defaultVisible: true, getNative: (j) => j.waste_type || "—", getSkiptrak: (s) => s.waste_description || "—" },
   { key: "driver", label: "Driver", defaultVisible: true, getNative: (_j, d) => d?.driver_name || "Unassigned", getSkiptrak: (s) => s.driver || "—" },
@@ -1700,7 +1701,7 @@ function JobCard({
         <PermitBadge permit={permit} />
         {(job.container_size || job.container_type) && (
           <span className="rounded bg-black/20 px-1.5 py-0.5">
-            {[job.container_size, job.container_type].filter(Boolean).join(" ")}
+            {bookingContainerLabel(job.container_type, job.container_size)}
           </span>
         )}
         {job.estimated_duration_mins && !compact && (

@@ -1,5 +1,6 @@
 import type { ReactNode, DragEvent } from "react";
 import { boardJobType, boardUnconfirmed } from "@/lib/route-board-presentation";
+import { bookingContainerLabel } from "@/lib/container-taxonomy";
 
 export function TintedJobCard({ job, type, label, imported = false, onClick, onDragStart, onDragEnd, isDragging, actions, permit }: {
   job: any; type: string; label: string; imported?: boolean;
@@ -11,7 +12,7 @@ export function TintedJobCard({ job, type, label, imported = false, onClick, onD
   const site = imported ? job.site : job.site_area || job.site_name;
   const destination = String(imported ? job.tipping_location || "" : job.destination_name || job.disposal_site || "")
     .replace(/Clews Recycling(?:\s+Ltd)?/gi, "Clews");
-  const container = imported ? job.container_type : [job.container_size, job.container_type].filter(Boolean).join(" ");
+  const container = imported ? job.container_type : bookingContainerLabel(job.container_type, job.container_size);
   const unconfirmed = boardUnconfirmed(job);
   const time = job.time_window || (job.time_from && job.time_to ? `${job.time_from}–${job.time_to}` : "");
   return <div role="button" tabIndex={0} draggable onDragStart={onDragStart} onDragEnd={onDragEnd}

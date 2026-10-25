@@ -1,4 +1,5 @@
 import { bookingRentalText } from "./booking-container-options";
+import { bookingContainerLabel } from "./container-taxonomy";
 import jsPDF from "jspdf";
 import type { WasteClassification } from "@/components/dwt/WasteClassificationFields";
 
@@ -443,7 +444,7 @@ function drawCopy(
     { t: "Customer O/N", v: job.po_number || "TBC", w: 32 },
     { t: "Date", v: fmtDate(job.completed_at || job.scheduled_date), w: 24 },
     { t: "Ticket No", v: job.job_number || "", w: 26 },
-    { t: "Skip/Ro Ro/Trailer", v: [job.container_size, job.container_type].filter(Boolean).join(" ") || "", w: 48 },
+    { t: "Container", v: bookingContainerLabel(job.container_type, job.container_size), w: 48 },
     { t: "Transaction Type", v: TYPE_LABELS[String(job.job_type)] || String(job.job_type || ""), w: 32 },
     { t: "Account", v: job.account_code || "", w: W - 162 },
   ];
@@ -683,7 +684,7 @@ function drawModernCopy(
   const facts = [
     ["Customer O/N", job.po_number || "TBC"],
     ["Transaction", TYPE_LABELS[String(job.job_type)] || String(job.job_type || "")],
-    ["Container", [job.container_size, job.container_type].filter(Boolean).join(" ")],
+    ["Container", bookingContainerLabel(job.container_type, job.container_size)],
     ["Account", job.account_code || ""],
     ["Vehicle Reg", job.vehicle_reg || ""],
   ];
@@ -896,7 +897,7 @@ function drawFieldCopy(
   const facts: [string, string][] = [
     ["Date", fmtDate(job.completed_at || job.scheduled_date)],
     ["Transaction", TYPE_LABELS[String(job.job_type)] || String(job.job_type || "")],
-    ["Container", [job.container_size, job.container_type].filter(Boolean).join(" ")],
+    ["Container", bookingContainerLabel(job.container_type, job.container_size)],
     ["Vehicle Reg", job.vehicle_reg || ""],
     ["Customer O/N", job.po_number || "TBC"],
     ["Account", job.account_code || ""],

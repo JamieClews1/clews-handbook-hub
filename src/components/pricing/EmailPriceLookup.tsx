@@ -1,4 +1,5 @@
 import { roroIncludedTonnes } from "@/lib/roro-tonnage";
+import { rateContainerLabel, rateContainerSection } from "@/lib/container-taxonomy";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -234,7 +235,7 @@ export function EmailPriceLookup() {
   const wasteLabel =
     parsed?.waste === "plasterboard" ? "plasterboard" : parsed?.waste === "wood" ? "wood waste" : parsed?.waste === "green" ? "green waste" : parsed?.waste === "inert" ? "inert/hardcore" : "general waste";
   const serviceDesc = selectedRow
-    ? `${selectedRow.label}${parsed?.postcode ? ` to ${parsed.postcode}` : ""}`
+    ? `${rateContainerLabel(selectedRow.label)}${parsed?.postcode ? ` to ${parsed.postcode}` : ""}`
     : null;
   const emailDraft = useMemo(() => {
     if (!parsed || !selectedRow || !zoneCode || !value) return "";
@@ -245,7 +246,7 @@ export function EmailPriceLookup() {
       lines.push(
         "",
         `Price for ${serviceDesc} (${wasteLabel}):`,
-        `  • ${selectedRow.label}: ${gbp(card?.vat_inclusive ? price : net)} ${card?.vat_inclusive ? "inc. VAT" : "+ VAT"}`,
+        `  • ${rateContainerLabel(selectedRow.label)}: ${gbp(card?.vat_inclusive ? price : net)} ${card?.vat_inclusive ? "inc. VAT" : "+ VAT"}`,
         surcharge ? `  • Fuel surcharge: ${gbp(card?.vat_inclusive ? surchargeAmt * 1.2 : surchargeAmt)} ${card?.vat_inclusive ? "inc. VAT" : "+ VAT"}` : null,
         perTonne
           ? `  • Price includes ${includedLabel} — disposal thereafter at ${gbp(perTonne.price)} per tonne + VAT`
@@ -344,7 +345,7 @@ export function EmailPriceLookup() {
                     <SelectContent>
                       {rows.map((r) => (
                         <SelectItem key={r.id} value={r.id}>
-                          {(r.section ?? "").replace(/^Skip Hire — |^RoRo — /, "")} — {r.label}
+                          {rateContainerSection(r.section ?? "Rates")} — {rateContainerLabel(r.label)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -376,7 +377,7 @@ export function EmailPriceLookup() {
                 <div className="rounded-lg border p-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">
-                      {selectedRow?.label} ({zones.find((z) => z.zone_code === zoneCode)?.zone_name})
+                      {rateContainerLabel(selectedRow?.label ?? "")} ({zones.find((z) => z.zone_code === zoneCode)?.zone_name})
                     </span>
                     <span className="font-medium">{gbp(card?.vat_inclusive ? price : net)} {card?.vat_inclusive ? "inc. VAT" : "+ VAT"}</span>
                   </div>
