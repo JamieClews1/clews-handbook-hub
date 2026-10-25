@@ -32,6 +32,9 @@ it("unsigned visitors cannot search the internal site bank", { skip: !enabled },
 
 it("staff cannot directly write the automatically maintained site bank", { skip: !enabled }, async () => {
   assert.ok(client);
-  const result = await client.from("route_one_recent_sites").update({ site: "must not save" }).eq("site_key", "no-such-key");
-  assert.ok(result.error);
+  const existing = await client.from("route_one_recent_sites").select("site_key,site").limit(1).single();
+  assert.equal(existing.error, null);
+  assert.ok(existing.data);
+  const result = await client.from("route_one_recent_sites").update({ site: existing.data.site }).eq("site_key", existing.data.site_key).select();
+  assert.ok(result.error || result.data?.length === 0, "Staff writes must be denied by privileges or RLS");
 });
