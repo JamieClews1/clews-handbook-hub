@@ -27,7 +27,6 @@ export const PORTAL_SECTIONS: PortalSection[] = [
   { key: "handbook", label: "Handbook", category: "OnePortal", path: "/handbook" },
   { key: "rams", label: "RAMS", category: "OnePortal", path: "/rams" },
   { key: "toolbox-talks", label: "Toolbox Talks", category: "OnePortal", path: "/toolbox-talks" },
-  { key: "waste-reporting", label: "Waste Reporting", category: "OnePortal", path: "/waste-reporting" },
   { key: "load-reports", label: "Load Reports", category: "OnePortal", path: "/load-reports" },
   { key: "container-loads", label: "Container Loads", category: "OnePortal", path: "/container-loads" },
   { key: "diary", label: "Diary", category: "OnePortal", path: "/diary" },

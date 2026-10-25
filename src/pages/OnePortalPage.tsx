@@ -14,7 +14,6 @@ import {
   ClipboardList,
   FileText,
   AlertTriangle,
-  Recycle,
   Users,
   HardHat,
   CalendarDays,
@@ -33,7 +32,6 @@ const sections = [
   { key: "near-miss", title: "Near Miss", description: "Report and track near miss incidents", icon: AlertTriangle, href: "/near-miss", variant: "destructive" as const },
   { key: "duty-of-care", title: "Duty of Care", description: "Partner compliance, documents and questionnaires", icon: Users, href: "/duty-of-care" },
   { key: "diary", title: "Diary", description: "Weekly outlook and gentle planning journal", icon: CalendarDays, href: "/diary", variant: "calm" as const },
-  { key: "waste-reporting", title: "Waste Reporting", description: "Facility recycling forms and waste documentation", icon: Recycle, href: "/waste-reporting" },
   { key: "pricing", title: "Pricing", description: "Rate cards by customer type with postcode zone checker", icon: PoundSterling, href: "/pricing" },
 ];
 

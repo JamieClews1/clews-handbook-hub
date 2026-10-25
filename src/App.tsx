@@ -33,7 +33,6 @@ import AdminAppsPage from "./pages/AdminAppsPage";
 import MyProfilePage from "./pages/MyProfilePage";
 import MassSignOffPage from "./pages/MassSignOffPage";
 import DutyOfCarePage from "./pages/DutyOfCarePage";
-import WasteReportingPage from "./pages/WasteReportingPage";
 import PoliciesPage from "./pages/PoliciesPage";
 import SiteReportsPage from "./pages/SiteReportsPage";
 import OnePortalPage from "./pages/OnePortalPage";
@@ -41,7 +40,6 @@ import AssistantPage from "./pages/AssistantPage";
 import AIAssistantPage from "./pages/AIAssistantPage";
 import LoadReportsPage from "./pages/LoadReportsPage";
 import ContainerLoadsPage from "./pages/ContainerLoadsPage";
-import WasteFormPublicPage from "./pages/WasteFormPublicPage";
 import PartnerQuestionnairePage from "./pages/PartnerQuestionnairePage";
 import CreditApplicationPage from "./pages/CreditApplicationPage";
 import DataUploadsPage from "./pages/DataUploadsPage";
@@ -115,7 +113,6 @@ const App = () => (
             <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/waste-form/:shareToken" element={<WasteFormPublicPage />} />
             <Route path="/partner-questionnaire/:shareToken" element={<PartnerQuestionnairePage />} />
             <Route path="/nearmissreport" element={<NearMissReportPage />} />
             <Route path="/credit-application/:shareToken" element={<CreditApplicationPage />} />
@@ -164,7 +161,6 @@ const App = () => (
             <Route path="/site-inductions" element={<Staff><SiteInductionsPage /></Staff>} />
             <Route path="/fire-safety" element={<Staff><FireSafetyPage /></Staff>} />
             <Route path="/health-safety/documents/:id" element={<Staff><HSDocumentDetailPage /></Staff>} />
-            <Route path="/waste-reporting" element={<Staff><WasteReportingPage /></Staff>} />
             <Route path="/policies" element={<Staff><PoliciesPage /></Staff>} />
             <Route path="/site-reports" element={<Staff><SiteReportsPage /></Staff>} />
             <Route path="/one-portal" element={<Staff><OnePortalPage /></Staff>} />
