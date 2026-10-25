@@ -695,6 +695,7 @@ const WeighOnePage = () => {
         txData &&
         formData.job_type === "waste_out" &&
         createRouteOneJob &&
+        !arrivingJob &&
         isOwnVehicle(formData.vehicle_reg, formData.carrier_name)
       ) {
         const { error: roError } = await supabase.from("route_one_jobs").insert({

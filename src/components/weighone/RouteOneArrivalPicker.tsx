@@ -105,5 +105,5 @@ export function RouteOneArrivalPicker({ selected, onPick, onClear, vehicleReg }:
 /** Distinguishes a customer ticket from a Waste Out load at the weighbridge. */
 function KindBadge({ job }: { job: Pick<ArrivingJob, "job_type"> }) {
   const out = job.job_type === "waste_out_skip";
-  return <Badge variant={out ? "secondary" : "outline"} className={out ? "bg-warning-subtle text-warning-text border-transparent" : ""}>{out ? "Waste Out" : "Customer"}</Badge>;
+  return <Badge variant={out ? "secondary" : "outline"} className={out ? "bg-[hsl(var(--warning-subtle))] text-[hsl(var(--warning-text))] border-transparent" : ""}>{out ? "Waste Out" : "Customer"}</Badge>;
 }
