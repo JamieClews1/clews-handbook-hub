@@ -21,8 +21,6 @@ import ContactPage from "./pages/ContactPage";
 import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AdminPage from "./pages/AdminPage";
-import AdminHandbookPage from "./pages/AdminHandbookPage";
-import AdminRAMSPage from "./pages/AdminRAMSPage";
 import AdminToolboxTalksPage from "./pages/AdminToolboxTalksPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import AdminCustomersPage from "./pages/AdminCustomersPage";
@@ -75,7 +73,7 @@ import PublicBookingPage from "./pages/PublicBookingPage";
 import WeightChecksPage from "./pages/WeightChecksPage";
 import PublicInventoryPage from "./pages/PublicInventoryPage";
 import PublicInductionPage from "./pages/PublicInductionPage";
-import PricingCMSPage from "./pages/PricingCMSPage";
+import WeighOnePricingPage from "./pages/WeighOnePricingPage";
 import CRMPage from "./pages/CRMPage";
 import MailboxCallbackPage from "./pages/MailboxCallbackPage";
 import PricingPage from "./pages/PricingPage";
@@ -145,8 +143,8 @@ const App = () => (
             <Route path="/toolbox-talks/:id" element={<Staff><ToolboxTalkDetailPage /></Staff>} />
             <Route path="/contact" element={<Staff><ContactPage /></Staff>} />
             <Route path="/admin" element={<Staff><AdminPage /></Staff>} />
-            <Route path="/admin/handbook" element={<Staff><AdminHandbookPage /></Staff>} />
-            <Route path="/admin/rams" element={<Staff><AdminRAMSPage /></Staff>} />
+            <Route path="/admin/handbook" element={<Staff><Navigate to="/handbook?view=edit" replace /></Staff>} />
+            <Route path="/admin/rams" element={<Staff><Navigate to="/rams?view=edit" replace /></Staff>} />
             <Route path="/admin/toolbox-talks" element={<Staff><AdminToolboxTalksPage /></Staff>} />
             <Route path="/admin/users" element={<Staff><AdminUsersPage /></Staff>} />
             <Route path="/admin/customers" element={<Staff><AdminCustomersPage /></Staff>} />
@@ -185,6 +183,7 @@ const App = () => (
             <Route path="/performance-hub/contaminations" element={<Staff><ContaminationsPage /></Staff>} />
             <Route path="/performance-hub/stock-check" element={<Staff><StockCheckPage /></Staff>} />
             <Route path="/route-one" element={<Staff><RouteOnePage /></Staff>} />
+            <Route path="/weigh-one/pricing" element={<Staff><WeighOnePricingPage /></Staff>} />
             <Route path="/weigh-one" element={<Staff><WeighOnePage /></Staff>} />
             <Route path="/digital-waste-tracking" element={<Staff><DigitalWasteTrackingPage /></Staff>} />
             <Route path="/performance-hub/projections" element={<Staff><ProjectionsPage /></Staff>} />
@@ -196,7 +195,7 @@ const App = () => (
             <Route path="/crm/mailbox-callback" element={<MailboxCallbackPage />} />
             <Route path="/pricing" element={<Staff><PricingPage /></Staff>} />
             <Route path="/pricing/builder" element={<Navigate to="/pricing" replace />} />
-            <Route path="/admin/pricing" element={<Staff><PricingCMSPage /></Staff>} />
+            <Route path="/admin/pricing" element={<Staff><Navigate to="/pricing?tab=cms" replace /></Staff>} />
             <Route path="/finance" element={<Staff><FinancePage /></Staff>} />
             <Route path="/finance/company-pl" element={<Staff><CompanyProfitLossPage /></Staff>} />
             <Route path="/payroll" element={<Staff><PayrollPage /></Staff>} />

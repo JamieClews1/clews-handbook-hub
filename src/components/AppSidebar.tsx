@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+import { QUICK_LINKS, STAFF_NAV_GROUPS, navigationAllowed, navigationActive, type StaffNavItem } from "@/lib/staff-navigation";
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Bot, Route, Scale, Radio, Truck, PoundSterling, FileCheck,
@@ -21,76 +23,17 @@ import { useSidebarGroupState } from "@/hooks/useSidebarGroupState";
 import { useFinanceAccess } from "@/hooks/useFinanceAccess";
 import { useCompanyPlAccess } from "@/hooks/useCompanyPlAccess";
 
-type NavItem = { label: string; path: string; icon: LucideIcon; key?: string };
-const home: NavItem[] = [
-  { label: "Dashboard", path: "/portal", icon: LayoutDashboard },
-  { label: "Ask One", path: "/assistant", icon: Bot, key: "assistant" },
-  { label: "Claude Assistant", path: "/ai-assistant", icon: MessageSquare, key: "ai-assistant" },
-];
-const operations: NavItem[] = [
-  { label: "Live Jobs", path: "/performance-hub/live-jobs", icon: Radio, key: "performance-live-jobs" },
-  { label: "RouteOne", path: "/route-one", icon: Route, key: "route-one" },
-  { label: "WeighOne", path: "/weigh-one", icon: Scale, key: "weigh-one" },
-  { label: "Load Reports", path: "/load-reports", icon: Truck, key: "load-reports" },
-  { label: "Container Loads", path: "/container-loads", icon: Container, key: "container-loads" },
-  { label: "Stock Check", path: "/performance-hub/stock-check", icon: Box, key: "performance-stock-check" },
-  { label: "Non-Ferrous Metals", path: "/metals", icon: Gem, key: "metals" },
-  { label: "Permits", path: "/permits", icon: FileCheck, key: "permits" },
-  { label: "Digital Waste Tracking", path: "/digital-waste-tracking", icon: Radio, key: "digital-waste-tracking" },
-  { label: "Diary", path: "/diary", icon: Calendar, key: "diary" },
-  { label: "Bookings", path: "/bookings", icon: CalendarCheck, key: "bookings" },
-  { label: "Duty of Care", path: "/duty-of-care", icon: ShieldCheck, key: "duty-of-care" },
-  { label: "Site Reports", path: "/site-reports", icon: ClipboardList, key: "duty-of-care" },
-  { label: "Handbook", path: "/handbook", icon: BookOpen, key: "handbook" },
-];
-const customers: NavItem[] = [
-  { label: "Inbox", path: "/inbox", icon: Inbox, key: "crm" },
-  { label: "Pricing", path: "/pricing", icon: PoundSterling, key: "pricing" },
-  { label: "Rentals", path: "/performance-hub/rentals", icon: PoundSterling, key: "performance-rentals" },
-  { label: "Contaminations", path: "/performance-hub/contaminations", icon: AlertTriangle, key: "performance-contaminations" },
-  { label: "PO Checks", path: "/po-checks", icon: FileCheck, key: "po-checks" },
-];
-const finance: NavItem[] = [
-  { label: "Invoicing", path: "/finance", icon: PoundSterling, key: "finance" },
-  { label: "Company P&L", path: "/finance/company-pl", icon: FileSpreadsheet },
-  { label: "Rebates", path: "/rebate-values", icon: DollarSign, key: "rebate-values" },
-  { label: "Fuel Surcharges", path: "/performance-hub/fuel-surcharges", icon: Fuel, key: "performance-fuel-surcharges" },
-  { label: "Payroll & Time", path: "/payroll", icon: PoundSterling, key: "payroll" },
-];
-const insights: NavItem[] = [
-  { label: "Waste KPIs", path: "/performance-hub/waste-kpis", icon: Gauge, key: "performance-waste-kpis" },
-  { label: "Reports", path: "/performance-hub/reports", icon: BarChart3, key: "performance-reports" },
-  { label: "Projections", path: "/performance-hub/projections", icon: TrendingUp, key: "performance-projections" },
-  { label: "STACI Reports", path: "/staci-reports", icon: Package, key: "staci-reports" },
-  { label: "Customer Reports", path: "/customer-reporting", icon: FileText, key: "customer-reporting" },
-];
-const safety: NavItem[] = [
-  { label: "RAMS", path: "/rams", icon: FileText, key: "hs-rams" },
-  { label: "Toolbox Talks", path: "/toolbox-talks", icon: MessageSquare, key: "hs-toolbox-talks" },
-  { label: "Near Misses", path: "/near-miss", icon: AlertTriangle, key: "hs-near-miss" },
-  { label: "Site Inductions", path: "/site-inductions", icon: HardHat, key: "hs-site-inductions" },
-  { label: "Fire Safety", path: "/fire-safety", icon: Flame, key: "hs-fire-safety" },
-  { label: "Policies", path: "/policies", icon: ScrollText, key: "policies" },
-];
-const admin: NavItem[] = [
-  { label: "Customers", path: "/admin/customers", icon: Building2 },
-  { label: "Users", path: "/admin/users", icon: Users },
-  { label: "Handbook Builder", path: "/admin/handbook", icon: BookOpen },
-  { label: "RAMS Builder", path: "/admin/rams", icon: FileText },
-  { label: "Toolbox Talks", path: "/admin/toolbox-talks", icon: MessageSquare },
-  { label: "Questionnaires", path: "/admin/questionnaires", icon: ClipboardList },
-  { label: "Apps", path: "/admin/apps", icon: Smartphone },
-  { label: "Pricing CMS", path: "/admin/pricing", icon: DollarSign },
-  { label: "Data Uploads", path: "/performance-hub/data", icon: Upload, key: "performance-data" },
-  { label: "Settings", path: "/admin/settings", icon: Settings },
-];
-
 function NavGroup({ title, icon: Icon, items, initialOpen, storageKey, collapsed, currentPath, hidden, isSuperAdmin }: {
-  title: string; icon: LucideIcon; items: NavItem[]; initialOpen: boolean; storageKey: string; collapsed: boolean;
+  title: string; icon: LucideIcon; items: StaffNavItem[]; initialOpen: boolean; storageKey: string; collapsed: boolean;
   currentPath: string; hidden: Set<string>; isSuperAdmin: boolean;
 }) {
   const [open, setOpen] = useSidebarGroupState(storageKey, initialOpen);
   const { isMobile, setOpenMobile } = useSidebar();
+  const previousPath = useRef<string>();
+  useEffect(() => {
+    if (previousPath.current !== currentPath && items.some(item => navigationActive(item.path, currentPath))) setOpen(true);
+    previousPath.current = currentPath;
+  }, [currentPath, items, setOpen]);
   const available = items.filter((item) => !item.key || !hidden.has(item.key) || isSuperAdmin);
   if (available.length === 0) return null;
   return (
@@ -107,7 +50,7 @@ function NavGroup({ title, icon: Icon, items, initialOpen, storageKey, collapsed
             <SidebarMenu>
               {available.map((item) => (
                 <SidebarMenuItem key={item.path} className={item.key && hidden.has(item.key) ? "opacity-45" : undefined}>
-                  <SidebarMenuButton asChild isActive={currentPath === item.path || (item.path === "/admin/apps" && currentPath === "/admin/driver-app")} tooltip={item.label}>
+                  <SidebarMenuButton asChild isActive={navigationActive(item.path, currentPath)} tooltip={item.label}>
                     <Link to={item.path} onClick={() => { if (isMobile) setOpenMobile(false); }}>
                       <item.icon className="h-[18px] w-[18px]" />
                       {!collapsed && <span>{item.label}</span>}
@@ -132,16 +75,8 @@ export function AppSidebar() {
   const isSuperAdmin = isSuperAdminEmail(user?.email);
   const { canAccess: canAccessFinance } = useFinanceAccess();
   const { canAccessPl } = useCompanyPlAccess();
-  const financeItems = canAccessPl ? finance : finance.filter((item) => item.path !== "/finance/company-pl");
-  const visibleFinanceItems = canAccessFinance ? financeItems : financeItems.filter(item => item.path === "/finance/company-pl");
-  const groups = [
-    { title: "Operations", icon: Route, items: operations, key: "nav-operations" },
-    { title: "Customers & Sales", icon: Users, items: customers, key: "nav-customers" },
-    ...(canAccessFinance || canAccessPl ? [{ title: "Finance", icon: PoundSterling, items: visibleFinanceItems, key: "nav-finance" }] : []),
-    { title: "Insights", icon: BarChart3, items: insights, key: "nav-insights" },
-    { title: "Health & Safety", icon: ShieldCheck, items: safety, key: "nav-safety" },
-    ...(isAdmin ? [{ title: "Admin", icon: Settings, items: admin, key: "nav-admin" }] : []),
-  ];
+  const access = { isAdmin, canAccessFinance, canAccessPl };
+  const groups = STAFF_NAV_GROUPS.map(group => ({ ...group, items: group.items.filter(item => navigationAllowed(item, access)) }));
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarContent className="pt-2">
@@ -151,9 +86,18 @@ export function AppSidebar() {
             {!collapsed && <span className="text-lg font-bold text-sidebar-foreground">WasteOne</span>}
           </Link>
         </div>
-        <NavGroup title="Home" icon={LayoutDashboard} items={home} storageKey="nav-home" initialOpen collapsed={collapsed} currentPath={pathname} hidden={hidden} isSuperAdmin={isSuperAdmin} />
+        <SidebarGroup>
+          {!collapsed && <SidebarGroupLabel>Quick Links</SidebarGroupLabel>}
+          <SidebarGroupContent><SidebarMenu>
+            {QUICK_LINKS.filter(item => !item.key || !hidden.has(item.key) || isSuperAdmin).map(item => <SidebarMenuItem key={item.path}>
+              <SidebarMenuButton asChild isActive={navigationActive(item.path, pathname)} tooltip={item.label}>
+                <Link to={item.path} onClick={() => { if (isMobile) setOpenMobile(false); }}><item.icon className="h-[18px] w-[18px]" />{!collapsed && <span>{item.label}</span>}</Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>)}
+          </SidebarMenu></SidebarGroupContent>
+        </SidebarGroup>
         {groups.map((group) => (
-          <NavGroup key={group.key} {...group} storageKey={group.key} initialOpen={group.items.some((item) => pathname === item.path)} collapsed={collapsed} currentPath={pathname} hidden={hidden} isSuperAdmin={isSuperAdmin} />
+          <NavGroup key={group.key} {...group} storageKey={group.key} initialOpen={group.items.some((item) => navigationActive(item.path, pathname))} collapsed={collapsed} currentPath={pathname} hidden={hidden} isSuperAdmin={isSuperAdmin} />
         ))}
       </SidebarContent>
       <SidebarFooter className="p-0"><VersionBadge /></SidebarFooter>

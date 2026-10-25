@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, FileText, AlertTriangle, ClipboardList, Loader2, CheckCircle, User, ClipboardSignature } from "lucide-react";
 import { format } from "date-fns";
+import { RAMSBuilder } from "@/components/RAMSBuilder";
+import { Pencil, Eye } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 
 interface RAMS {
@@ -31,7 +33,7 @@ interface RAMSSignature {
 
 const RAMSPage = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, loading } = useAuth();
   const [ramsList, setRamsList] = useState<RAMS[]>([]);
   const [loadingRAMS, setLoadingRAMS] = useState(true);
@@ -74,7 +76,7 @@ const RAMSPage = () => {
 
   // Auto-navigate to specific RAMS from URL query param
   useEffect(() => {
-    if (!loadingRAMS && ramsList.length > 0 && !hasAutoNavigated) {
+    if (searchParams.get("view") !== "edit" && !loadingRAMS && ramsList.length > 0 && !hasAutoNavigated) {
       const ramsId = searchParams.get('id');
       if (ramsId) {
         const rams = ramsList.find(r => r.id === ramsId);
@@ -140,8 +142,15 @@ const RAMSPage = () => {
     return null;
   }
 
+  const editing = isAdmin && searchParams.get("view") === "edit";
   return (
     <div className="min-h-screen bg-background">
+      {isAdmin && <div className="container mx-auto px-4 py-3 flex justify-end">
+        <Button variant="outline" onClick={() => setSearchParams(prev => { const next = new URLSearchParams(prev); if (editing) next.delete("view"); else next.set("view", "edit"); return next; })}>
+          {editing ? <Eye className="h-4 w-4 mr-2" /> : <Pencil className="h-4 w-4 mr-2" />}{editing ? "View RAMS" : "Edit RAMS"}
+        </Button>
+      </div>}
+      {editing ? <main className="container max-w-screen-2xl mx-auto px-4 py-6"><h1 className="text-2xl font-bold mb-6">Edit RAMS</h1><RAMSBuilder /></main> : <>
       {/* Header */}
       <header className="bg-card border-b border-border shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -308,6 +317,7 @@ const RAMSPage = () => {
           </Card>
         </div>
       </main>
+      </>}
     </div>
   );
 };
