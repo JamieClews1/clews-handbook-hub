@@ -10732,6 +10732,14 @@ export type Database = {
           vehicle_type: string
         }[]
       }
+      get_outgoing_sites: {
+        Args: never
+        Returns: {
+          last_date: string
+          loads: number
+          site_name: string
+        }[]
+      }
       get_skiptrak_customer_sites: {
         Args: never
         Returns: {

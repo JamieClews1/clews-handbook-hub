@@ -589,7 +589,7 @@ export function JobFormFields({
       </section>
       <section className="booking-section space-y-3">
         <h4 className="booking-step"><span>3</span>Waste</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><Label className="text-xs">Waste type</Label><Input aria-label="Waste type" value={form.waste_type || ""} onChange={e => setForm({ ...form, waste_type: e.target.value })} placeholder="Mixed waste" /></div><div><Label className="text-xs">EWC code</Label><EwcCodePicker value={form.ewc_code || ""} onChange={v => setForm({ ...form, ewc_code: v })} /></div></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><Label className="text-xs">EWC code</Label><EwcCodePicker value={form.ewc_code || ""} onChange={v => setForm({ ...form, ewc_code: v })} /></div><div><Label className="text-xs">Waste type</Label><Input aria-label="Waste type" value={form.waste_type || ""} onChange={e => setForm({ ...form, waste_type: e.target.value })} placeholder="Mixed waste" /></div></div>
       </section>
       <section className="booking-section space-y-3">
         <h4 className="booking-step"><span>4</span>{exchangeMode ? "Exchange schedule" : "Schedule"}</h4>
