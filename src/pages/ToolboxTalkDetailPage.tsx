@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, CheckCircle, ClipboardSignature, Printer, Loader2, Languages } from "lucide-react";
 import { SignaturePad } from "@/components/SignaturePad";
 import { useToast } from "@/hooks/use-toast";
-import clewsLogo from "@/assets/clews-logo.png";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import jsPDF from "jspdf";
 import { useUnicodeFont } from "@/lib/pdf-fonts";
@@ -374,7 +373,6 @@ const ToolboxTalkDetailPage = () => {
       <header className="sticky top-0 z-50 bg-card border-b border-border">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={clewsLogo} alt="Clews Recycling" className="h-8 w-auto" />
             <div className="h-6 w-px bg-border" />
             <div>
               <span className="text-xs font-medium text-muted-foreground">{talk.reference_code}</span>

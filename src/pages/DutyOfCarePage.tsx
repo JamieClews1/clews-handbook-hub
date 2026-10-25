@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, FileCheck, Building2, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import clewsLogo from "@/assets/clews-logo.png";
 import { PageHeading } from "@/components/PageHeading";
 import { DashboardOverview } from "@/components/duty-of-care/DashboardOverview";
 import { CompanyDocumentsSection } from "@/components/duty-of-care/CompanyDocumentsSection";
@@ -81,21 +80,6 @@ const DutyOfCarePage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="hidden">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link to="/portal">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline">Back to Portal</span>
-                </Button>
-              </Link>
-              <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
-            </div>
-          </div>
-        </div>
-      </header>
 
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">

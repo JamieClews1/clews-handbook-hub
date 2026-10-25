@@ -4,7 +4,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, ClipboardList, Eye, Package } from "lucide-react";
-import clewsLogo from "@/assets/clews-logo.png";
 import { PageHeading } from "@/components/PageHeading";
 import MonthlyInspectionForm from "@/components/site-reports/MonthlyInspectionForm";
 import InspectionReportsList from "@/components/site-reports/InspectionReportsList";
@@ -62,31 +61,6 @@ const SiteReportsPage = () => {
   const showBackToStock = activeTab === "stock" && stockView !== "list";
   return (
     <div className="min-h-screen bg-background">
-      <header className="hidden">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            {showBackToReports ? (
-              <Button variant="ghost" size="sm" className="gap-2" onClick={handleBackToList}>
-                <ArrowLeft className="h-4 w-4" />
-                Back to Reports
-              </Button>
-            ) : showBackToStock ? (
-              <Button variant="ghost" size="sm" className="gap-2" onClick={() => setStockView("list")}>
-                <ArrowLeft className="h-4 w-4" />
-                Back to Stock
-              </Button>
-            ) : (
-              <Link to="/portal">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Portal
-                </Button>
-              </Link>
-            )}
-            <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
-          </div>
-        </div>
-      </header>
 
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-screen-2xl mx-auto">

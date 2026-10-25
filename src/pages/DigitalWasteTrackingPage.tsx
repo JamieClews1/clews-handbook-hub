@@ -21,7 +21,6 @@ import {
 import { ArrowLeft, Search, Truck, Weight, Package, Info, Radio, Calendar, Pencil, AlertTriangle, Upload, CheckCircle2, Loader2, XCircle, Settings } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
-import clewsLogo from "@/assets/clews-logo.png";
 import { Json } from "@/integrations/supabase/types";
 import DwtSettingsDialog, { useDwtSettings } from "@/components/dwt/DwtSettingsDialog";
 
@@ -301,19 +300,6 @@ const DigitalWasteTrackingPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="hidden">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/portal">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Back to Portal</span>
-              </Button>
-            </Link>
-            <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
-          </div>
-        </div>
-      </header>
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-screen-2xl mx-auto space-y-6">

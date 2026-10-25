@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Container, Plus, Loader2, Search, Boxes } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import clewsLogo from "@/assets/clews-logo.png";
 import { PageHeading } from "@/components/PageHeading";
 import {
   ContainerLoad,
@@ -124,32 +123,6 @@ const ContainerLoadsPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="hidden">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {selectedId ? (
-                <Button variant="ghost" size="sm" className="gap-2" onClick={handleBackToList}>
-                  <ArrowLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline">Back</span>
-                </Button>
-              ) : (
-                <Link to="/load-reports">
-                  <Button variant="ghost" size="sm" className="gap-2">
-                    <ArrowLeft className="h-4 w-4" />
-                    <span className="hidden sm:inline">Load Reports</span>
-                  </Button>
-                </Link>
-              )}
-              <div className="flex items-center gap-2">
-                <Container className="h-5 w-5 text-emerald-600" />
-                <span className="font-semibold text-foreground hidden sm:inline">Container Loads</span>
-              </div>
-            </div>
-            <img src={clewsLogo} alt="Clews Recycling" className="h-8 w-auto hidden sm:block" />
-          </div>
-        </div>
-      </header>
 
       <main className="container mx-auto px-4 py-6">
         <div className="max-w-screen-2xl mx-auto">

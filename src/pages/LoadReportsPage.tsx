@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import clewsLogo from "@/assets/clews-logo.png";
 import { getWeighbridgeSource } from "@/lib/weighbridge-source";
 import { getTodayLoadReportDate, normalizeLoadReportDate } from "@/lib/load-report-dates";
 import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
@@ -1200,7 +1199,6 @@ const LoadReportsPage = () => {
                 isSyncing={isSyncingManual}
                 onSyncNow={handleManualSync}
               />
-              <img src={clewsLogo} alt="Clews Recycling" className="h-8 w-auto hidden sm:block" />
             </div>
           </div>
         </div>

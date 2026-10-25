@@ -3,7 +3,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
-import clewsLogo from "@/assets/clews-logo.png";
 import { PageHeading } from "@/components/PageHeading";
 import NearMissReportsList from "@/components/duty-of-care/NearMissReportsList";
 
@@ -32,21 +31,6 @@ const NearMissPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="hidden">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link to="/portal">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline">Back to Portal</span>
-                </Button>
-              </Link>
-              <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
-            </div>
-          </div>
-        </div>
-      </header>
 
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">

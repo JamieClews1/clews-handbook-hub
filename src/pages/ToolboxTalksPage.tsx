@@ -1,3 +1,4 @@
+import { PageHeading } from "@/components/PageHeading";
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, MessageSquare, CheckCircle, AlertTriangle } from "lucide-react";
-import clewsLogo from "@/assets/clews-logo.png";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 
 interface ToolboxTalk {
@@ -99,29 +99,13 @@ const ToolboxTalksPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-card border-b border-border shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <img src={clewsLogo} alt="Clews Recycling" className="h-12 w-auto" />
-          <Link to="/portal">
-            <Button variant="outline" size="sm" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Portal
-            </Button>
-          </Link>
-        </div>
-      </header>
 
-      <section className="bg-gradient-to-br from-primary to-accent py-12">
-        <div className="container mx-auto px-4 text-center">
-          <MessageSquare className="h-16 w-16 text-primary-foreground mx-auto mb-4" />
-          <h2 className="text-3xl font-bold text-primary-foreground mb-2">
-            Toolbox Talks
-          </h2>
-          <p className="text-lg text-primary-foreground/90 max-w-2xl mx-auto">
-            Short safety briefings to reinforce workplace safety awareness and best practices.
-          </p>
+
+      <section className="container mx-auto px-4 pt-6">
+        <div>
+          <PageHeading title="Toolbox Talks" description="Safety briefings and signatures" />
           {pendingMandatory > 0 && (
-            <div className="mt-4 inline-flex items-center gap-2 bg-destructive/20 text-destructive-foreground px-4 py-2 rounded-full">
+            <div className="mt-4 inline-flex items-center gap-2 bg-destructive/10 text-destructive px-4 py-2 rounded-full">
               <AlertTriangle className="h-5 w-5" />
               <span>{pendingMandatory} mandatory talk{pendingMandatory > 1 ? "s" : ""} pending signature</span>
             </div>

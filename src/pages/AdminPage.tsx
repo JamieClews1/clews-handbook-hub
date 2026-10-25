@@ -1,3 +1,4 @@
+import { PageHeading } from "@/components/PageHeading";
 import { useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -5,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BookOpen, FileText, MessageSquare, Users, LogOut, ArrowRight, Home, ClipboardSignature, Settings, FileQuestion, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import clewsLogo from "@/assets/clews-logo.png";
 
 const AdminPage = () => {
   const navigate = useNavigate();
@@ -90,68 +90,11 @@ const AdminPage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
-            <div className="flex items-center gap-2">
-              <Link to="/portal">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <Home className="h-4 w-4" />
-                  <span className="hidden sm:inline">Portal</span>
-                </Button>
-              </Link>
-              <Link to="/mass-sign-off">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ClipboardSignature className="h-4 w-4" />
-                  <span className="hidden sm:inline">Mass Sign-Off</span>
-                </Button>
-              </Link>
-              <Link to="/admin/settings">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <Settings className="h-4 w-4" />
-                  <span className="hidden sm:inline">Settings</span>
-                </Button>
-              </Link>
-              <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-2 text-muted-foreground hover:text-foreground">
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Sign Out</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden py-16 lg:py-24">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-secondary/5" />
-        
-        {/* Decorative elements */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-10 right-10 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '-3s' }} />
-        
-        <div className="container relative mx-auto px-4 text-center">
-          <div className="animate-fade-up">
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              Administrator Access
-            </span>
-          </div>
-          
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-6 animate-fade-up" style={{ animationDelay: '0.1s' }}>
-            Content
-            <span className="block text-primary">Management</span>
-          </h2>
-          
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto animate-fade-up" style={{ animationDelay: '0.2s' }}>
-            Build and manage handbooks, safety documents, and user accounts from one central dashboard.
-          </p>
-        </div>
-      </section>
 
       {/* Admin Sections */}
-      <main className="container mx-auto px-4 pb-20">
+      <main className="container mx-auto px-4 py-6">
+        <PageHeading title="Admin" description="Content management and user accounts" />
         <div className="grid md:grid-cols-2 gap-6 lg:gap-8 max-w-5xl mx-auto">
           {adminSections.map((section, index) => (
             <Link 
@@ -189,9 +132,8 @@ const AdminPage = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <img src={clewsLogo} alt="Clews Recycling" className="h-8 w-auto opacity-70" />
               <span className="text-sm text-muted-foreground">
-                &copy; {new Date().getFullYear()} Clews Recycling - Admin Panel
+                &copy; {new Date().getFullYear()} WasteOne - Admin Panel
               </span>
             </div>
           </div>

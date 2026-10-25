@@ -10,7 +10,6 @@ import { SignatureField } from "@/components/SignatureField";
 import { toast as sonnerToast } from "sonner";
 import { ArrowLeft, CheckCircle, AlertCircle, FileText, User, Clock, BookOpen, MessageSquare, HardHat } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import clewsLogo from "@/assets/clews-logo.png";
 import { PageHeading } from "@/components/PageHeading";
 
 interface Profile {
@@ -224,19 +223,6 @@ const MyProfilePage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="hidden">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <img src={clewsLogo} alt="Clews Recycling" className="h-10 w-auto" />
-            <Link to="/portal">
-              <Button variant="outline" size="sm" className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Portal
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
 
       <main className="container mx-auto px-4 py-8">
         <PageHeading title="My Profile" />
