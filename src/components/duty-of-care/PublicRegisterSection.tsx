@@ -160,6 +160,12 @@ export function PublicRegisterSection() {
             </Button>
           </div>
 
+          {register === "waste-operations" && (
+            <p className="text-xs text-muted-foreground">
+              Tip: the register matches one field at a time, so search the <strong>site name or place</strong> (e.g. "Ling Hall") and use <strong>Operator / company</strong> to narrow to a company (e.g. "Veolia").
+            </p>
+          )}
+
           {searchError && (
             <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm flex items-center justify-between gap-3">
               <span>{searchError}</span>
