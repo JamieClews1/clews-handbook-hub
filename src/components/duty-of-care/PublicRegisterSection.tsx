@@ -60,7 +60,9 @@ function normaliseResponse(raw: any): RegisterResponse {
     page: Number(raw?.page) || 1,
     totalPages: Number(raw?.total_pages ?? raw?.totalPages) || 1,
     attribution: typeof raw?.attribution === "string" ? raw.attribution : "",
-    facilityTypes: Array.isArray(raw?.facility_types) ? raw.facility_types.filter((f: unknown) => typeof f === "string") : [],
+    facilityTypes: Array.isArray(raw?.facility_types)
+      ? raw.facility_types.map((f: any) => typeof f === "string" ? f : typeof f?.facility_type === "string" ? f.facility_type : "").filter(Boolean)
+      : [],
   };
 }
 
