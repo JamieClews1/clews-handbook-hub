@@ -1,4 +1,4 @@
-import { useOutgoingSites } from "@/hooks/useOutgoingSites";
+import { useTippingSites } from "@/hooks/useTippingSites";
 import { RouteOneArrivalPicker, type ArrivingJob } from "@/components/weighone/RouteOneArrivalPicker";
 import { CONTAINER_GROUPS, bookingContainerLabel } from "@/lib/container-taxonomy";
 import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
@@ -232,7 +232,7 @@ const WeighOnePage = () => {
   // New transaction form
   const [formData, setFormData] = useState(emptyForm);
   const [arrivingJob, setArrivingJob] = useState<ArrivingJob | null>(null);
-  const { data: outgoingSites = [] } = useOutgoingSites();
+  const { data: outgoingSites = [] } = useTippingSites();
   /** Prefill the weigh-in from a RouteOne job so nothing is retyped. */
   const applyRouteOneJob = (job: ArrivingJob) => {
     setArrivingJob(job);
