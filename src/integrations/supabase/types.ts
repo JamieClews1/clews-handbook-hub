@@ -10001,6 +10001,51 @@ export type Database = {
         }
         Relationships: []
       }
+      verified_tipping_sites: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_by: string | null
+          facility_type: string | null
+          id: string
+          notes: string | null
+          operator_name: string | null
+          postcode: string | null
+          register: string
+          registration_number: string | null
+          site_name: string
+          status: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          facility_type?: string | null
+          id?: string
+          notes?: string | null
+          operator_name?: string | null
+          postcode?: string | null
+          register?: string
+          registration_number?: string | null
+          site_name: string
+          status?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          facility_type?: string | null
+          id?: string
+          notes?: string | null
+          operator_name?: string | null
+          postcode?: string | null
+          register?: string
+          registration_number?: string | null
+          site_name?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
       waste_stream_values: {
         Row: {
           additional_processing: number
