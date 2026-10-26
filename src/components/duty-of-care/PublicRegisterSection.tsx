@@ -84,8 +84,12 @@ export function PublicRegisterSection() {
       const { data, error } = await supabase.functions.invoke("register-lookup", {
         body: { register, q: query, facility: register === "waste-operations" ? facility : "", page: targetPage },
       });
-      if (error) throw error;
-      if (data?.error) {
+      if (error) {
+        // Non-2xx responses throw; read the real message out of the response body.
+        const body = await (error as any)?.context?.json?.().catch(() => null);
+        setSearchError(body?.error ?? "Register temporarily unavailable");
+        setResult(null);
+      } else if (data?.error) {
         setSearchError(data.error);
         setResult(null);
       } else {
