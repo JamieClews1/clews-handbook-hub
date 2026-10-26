@@ -67,6 +67,7 @@ function normaliseResponse(raw: any): RegisterResponse {
 export function PublicRegisterSection() {
   const [register, setRegister] = useState<RegisterKey>("waste-operations");
   const [query, setQuery] = useState("");
+  const [operator, setOperator] = useState("");
   const [facility, setFacility] = useState("");
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<RegisterResponse | null>(null);
@@ -82,7 +83,7 @@ export function PublicRegisterSection() {
     setSearchError(null);
     try {
       const { data, error } = await supabase.functions.invoke("register-lookup", {
-        body: { register, q: query, facility: register === "waste-operations" ? facility : "", page: targetPage },
+        body: { register, q: query, operator: register === "waste-operations" ? operator : "", facility: register === "waste-operations" ? facility : "", page: targetPage },
       });
       if (error) {
         // Non-2xx responses throw; read the real message out of the response body.
