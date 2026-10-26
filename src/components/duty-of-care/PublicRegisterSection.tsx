@@ -55,7 +55,7 @@ function normaliseResponse(raw: any): RegisterResponse {
       address: pick(r, ["address", "site_address", "full_address"]),
       facilityType: pick(r, ["facility_type", "facility", "type"]),
       status: pick(r, ["status", "permit_status", "registration_status"]),
-      operator: pick(r, ["operator", "operator_name", "company_name"]),
+      operator: pick(r, ["licence_holder", "operator", "operator_name", "company_name", "trading_name"]),
     })).filter((r) => r.name),
     page: Number(raw?.page) || 1,
     totalPages: Number(raw?.total_pages ?? raw?.totalPages) || 1,
