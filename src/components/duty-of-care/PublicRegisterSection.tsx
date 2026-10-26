@@ -129,11 +129,19 @@ export function PublicRegisterSection() {
               </Select>
             </div>
             <div className="space-y-1.5 flex-1 min-w-52">
-              <Label className="text-xs" htmlFor="register-q">Search</Label>
+              <Label className="text-xs" htmlFor="register-q">{register === "companies" ? "Search" : "Site name, town or postcode"}</Label>
               <Input id="register-q" value={query} onChange={e => setQuery(e.target.value)}
-                placeholder={register === "companies" ? "Company name or registration…" : "Site name, town or postcode…"}
+                placeholder={register === "companies" ? "Company name or registration…" : "e.g. Ling Hall or Rugby…"}
                 onKeyDown={e => { if (e.key === "Enter") search(1); }} />
             </div>
+            {register === "waste-operations" && (
+              <div className="space-y-1.5 min-w-52">
+                <Label className="text-xs" htmlFor="register-operator">Operator / company (optional)</Label>
+                <Input id="register-operator" value={operator} onChange={e => setOperator(e.target.value)}
+                  placeholder="e.g. Veolia…"
+                  onKeyDown={e => { if (e.key === "Enter") search(1); }} />
+              </div>
+            )}
             {register === "waste-operations" && (result?.facilityTypes.length ?? 0) > 0 && (
               <div className="space-y-1.5">
                 <Label className="text-xs">Facility type</Label>
