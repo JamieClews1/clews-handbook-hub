@@ -15,6 +15,7 @@ import { PartnerQuestionnairesList } from "@/components/duty-of-care/PartnerQues
 import { PartnerQuestionnaireForm } from "@/components/duty-of-care/PartnerQuestionnaireForm";
 import { PublicRegisterSection } from "@/components/duty-of-care/PublicRegisterSection";
 import { EwcRegisterSection } from "@/components/duty-of-care/EwcRegisterSection";
+import { CommonWasteTypesSection } from "@/components/duty-of-care/CommonWasteTypesSection";
 import { CompanyDocument, Partner, PartnerDocument, PartnerDocumentRequirement, DocumentType } from "@/components/duty-of-care/types";
 
 const DutyOfCarePage = () => {
@@ -177,7 +178,8 @@ const DutyOfCarePage = () => {
             <PublicRegisterSection />
           </TabsContent>
 
-          <TabsContent value="ewc">
+          <TabsContent value="ewc" className="space-y-10">
+            <CommonWasteTypesSection />
             <EwcRegisterSection isAdmin={isAdmin} />
           </TabsContent>
 

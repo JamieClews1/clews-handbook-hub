@@ -10797,6 +10797,18 @@ export type Database = {
       }
       crm_match_customer_by_email: { Args: { _email: string }; Returns: string }
       generate_ticket_number: { Args: never; Returns: string }
+      get_common_waste_types: {
+        Args: { _months?: number }
+        Returns: {
+          ewc: string
+          last_date: string
+          midweigh_jobs: number
+          skiptrak_jobs: number
+          tonnes: number
+          total_jobs: number
+          waste_description: string
+        }[]
+      }
       get_company_pl_operational_trends: { Args: never; Returns: Json }
       get_customer_activity_summary: {
         Args: never
