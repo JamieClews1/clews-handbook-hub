@@ -35,3 +35,4 @@ Imported exchange pricing copies only explicit source booking charges, never der
 - Sign-in and staff-role checks use withTimeout and show Try again / Sign out on failure, so a stalled request never leaves an endless spinner.
 - Customer recovery uses the public /reset-password page and Auth recovery emails; recovery events bypass staff landing pages so links cannot skip password entry.
 - Data Uploads write only new or changed rows (rowNeedsWrite) and list orphans by id first; repeat full-file uploads must not rewrite unchanged data, which exhausted the database disk budget.
+- Duty of Care's EWC register reads the shared ewc_codes register without changing jobs or classification defaults; administrative edits stay in Code Settings to preserve a single source.

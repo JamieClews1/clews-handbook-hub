@@ -14,6 +14,7 @@ import { RequirementsSettings } from "@/components/duty-of-care/RequirementsSett
 import { PartnerQuestionnairesList } from "@/components/duty-of-care/PartnerQuestionnairesList";
 import { PartnerQuestionnaireForm } from "@/components/duty-of-care/PartnerQuestionnaireForm";
 import { PublicRegisterSection } from "@/components/duty-of-care/PublicRegisterSection";
+import { EwcRegisterSection } from "@/components/duty-of-care/EwcRegisterSection";
 import { CompanyDocument, Partner, PartnerDocument, PartnerDocumentRequirement, DocumentType } from "@/components/duty-of-care/types";
 
 const DutyOfCarePage = () => {
@@ -88,7 +89,7 @@ const DutyOfCarePage = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-3xl grid-cols-6">
+          <TabsList className="flex w-full flex-wrap justify-start h-auto">
             <TabsTrigger value="overview" className="gap-2">
               <FileCheck className="h-4 w-4 hidden sm:inline" />
               Overview
@@ -108,6 +109,7 @@ const DutyOfCarePage = () => {
               <ShieldCheck className="h-4 w-4 hidden sm:inline" />
               Register
             </TabsTrigger>
+            <TabsTrigger value="ewc" className="gap-2">EWC codes</TabsTrigger>
             {isAdmin && (
               <TabsTrigger value="settings" className="gap-2">
                 <Settings className="h-4 w-4 hidden sm:inline" />
@@ -173,6 +175,10 @@ const DutyOfCarePage = () => {
 
           <TabsContent value="register">
             <PublicRegisterSection />
+          </TabsContent>
+
+          <TabsContent value="ewc">
+            <EwcRegisterSection isAdmin={isAdmin} />
           </TabsContent>
 
           {isAdmin && (
