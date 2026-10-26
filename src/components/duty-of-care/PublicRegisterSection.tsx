@@ -55,18 +55,21 @@ function normaliseResponse(raw: any): RegisterResponse {
       address: pick(r, ["address", "site_address", "full_address"]),
       facilityType: pick(r, ["facility_type", "facility", "type"]),
       status: pick(r, ["status", "permit_status", "registration_status"]),
-      operator: pick(r, ["operator", "operator_name", "company_name"]),
+      operator: pick(r, ["licence_holder", "operator", "operator_name", "company_name", "trading_name"]),
     })).filter((r) => r.name),
     page: Number(raw?.page) || 1,
     totalPages: Number(raw?.total_pages ?? raw?.totalPages) || 1,
     attribution: typeof raw?.attribution === "string" ? raw.attribution : "",
-    facilityTypes: Array.isArray(raw?.facility_types) ? raw.facility_types.filter((f: unknown) => typeof f === "string") : [],
+    facilityTypes: Array.isArray(raw?.facility_types)
+      ? raw.facility_types.map((f: any) => typeof f === "string" ? f : typeof f?.facility_type === "string" ? f.facility_type : "").filter(Boolean)
+      : [],
   };
 }
 
 export function PublicRegisterSection() {
   const [register, setRegister] = useState<RegisterKey>("waste-operations");
   const [query, setQuery] = useState("");
+  const [operator, setOperator] = useState("");
   const [facility, setFacility] = useState("");
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<RegisterResponse | null>(null);
@@ -82,7 +85,7 @@ export function PublicRegisterSection() {
     setSearchError(null);
     try {
       const { data, error } = await supabase.functions.invoke("register-lookup", {
-        body: { register, q: query, facility: register === "waste-operations" ? facility : "", page: targetPage },
+        body: { register, q: query, operator: register === "waste-operations" ? operator : "", facility: register === "waste-operations" ? facility : "", page: targetPage },
       });
       if (error) {
         // Non-2xx responses throw; read the real message out of the response body.
@@ -128,11 +131,19 @@ export function PublicRegisterSection() {
               </Select>
             </div>
             <div className="space-y-1.5 flex-1 min-w-52">
-              <Label className="text-xs" htmlFor="register-q">Search</Label>
+              <Label className="text-xs" htmlFor="register-q">{register === "companies" ? "Search" : "Site name, town or postcode"}</Label>
               <Input id="register-q" value={query} onChange={e => setQuery(e.target.value)}
-                placeholder={register === "companies" ? "Company name or registration…" : "Site name, town or postcode…"}
+                placeholder={register === "companies" ? "Company name or registration…" : "e.g. Ling Hall or Rugby…"}
                 onKeyDown={e => { if (e.key === "Enter") search(1); }} />
             </div>
+            {register === "waste-operations" && (
+              <div className="space-y-1.5 min-w-52">
+                <Label className="text-xs" htmlFor="register-operator">Operator / company (optional)</Label>
+                <Input id="register-operator" value={operator} onChange={e => setOperator(e.target.value)}
+                  placeholder="e.g. Veolia…"
+                  onKeyDown={e => { if (e.key === "Enter") search(1); }} />
+              </div>
+            )}
             {register === "waste-operations" && (result?.facilityTypes.length ?? 0) > 0 && (
               <div className="space-y-1.5">
                 <Label className="text-xs">Facility type</Label>
@@ -150,6 +161,12 @@ export function PublicRegisterSection() {
               Search register
             </Button>
           </div>
+
+          {register === "waste-operations" && (
+            <p className="text-xs text-muted-foreground">
+              Tip: the register matches one field at a time, so search the <strong>site name or place</strong> (e.g. "Ling Hall") and use <strong>Operator / company</strong> to narrow to a company (e.g. "Veolia").
+            </p>
+          )}
 
           {searchError && (
             <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm flex items-center justify-between gap-3">
