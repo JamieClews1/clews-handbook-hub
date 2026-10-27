@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { BanksmanJobDialog } from "@/components/banksman/BanksmanJobDialog";
 import type { BJob } from "@/components/banksman/BanksmanWorkflow";
 import { AlertTriangle, CheckCircle2, ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export type LinkedBanksmanJob = BJob & { weighbridge_transaction_id?: string | null };
 
@@ -23,7 +24,7 @@ export function BanksmanTicketReport({ job }: { job: LinkedBanksmanJob | undefin
     <Badge variant="outline" className={job.alert_status === "urgent" ? "text-destructive border-destructive" : job.has_contamination ? "text-warning-text bg-warning-subtle" : "text-primary"}>{job.has_contamination ? <AlertTriangle className="mr-1 h-3 w-3" /> : <CheckCircle2 className="mr-1 h-3 w-3" />}{banksmanLabel(job)}</Badge>
     <p className="text-xs text-muted-foreground">{job.completed_by_name || "Awaiting yard check"}{job.completed_at ? ` · ${new Date(job.completed_at).toLocaleString("en-GB")}` : ""}</p>
     {photos.length > 0 && <div className="grid grid-cols-3 gap-2">{photos.slice(0, 3).map((photo, index) => <Button key={`${photo.url}:${index}`} variant="ghost" onClick={() => setOpen(true)} className="h-auto aspect-square overflow-hidden border border-border p-0" aria-label={`Review Banksman photo ${index + 1}`}><img src={photo.url} alt="Banksman load evidence" className="h-full w-full object-cover" /></Button>)}</div>}
-    {job.has_contamination && <div className="space-y-1 text-sm">{job.contamination_items.map(item => <div key={item.item_id} className="flex justify-between gap-2"><span>{item.name} × {item.qty}</span><strong>£{Number(item.line_total).toFixed(2)}</strong></div>)}<p className="text-xs text-muted-foreground">Reported charge · £{Number(job.contamination_total).toFixed(2)}</p></div>}
+    {job.has_contamination && <div className="space-y-1 text-sm">{job.contamination_items.map(item => <div key={item.item_id} className="flex justify-between gap-2"><span>{item.name} × {item.qty}</span><strong>£{Number(item.line_total).toFixed(2)}</strong></div>)}<p className="text-xs text-muted-foreground">Reported charge · £{Number(job.contamination_total).toFixed(2)} · approval required</p><Button size="sm" variant="outline" asChild><Link to="/contaminations">Review charge & customer email</Link></Button></div>}
     {job.notes && <p className="text-sm whitespace-pre-wrap">{job.notes}</p>}
     <BanksmanJobDialog job={open ? job : null} onClose={() => setOpen(false)} />
   </section>;
