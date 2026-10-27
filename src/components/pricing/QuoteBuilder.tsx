@@ -626,7 +626,7 @@ function EmailQuoteDialog({
     const rentalParts: string[] = [];
     if (rentalSkip != null) rentalParts.push(`${money(rentalSkip)} + VAT per week for skips`);
     if (rentalRoRo != null) rentalParts.push(`${money(rentalRoRo)} + VAT per week for RoRo containers`);
-    const rentalLine = `A free rental period of ${freeRentalWeeks} week${freeRentalWeeks === 1 ? "" : "s"} is included.${
+    const rentalLine = `The price includes ${freeRentalWeeks} week${freeRentalWeeks === 1 ? "" : "s"}' container rental.${
       rentalParts.length ? ` After this period, rental is charged at ${rentalParts.join(" and ")}.` : ""
     }`;
 
@@ -651,7 +651,7 @@ function EmailQuoteDialog({
 
     if (bespokeRules && bespokeRules.trim()) {
       parts.push("");
-      parts.push("Important — waste acceptance");
+      parts.push("IMPORTANT — WASTE ACCEPTANCE");
       parts.push(bespokeRules.trim());
     }
     if (termsUrl) {
