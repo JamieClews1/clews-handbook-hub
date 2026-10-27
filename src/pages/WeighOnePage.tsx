@@ -1069,7 +1069,7 @@ const WeighOnePage = () => {
   const londonKey = (d: string | Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date(d));
   const todayKey = londonKey(new Date());
   const todayTickets = transactions.filter(t => t.created_at && londonKey(t.created_at) === todayKey);
-  const awaitingSecondWeigh = pendingTransactions.filter(t => banksmanJobs.some(j => j.weighbridge_transaction_id === t.id && j.status === "completed")).length;
+  const awaitingSecondWeigh = pendingTransactions.filter(t => (banksmanJobs as LinkedBanksmanJob[]).some(j => j.weighbridge_transaction_id === t.id && j.status === "completed")).length;
   const alertCount = banksmanJobs.filter(j => j.alert_status === "urgent" || (j.has_contamination && j.status !== "completed")).length;
   const londonLongLabel = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", weekday: "long", day: "numeric", month: "long" }).format(new Date()).replace(",", "");
   const londonTodayLabel = new Intl.DateTimeFormat("en-GB", {

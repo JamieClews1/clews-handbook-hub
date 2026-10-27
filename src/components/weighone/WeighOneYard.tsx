@@ -27,7 +27,7 @@ function tone(job?: LinkedBanksmanJob) {
 const toneClass = {
   urgent: "bg-destructive-subtle text-destructive",
   contamination: "bg-warning-subtle text-warning-text",
-  clean: "bg-success-subtle text-success",
+  clean: "bg-primary/10 text-primary",
 } as const;
 
 export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWeighOut }: { tickets: YardTicket[]; todayTickets?: YardTicket[]; jobs: LinkedBanksmanJob[]; onTicket: (id: string) => void; onWeighOut: (id: string) => void }) {
@@ -47,14 +47,14 @@ export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWei
           const t = tone(job);
           const stage = stageOf(job);
           const elapsed = ticket.first_weigh_at ? Math.max(0, Math.floor((Date.now() - new Date(ticket.first_weigh_at).getTime()) / 60000)) : null;
-          return <button type="button" key={ticket.id} onClick={() => onTicket(ticket.id)} className={`min-w-0 rounded-xl border bg-card p-3.5 text-left space-y-2 transition-colors hover:border-foreground/30 ${t === "urgent" ? "border-destructive" : "border-border"}`}>
+          return <div role="button" tabIndex={0} key={ticket.id} onClick={() => onTicket(ticket.id)} onKeyDown={e => { if (e.key === "Enter") onTicket(ticket.id); }} className={`cursor-pointer ` + `min-w-0 rounded-xl border bg-card p-3.5 text-left space-y-2 transition-colors hover:border-foreground/30 ${t === "urgent" ? "border-destructive" : "border-border"}`}>
             <div className="flex items-center justify-between gap-2"><span className="rounded bg-warning-subtle px-2 py-0.5 font-mono text-sm font-bold text-foreground">{ticket.vehicle_reg}</span><span className="flex items-center gap-1.5 text-xs text-muted-foreground">{elapsed !== null && elapsed > 45 && <span className="h-2 w-2 rounded-full bg-warning" />}{elapsed !== null ? `${elapsed} min` : "—"}</span></div>
             <div><p className="truncate font-semibold text-foreground">{ticket.customer || "No customer"}</p><p className="truncate text-xs text-muted-foreground">{ticket.waste_description || "—"} · {hhmm(ticket.first_weigh_at)}</p></div>
             <p className="font-mono text-xs text-muted-foreground">1st {hhmm(ticket.first_weigh_at)} · {ticket.gross_weight_kg !== null ? `${(ticket.gross_weight_kg / 1000).toFixed(2)} t gross` : "—"} · #{ticket.ticket_number}</p>
             <div className="grid grid-cols-4 gap-1">{STEPS.map((s, i) => <span key={s} className={`h-1 rounded-full ${i <= stage ? (t === "urgent" ? "bg-destructive" : "bg-primary") : "bg-muted"}`} />)}</div>
-            <div className="flex justify-between text-xs"><span className="font-medium text-foreground">{STEPS[stage]}</span><span className="text-muted-foreground">Next: {STEPS[stage + 1]}</span></div>
+            <div className="flex justify-between text-xs"><span className="font-medium text-foreground">{STEPS[stage]}</span><button type="button" className="text-muted-foreground hover:text-primary hover:underline" onClick={e => { e.stopPropagation(); onWeighOut(ticket.id); }}>Next: {STEPS[stage + 1]}</button></div>
             {t && <p className={`rounded-md px-2 py-1 text-xs font-medium ${toneClass[t]}`}>Banksman · {banksmanLabel(job)}</p>}
-          </button>;
+          </div>;
         })}</div>
         {!onsite.length && <p className="rounded-xl border border-border bg-card py-10 text-center text-muted-foreground">No vehicles awaiting weigh-out.</p>}
       </section>
@@ -76,7 +76,7 @@ export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWei
                 <td className="px-3 py-2 text-muted-foreground">{ticket.waste_description || "—"}</td>
                 <td className="px-3 py-2">{t ? <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${toneClass[t]}`}>{banksmanLabel(job)}</span> : <span className="text-xs text-muted-foreground">Not checked yet</span>}</td>
                 <td className="px-3 py-2 text-right font-mono">{ticket.net_weight_kg != null ? (ticket.net_weight_kg / 1000).toFixed(3) : "—"}</td>
-                <td className="px-3 py-2">{ticket.status === "first_weigh" ? <Badge variant="outline">In yard</Badge> : <Badge className="bg-success-subtle text-success hover:bg-success-subtle">Complete</Badge>}</td>
+                <td className="px-3 py-2">{ticket.status === "first_weigh" ? <Badge variant="outline">In yard</Badge> : <Badge className="bg-primary/10 text-primary hover:bg-primary/10">Complete</Badge>}</td>
               </tr>;
             })}{!rows.length && <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">No tickets.</td></tr>}</tbody>
           </table>
