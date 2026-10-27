@@ -30,6 +30,7 @@ export const STAFF_NAV_GROUPS: StaffNavGroup[] = [
     { label: "Contaminations", path: "/performance-hub/contaminations", icon: AlertTriangle, key: "performance-contaminations" },
     { label: "Bookings", path: "/bookings", icon: CalendarCheck, key: "bookings" },
     { label: "Customer Reports", path: "/customer-reporting", icon: FileText, key: "customer-reporting" },
+    { label: "Rebates", path: "/rebate-values", icon: PoundSterling, access: "finance" },
     { label: "Staci Reports", path: "/staci-reports", icon: Package, key: "staci-reports" },
     { label: "Customer Setup", path: "/admin/customers", icon: Building2, access: "admin" },
   ] },
