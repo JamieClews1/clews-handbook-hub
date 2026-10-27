@@ -1247,49 +1247,21 @@ const WeighOnePage = () => {
                             )}
                           </div>
                         </div>
-                        <div className="col-span-2 rounded-lg bg-sidebar p-4 text-sidebar-foreground space-y-2">
-                          <div className="flex justify-between text-xs"><Label htmlFor="new-gross">Gross weight</Label><span>Manual entry · kg</span></div>
-                          <Input id="new-gross" aria-label="Gross weight (kg)" className="h-16 border-0 bg-transparent text-4xl font-bold font-mono text-sidebar-accent-foreground focus-visible:ring-primary" type="number" placeholder="0" value={formData.gross_weight_kg} onChange={(e) => setFormData((p) => ({ ...p, gross_weight_kg: e.target.value }))} />
+                        <div className="col-span-2 rounded-lg bg-sidebar p-3 text-sidebar-foreground space-y-2">
+                          <div className="flex justify-between text-xs"><Label htmlFor="new-gross">Gross weight</Label><span className="opacity-70">{formData.gross_weight_kg ? "Manual entry" : "Awaiting weight"}</span></div>
+                          <div className="flex items-baseline gap-2"><Input id="new-gross" aria-label="Gross weight (kg)" className="h-14 border-0 bg-transparent px-0 text-4xl font-bold font-mono text-sidebar-accent-foreground focus-visible:ring-0" type="number" placeholder="0" value={formData.gross_weight_kg} onChange={(e) => setFormData((p) => ({ ...p, gross_weight_kg: e.target.value }))} /><span className="text-base opacity-70">kg</span></div>
+                          <div className="grid grid-cols-[1fr_auto] gap-2">
+                            <Button type="button" disabled title="No scale connected">Capture from scale</Button>
+                            <Button type="button" variant="secondary" onClick={() => document.getElementById("new-gross")?.focus()}>Enter manually</Button>
+                          </div>
                         </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Container Type</Label>
+                        <div className="col-span-2 rounded-md border border-dashed border-border px-3 py-2 space-y-2">
+                          <div className="flex items-center justify-between gap-2 text-xs"><span><strong className="text-foreground">Tare</strong> <span className="text-muted-foreground">· weigh out on exit</span></span><label className="flex items-center gap-2"><span className="text-muted-foreground">Enter now</span><Switch checked={showTareNow} onCheckedChange={(v) => { setShowTareNow(v); if (!v) setFormData(p => ({ ...p, tare_weight_kg: "" })); }} /></label></div>
+                          {showTareNow && <>
                           <Input
-                            className="h-9"
-                            list="midweigh-container-types"
-                            placeholder="Skip, RoRo, etc."
-                            value={formData.container_type}
-                            onChange={(e) => {
-                              const container = e.target.value;
-                              setFormData((p) => ({
-                                ...p,
-                                container_type: container,
-                                vehicle_type: vehicleTypeForContainer(container) || p.vehicle_type,
-                              }));
-                            }}
-                          />
-                          <div className="flex flex-wrap gap-1 pt-1">{["Skip", "RoRo", "Enclosed", "Curtain-side"].map(c => <Button type="button" key={c} size="sm" variant={formData.container_type === c ? "default" : "outline"} className="h-7 rounded-full px-2 text-xs" onClick={() => setFormData(p => ({ ...p, container_type: c, vehicle_type: vehicleTypeForContainer(c) || p.vehicle_type }))}>{c}</Button>)}</div>
-                          <datalist id="midweigh-container-types">
-                            {containerTypeOptions.map((c) => <option key={c} value={c} />)}
-                          </datalist>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Vehicle Type</Label>
-                          <Input
-                            className="h-9"
-                            list="midweigh-vehicle-types"
-                            placeholder="Skip, Roll on Roll off, ..."
-                            value={formData.vehicle_type}
-                            onChange={(e) => setFormData((p) => ({ ...p, vehicle_type: e.target.value }))}
-                          />
-                          <datalist id="midweigh-vehicle-types">
-                            {vehicleTypeOptions.map((v) => <option key={v} value={v} />)}
-                          </datalist>
-                        </div>
-                        <details className="space-y-1.5 col-span-2 rounded-md border border-dashed border-border p-2"><summary className="text-xs cursor-pointer">Tare · weigh out on exit <span className="text-primary">Enter now</span></summary>
-                          <Input
-                            className="h-9"
+                            className="h-9 font-mono"
                             type="number"
-                            placeholder="Leave blank to weigh out later"
+                            placeholder="Tare kg"
                             value={formData.tare_weight_kg}
                             onChange={(e) => setFormData((p) => ({ ...p, tare_weight_kg: e.target.value }))}
                           />
@@ -1302,7 +1274,27 @@ const WeighOnePage = () => {
                               {" "}— ticket will complete immediately.
                             </p>
                           )}
-                        </details>
+                          </>}
+                        </div>
+                        <div className="col-span-2 space-y-1.5">
+                          <Label className="text-xs">Container</Label>
+                          <div className="flex flex-wrap gap-1.5">{["Skip", "RoRo", "Enclosed", "Curtain-side"].map(c => <Button type="button" key={c} size="sm" variant={formData.container_type === c ? "default" : "outline"} className="h-7 rounded-full px-3 text-xs" onClick={() => { setShowOtherContainer(false); setFormData(p => ({ ...p, container_type: c, vehicle_type: vehicleTypeForContainer(c) || p.vehicle_type })); }}>{c === "RoRo" ? "Ro Ro" : c}</Button>)}<Button type="button" size="sm" variant={showOtherContainer || (formData.container_type && !["Skip", "RoRo", "Enclosed", "Curtain-side"].includes(formData.container_type)) ? "default" : "outline"} className="h-7 rounded-full px-3 text-xs" onClick={() => setShowOtherContainer(true)}>Other…</Button></div>
+                          {(showOtherContainer || (formData.container_type && !["Skip", "RoRo", "Enclosed", "Curtain-side"].includes(formData.container_type))) && <>
+                          <Input
+                            className="h-9"
+                            list="midweigh-container-types"
+                            placeholder="Container type"
+                            value={formData.container_type}
+                            onChange={(e) => {
+                              const container = e.target.value;
+                              setFormData((p) => ({ ...p, container_type: container, vehicle_type: vehicleTypeForContainer(container) || p.vehicle_type }));
+                            }}
+                          />
+                          <datalist id="midweigh-container-types">
+                            {containerTypeOptions.map((c) => <option key={c} value={c} />)}
+                          </datalist>
+                          </>}
+                        </div>
                       </div>
                       </div>
                     </div>
