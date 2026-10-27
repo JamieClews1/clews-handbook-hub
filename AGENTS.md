@@ -1,4 +1,5 @@
 Keep staff how-to guides in the staff-only Help page, linking to existing workflows rather than duplicating controls, so internal procedures stay private.
+WeighOne Yard and ticket evidence reuse linked Banksman records by transaction ID; reported charges remain behind the existing contamination approval workflow, and presentation never invents scale readings, hold states or DEFRA readiness.
 Public share links for H&S documents: hs_document_share_links (token per document) served by the public-hs-document edge function at /induction/:token; guest signatures go to hs_document_guest_signatures (not hs_document_signatures, which requires a user id) so visitors can sign without an account.
 Keep DWT classification defaults on EWC codes and per-job classification on Route One and Weigh One records, separate from the DEFRA submission mapper until production approval, so draft entries cannot alter submitted receipts.
 Keep staff navigation in the shared staff-navigation registry with quick links and collapsible product-led groups; sidebar and page-only command palette reuse its access gates so navigation cannot alter operational records or expose restricted pages.

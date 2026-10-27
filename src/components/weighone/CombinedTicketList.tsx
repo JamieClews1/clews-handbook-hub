@@ -167,6 +167,7 @@ export function CombinedTicketList({ tablet = false, banksmanJobs = [] }: { tabl
                   <TableCell className="min-w-44"><p>{ticket.customer || "—"}</p><p className="text-xs text-muted-foreground">{ticket.site}</p></TableCell>
                   <TableCell className="whitespace-nowrap font-mono">{ticket.vehicle || "—"}</TableCell>
                   <TableCell className="min-w-40">{ticket.waste || "—"}<p className="text-xs text-muted-foreground">{ticket.ewc}</p></TableCell>
+                  <TableCell className="text-xs">{banksmanLabel(banksmanJobs.find(j => j.weighbridge_transaction_id === ticket.transactionId))}</TableCell>
                   <TableCell className="text-xs"><p>{ticketStateLabel(ticket.movement)}</p>{ticket.status && <p className="text-muted-foreground">{ticketStateLabel(ticket.status)}</p>}</TableCell>
                   <TableCell className="text-right font-semibold tabular-nums">{ticket.weightTonnes?.toFixed(3) ?? "—"}</TableCell>
                   <TableCell onClick={e => e.stopPropagation()}><Button variant="ghost" size="icon" aria-label={`${open ? "Hide" : "View"} ${ticket.source !== "midweigh" ? "RouteOne" : "Midweigh"} ticket ${ticket.ticket}`} aria-expanded={open} onClick={() => setExpanded(open ? null : key)}>{open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</Button></TableCell>

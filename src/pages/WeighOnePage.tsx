@@ -1465,7 +1465,6 @@ const WeighOnePage = () => {
                           </Select>
                         </div>
                       </div>
-                      </div>
                       <WasteClassificationFields value={classification} onChange={setClassification} ewcCode={formData.ewc_code || selectedWasteType?.ewc_code || ""} compact streamlined />
                       </div>
                     </div>
