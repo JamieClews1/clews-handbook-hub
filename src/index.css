@@ -154,6 +154,23 @@
 /* Sidebar hover: subtle neutral tint so hover doesn't flash brand green
    (selected links use the mint sidebar-primary pill with near-black text) */
 @layer components {
+  .weigh-in-column {
+    border: 1px solid hsl(var(--border));
+    border-radius: 8px;
+    background: hsl(var(--card));
+    min-width: 0;
+  }
+  .weigh-in-section-heading { padding: 12px 12px 0; }
+  .weigh-in-section-heading:has(span:empty) { display: none; }
+  .weigh-in-dialog .weigh-in-panel + .weigh-in-panel .weigh-in-section-heading { padding-top: 0; }
+  .weigh-in-dialog .weigh-in-panel > .p-3 { padding: 10px 12px; }
+  .weigh-in-dialog .space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top: 8px; }
+  .weigh-in-dialog .weigh-in-column .space-y-1\.5 { min-width: 0; }
+  .weigh-in-dialog input, .weigh-in-dialog [role="combobox"] { font-size: 13px; }
+  .weigh-in-dialog #new-gross { font-size: 36px; }
+  @media (max-width: 1023px) {
+    .weigh-in-dialog { height: 94dvh; }
+  }
   [data-sidebar="menu-button"]:not([data-active="true"]):hover,
   [data-sidebar="menu-sub-button"]:not([data-active="true"]):hover {
     background-color: hsl(var(--sidebar-foreground) / 0.08) !important;

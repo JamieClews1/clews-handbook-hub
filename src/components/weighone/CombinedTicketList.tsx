@@ -1,3 +1,4 @@
+import { BanksmanTicketReport, banksmanLabel, type LinkedBanksmanJob } from "./BanksmanTicketReport";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,11 +34,12 @@ const rawStr = (raw: unknown, ...keys: string[]) => {
   return null;
 };
 
-export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
+export function CombinedTicketList({ tablet = false, banksmanJobs = [] }: { tablet?: boolean; banksmanJobs?: LinkedBanksmanJob[] }) {
   const [start, setStart] = useState(() => londonCalendarKey());
   const [end, setEnd] = useState(() => londonCalendarKey());
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [reportFilter, setReportFilter] = useState("all");
   const [source, setSource] = useState("all");
   const [expanded, setExpanded] = useState<string | null>(null);
   const client = useQueryClient();
@@ -85,10 +87,11 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
 
   const filtered = useMemo(() => tickets.filter(ticket => {
     const term = search.trim().toLowerCase();
-    return (source === "all" || (source === "routeone" ? ticket.source !== "midweigh" : ticket.source === source)) && (!term || [ticket.ticket, ticket.customer, ticket.vehicle, ticket.site, ticket.siteAddress, ticket.postcode, ticket.waste, ticket.driver, ticket.ewc].some(value => value?.toLowerCase().includes(term)));
-  }), [tickets, search, source]);
+    const report = banksmanJobs.find(j => j.weighbridge_transaction_id === ticket.transactionId);
+    return (reportFilter === "all" || !!report?.has_contamination) && (source === "all" || (source === "routeone" ? ticket.source !== "midweigh" : ticket.source === source)) && (!term || [ticket.ticket, ticket.customer, ticket.vehicle, ticket.site, ticket.siteAddress, ticket.postcode, ticket.waste, ticket.driver, ticket.ewc].some(value => value?.toLowerCase().includes(term)));
+  }), [tickets, search, source, reportFilter, banksmanJobs]);
 
-  useEffect(() => { setPage(1); setExpanded(null); }, [start, end, search, source]);
+  useEffect(() => { setPage(1); setExpanded(null); }, [start, end, search, source, reportFilter]);
   const pagination = ticketPage(filtered, page);
 
   const shiftDays = (days: number) => {
@@ -115,6 +118,7 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
         <label className="space-y-1 text-xs text-muted-foreground">To<Input aria-label="Tickets to date" type="date" value={end} onChange={e => setEnd(e.target.value)} className="w-40" /></label>
         <Button variant="outline" size="sm" aria-label="Show next day" title="Next day" onClick={() => shiftDays(1)} disabled={invalidDates}>Next<ChevronRight className="h-4 w-4" /></Button>
         <Button variant="outline" size="sm" onClick={() => { const today = londonCalendarKey(); setStart(today); setEnd(today); }}>Today</Button>
+        <Button variant={reportFilter === "all" ? "outline" : "default"} size="sm" onClick={() => setReportFilter(reportFilter === "all" ? "alert" : "all")}>Has Banksman report</Button>
         <Select value={source} onValueChange={setSource}>
           <SelectTrigger aria-label="Ticket source" className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent><SelectItem value="all">All sources</SelectItem><SelectItem value="routeone">RouteOne</SelectItem><SelectItem value="midweigh">Midweigh</SelectItem></SelectContent>
@@ -141,7 +145,8 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
                 {ticket.source === "routeone" && <JobPhotosSection jobId={ticket.id} />}
                 {ticket.source === "midweigh" && <MidweighPrintButton id={ticket.id} />}
                 {ticket.source === "skiptrak" && <SkiptrakPrintButton id={ticket.id} />}
-                {ticket.transactionId && <WeighbridgeAttachments transactionId={ticket.transactionId} />}
+                <BanksmanTicketReport job={banksmanJobs.find(j => j.weighbridge_transaction_id === ticket.transactionId)} />
+                 {ticket.transactionId && <WeighbridgeAttachments transactionId={ticket.transactionId} />}
                 {ticket.raw && typeof ticket.raw === "object" && !Array.isArray(ticket.raw) && <dl className="grid gap-3 sm:grid-cols-2">{Object.entries(ticket.raw).filter(([, value]) => value != null && value !== "").map(([label, value]) => <div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="break-words text-sm">{typeof value === "object" ? JSON.stringify(value) : String(value)}</dd></div>)}</dl>}
               </div>}
             </div>;
@@ -149,7 +154,7 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
           {!filtered.length && <p className="py-12 text-center text-muted-foreground">No tickets found for this period.</p>}
         </div>}
         {!tablet && <Table>
-          <TableHeader><TableRow><TableHead>Ticket</TableHead><TableHead>Source</TableHead><TableHead>Date</TableHead><TableHead>Customer / Site</TableHead><TableHead>Vehicle</TableHead><TableHead>Waste</TableHead><TableHead>Movement / Status</TableHead><TableHead className="text-right">Net (t)</TableHead><TableHead className="w-12">Details</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Ticket</TableHead><TableHead>Source</TableHead><TableHead>Date</TableHead><TableHead>Customer / Site</TableHead><TableHead>Vehicle</TableHead><TableHead>Waste</TableHead><TableHead>Banksman</TableHead><TableHead>Movement / Status</TableHead><TableHead className="text-right">Net (t)</TableHead><TableHead className="w-12">Details</TableHead></TableRow></TableHeader>
           <TableBody>
             {pagination.items.map(ticket => {
               const key = `${ticket.source}:${ticket.id}`;
@@ -162,22 +167,24 @@ export function CombinedTicketList({ tablet = false }: { tablet?: boolean }) {
                   <TableCell className="min-w-44"><p>{ticket.customer || "—"}</p><p className="text-xs text-muted-foreground">{ticket.site}</p></TableCell>
                   <TableCell className="whitespace-nowrap font-mono">{ticket.vehicle || "—"}</TableCell>
                   <TableCell className="min-w-40">{ticket.waste || "—"}<p className="text-xs text-muted-foreground">{ticket.ewc}</p></TableCell>
+                  <TableCell className="text-xs">{banksmanLabel(banksmanJobs.find(j => j.weighbridge_transaction_id === ticket.transactionId))}</TableCell>
                   <TableCell className="text-xs"><p>{ticketStateLabel(ticket.movement)}</p>{ticket.status && <p className="text-muted-foreground">{ticketStateLabel(ticket.status)}</p>}</TableCell>
                   <TableCell className="text-right font-semibold tabular-nums">{ticket.weightTonnes?.toFixed(3) ?? "—"}</TableCell>
                   <TableCell onClick={e => e.stopPropagation()}><Button variant="ghost" size="icon" aria-label={`${open ? "Hide" : "View"} ${ticket.source !== "midweigh" ? "RouteOne" : "Midweigh"} ticket ${ticket.ticket}`} aria-expanded={open} onClick={() => setExpanded(open ? null : key)}>{open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</Button></TableCell>
                 </TableRow>
-                {open && <TableRow><TableCell colSpan={9} className="bg-muted/30">
+                {open && <TableRow><TableCell colSpan={10} className="bg-muted/30">
                   <div className="space-y-3 p-2"><p><span className="text-muted-foreground">Driver: </span>{ticket.driver || "—"}</p>
                     {ticket.source === "routeone" && <JobPhotosSection jobId={ticket.id} />}
                     {ticket.source === "midweigh" && <MidweighPrintButton id={ticket.id} />}
                     {ticket.source === "skiptrak" && <SkiptrakPrintButton id={ticket.id} />}
-                    {ticket.transactionId && <WeighbridgeAttachments transactionId={ticket.transactionId} />}
+                    <BanksmanTicketReport job={banksmanJobs.find(j => j.weighbridge_transaction_id === ticket.transactionId)} />
+                 {ticket.transactionId && <WeighbridgeAttachments transactionId={ticket.transactionId} />}
                     {ticket.raw && typeof ticket.raw === "object" && !Array.isArray(ticket.raw) ? <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{Object.entries(ticket.raw).filter(([, value]) => value != null && value !== "").map(([label, value]) => <div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="break-words text-sm">{typeof value === "object" ? JSON.stringify(value) : String(value)}</dd></div>)}</dl> : null}
                   </div>
                 </TableCell></TableRow>}
               </Fragment>;
             })}
-            {!filtered.length && <TableRow><TableCell colSpan={9} className="py-12 text-center text-muted-foreground">No tickets found for this period.</TableCell></TableRow>}
+            {!filtered.length && <TableRow><TableCell colSpan={10} className="py-12 text-center text-muted-foreground">No tickets found for this period.</TableCell></TableRow>}
           </TableBody>
         </Table>}
         {filtered.length > 0 && <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
