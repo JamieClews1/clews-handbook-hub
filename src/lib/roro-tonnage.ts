@@ -14,3 +14,15 @@ export function roroIncludedTonnes(zone: string | null | undefined): number {
 export function isRoRoInclusiveRow(label: string | null | undefined): boolean {
   return /inc\s*2\s*\/\s*inc\s*3/i.test(String(label ?? ""));
 }
+
+/**
+ * Customer-facing label for a rate-card row in quotes and emails.
+ * Drops the internal "Inc 2 / Inc 3" suffix — quotes must mention only the
+ * weight included in the specific order, via the included-tonnage line.
+ */
+export function quoteRowLabel(label: string | null | undefined): string {
+  return String(label ?? "")
+    .replace(/\s*[-–—/,&]?\s*inc\s*2\s*\/\s*inc\s*3\s*/gi, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}

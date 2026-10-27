@@ -1,4 +1,4 @@
-import { roroIncludedTonnes, isRoRoInclusiveRow } from "@/lib/roro-tonnage";
+import { roroIncludedTonnes, isRoRoInclusiveRow, quoteRowLabel } from "@/lib/roro-tonnage";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -290,7 +290,7 @@ export function QuoteBuilder() {
 
   const copyQuote = async () => {
     const lineText = lines
-      .map((l) => `${l.qty} × ${l.label} (${l.zoneLabel}) @ ${fmt(l.unitPrice)} = ${fmt(lineTotal(l))}`)
+      .map((l) => `${l.qty} × ${quoteRowLabel(l.label)} (${l.zoneLabel}) @ ${fmt(l.unitPrice)} = ${fmt(lineTotal(l))}`)
       .join("\n");
     const text = [
       `QUOTE${reference ? ` — Ref ${reference}` : ""}`,
@@ -475,7 +475,7 @@ export function QuoteBuilder() {
                 <div key={l.key} className="space-y-1">
                   <div className="flex items-start justify-between gap-2">
                     <div className="text-sm">
-                      <div className="font-medium">{l.label}</div>
+                      <div className="font-medium">{quoteRowLabel(l.label)}</div>
                       <div className="text-xs text-muted-foreground">
                         {l.zoneLabel} · {fmt(l.unitPrice)}
                         {l.unit ? ` / ${l.unit}` : ""}
@@ -614,7 +614,7 @@ function EmailQuoteDialog({
       const detail = [l.zoneLabel, l.unit ? `per ${l.unit}` : ""].filter(Boolean).join(" · ");
       const inc = l.includedTonnes && l.includedTonnes > 0 ? l.includedTonnes : isRoRoInclusiveRow(l.label) ? roroIncludedTonnes(l.zoneLabel) : null;
       const incNote = inc ? `\n    Includes the first ${inc === 1 ? "tonne" : `${inc} tonnes`}; each tonne over ${inc}t is charged at the per-tonne material rate + VAT.` : "";
-      return `• ${l.label}${detail ? ` (${detail})` : ""} — ${l.qty} × ${money(l.unitPrice)} = ${money(lineTotal(l))}${incNote}`;
+      return `• ${quoteRowLabel(l.label)}${detail ? ` (${detail})` : ""} — ${l.qty} × ${money(l.unitPrice)} = ${money(lineTotal(l))}${incNote}`;
     });
 
     const totalsLines: string[] = [];
