@@ -1618,15 +1618,20 @@ const WeighOnePage = () => {
                             </Button>
                           )}
 
-                <div className="ml-auto flex gap-2"><Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>Cancel</Button><Button onClick={() => createMutation.mutate()} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? "Recording…" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
+                <div className="ml-auto flex items-center gap-3"><span className="hidden md:inline text-xs text-muted-foreground">Enter ↵ to record</span><Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>Cancel</Button><Button onClick={() => createMutation.mutate()} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? "Recording…" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
               </div>
             </DialogContent>
           </Dialog>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-x-6 gap-y-2 border-y border-border py-3 text-sm text-muted-foreground">
-        <span><strong className="text-foreground">{pendingTransactions.length}</strong> in yard</span><span><strong className="text-foreground">{todayCompleted.length}</strong> completed today</span><span><strong className="text-foreground">{todayTotalTonnes.toFixed(2)} t</strong> net today</span><span className={banksmanJobs.some(j => j.alert_status === "urgent") ? "text-destructive font-semibold" : ""}>{banksmanJobs.filter(j => j.alert_status === "urgent").length} urgent Banksman alerts</span>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-border py-2.5 text-sm text-muted-foreground">
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-primary" /><strong className="text-foreground">{pendingTransactions.length}</strong> in yard</span>
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-warning" /><strong className="text-foreground">{awaitingSecondWeigh}</strong> awaiting 2nd weigh</span>
+        <span><strong className="text-foreground">{todayTickets.length}</strong> tickets</span>
+        <span><strong className="text-foreground font-mono">{todayTotalTonnes.toFixed(1)} t</strong> net today</span>
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-destructive" /><strong className="text-foreground">{alertCount}</strong> banksman alerts</span>
+        {midweighSyncedLabel && <span className="ml-auto text-xs">● Midweigh synced {midweighSyncedLabel}</span>}
       </div>
 
       {/* Second Weigh Dialog */}
