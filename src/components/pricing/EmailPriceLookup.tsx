@@ -1,4 +1,4 @@
-import { roroIncludedTonnes } from "@/lib/roro-tonnage";
+import { roroIncludedTonnes, quoteRowLabel } from "@/lib/roro-tonnage";
 import { rateContainerLabel, rateContainerSection } from "@/lib/container-taxonomy";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -235,7 +235,7 @@ export function EmailPriceLookup() {
   const wasteLabel =
     parsed?.waste === "plasterboard" ? "plasterboard" : parsed?.waste === "wood" ? "wood waste" : parsed?.waste === "green" ? "green waste" : parsed?.waste === "inert" ? "inert/hardcore" : "general waste";
   const serviceDesc = selectedRow
-    ? `${rateContainerLabel(selectedRow.label)}${parsed?.postcode ? ` to ${parsed.postcode}` : ""}`
+    ? `${quoteRowLabel(rateContainerLabel(selectedRow.label))}${parsed?.postcode ? ` to ${parsed.postcode}` : ""}`
     : null;
   const emailDraft = useMemo(() => {
     if (!parsed || !selectedRow || !zoneCode || !value) return "";
@@ -246,7 +246,7 @@ export function EmailPriceLookup() {
       lines.push(
         "",
         `Price for ${serviceDesc} (${wasteLabel}):`,
-        `  • ${rateContainerLabel(selectedRow.label)}: ${gbp(card?.vat_inclusive ? price : net)} ${card?.vat_inclusive ? "inc. VAT" : "+ VAT"}`,
+        `  • ${quoteRowLabel(rateContainerLabel(selectedRow.label))}: ${gbp(card?.vat_inclusive ? price : net)} ${card?.vat_inclusive ? "inc. VAT" : "+ VAT"}`,
         surcharge ? `  • Fuel surcharge: ${gbp(card?.vat_inclusive ? surchargeAmt * 1.2 : surchargeAmt)} ${card?.vat_inclusive ? "inc. VAT" : "+ VAT"}` : null,
         perTonne
           ? `  • Price includes ${includedLabel} — disposal thereafter at ${gbp(perTonne.price)} per tonne + VAT`
