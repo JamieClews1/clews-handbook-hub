@@ -1118,31 +1118,9 @@ const WeighOnePage = () => {
                 <Plus className="h-4 w-4" /> New weigh-in
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-[1500px] w-[97vw] max-h-[92vh] p-0 gap-0 flex flex-col overflow-hidden bg-background">
-              <DialogHeader className="px-6 py-4 border-b border-foreground/20 shrink-0 bg-card">
-                <DialogTitle className="text-lg font-semibold">First Weigh — New Transaction</DialogTitle>
-              </DialogHeader>
-              <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
-                <div className="grid gap-4 xl:grid-cols-3 lg:grid-cols-2 items-start">
-
-                  {/* Column 1 — Job & vehicle */}
-                  <div className="space-y-4">
-                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
-                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Job</span>
-                      </div>
-                      <div className="p-3 space-y-3">
-                      <RouteOneArrivalPicker
-                        selected={arrivingJob}
-                        vehicleReg={formData.vehicle_reg}
-                        onPick={applyRouteOneJob}
-                        onClear={() => { setArrivingJob(null); setFormData(p => ({ ...p, linked_job_number: "", linked_job_source: "", linked_job_date: "" })); }}
-                      />
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Job Type *</Label>
-                        <Select
-                          value={formData.job_type}
-                          onValueChange={(val) => {
+            <DialogContent className="weigh-in-dialog max-w-[1500px] w-[97vw] h-[min(728px,94dvh)] p-0 gap-0 flex flex-col overflow-hidden bg-background">
+              <DialogHeader className="px-4 py-3 border-b border-border shrink-0 bg-card pr-12">
+                <div className="flex flex-wrap items-center gap-3"><DialogTitle className="text-base font-semibold">New weigh-in</DialogTitle><Tabs value={formData.job_type} onValueChange={(val) => {
                             setFormData((p) => ({
                               ...p,
                               job_type: val,
@@ -1154,17 +1132,13 @@ const WeighOnePage = () => {
                                 : { linked_job_number: "", linked_job_source: "", linked_job_date: "" }),
                             }));
                             if (val !== "skip") setSkipDriver("");
-                          }}
-                        >
-                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {JOB_TYPES.map((j) => (
-                              <SelectItem key={j.value} value={j.value}>{j.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
+                          }}> <TabsList className="h-9">{JOB_TYPES.map(j => <TabsTrigger key={j.value} value={j.value} className="text-xs">{j.label === "Waste IN" ? "Waste in" : j.label === "Waste OUT" ? "Waste out" : j.label}</TabsTrigger>)}</TabsList></Tabs><div className="flex-1 min-w-64">                      <RouteOneArrivalPicker
+                        compact
+                        selected={arrivingJob}
+                        vehicleReg={formData.vehicle_reg}
+                        onPick={applyRouteOneJob}
+                        onClear={() => { setArrivingJob(null); setFormData(p => ({ ...p, linked_job_number: "", linked_job_source: "", linked_job_date: "" })); }}
+                      />
                       {formData.job_type === "waste_out" && isOwnVehicle(formData.vehicle_reg, formData.carrier_name) && (
                         <label className="flex items-start gap-2 rounded-md border border-foreground/15 bg-muted/40 p-2.5 cursor-pointer">
                           <input
@@ -1218,20 +1192,20 @@ const WeighOnePage = () => {
                           )}
                         </div>
                       )}
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
-                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Vehicle & Weight</span>
+</div></div>
+              </DialogHeader>
+              <div className="flex-1 min-h-0 overflow-y-auto p-3"><div className="grid gap-3 lg:grid-cols-3 items-stretch"><div className="weigh-in-column">
+                    <div className="weigh-in-panel">
+                      <div className="weigh-in-section-heading">
+                        <span className="text-sm font-semibold text-foreground">1 · Vehicle & weight</span>
                       </div>
                       <div className="p-3 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Vehicle Reg *</Label>
+                        <div className="space-y-1.5 col-span-2">
+                          <Label className="text-xs">Vehicle reg *</Label>
                           <div className="relative">
                             <Input
-                              className="h-9 uppercase font-mono"
+                              aria-label="Vehicle registration" className="h-11 uppercase font-mono text-xl font-bold bg-warning-subtle text-foreground"
                               placeholder="Search or type reg..."
                               value={formData.vehicle_reg}
                               onChange={(e) => {
@@ -1268,9 +1242,9 @@ const WeighOnePage = () => {
                             )}
                           </div>
                         </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Gross Weight (kg) *</Label>
-                          <Input className="h-9 text-lg font-semibold" type="number" placeholder="0" value={formData.gross_weight_kg} onChange={(e) => setFormData((p) => ({ ...p, gross_weight_kg: e.target.value }))} />
+                        <div className="col-span-2 rounded-lg bg-sidebar p-4 text-sidebar-foreground space-y-2">
+                          <div className="flex justify-between text-xs"><Label htmlFor="new-gross">Gross weight</Label><span>Manual entry · kg</span></div>
+                          <Input id="new-gross" aria-label="Gross weight (kg)" className="h-16 border-0 bg-transparent text-4xl font-bold font-mono text-sidebar-accent-foreground focus-visible:ring-primary" type="number" placeholder="0" value={formData.gross_weight_kg} onChange={(e) => setFormData((p) => ({ ...p, gross_weight_kg: e.target.value }))} />
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs">Container Type</Label>
@@ -1305,34 +1279,6 @@ const WeighOnePage = () => {
                             {vehicleTypeOptions.map((v) => <option key={v} value={v} />)}
                           </datalist>
                         </div>
-                        <div className="space-y-1.5 col-span-2">
-                          <Label className="text-xs">Operator</Label>
-                          <Input className="h-9 bg-muted/50" value={operatorName} readOnly title="Taken from the signed-in user" />
-                        </div>
-                        <div className="col-span-2 grid grid-cols-2 gap-3 rounded-md border border-foreground/15 p-2">
-                          <SignatureField
-                            label="Operator signature"
-                            value={operatorSignature}
-                            onChange={setOperatorSignature}
-                            hint={myProfile?.signature_image && !operatorSignature ? "Tap to sign, or use your saved signature" : undefined}
-                          />
-                          <SignatureField
-                            label="Driver signature"
-                            value={driverSignature}
-                            onChange={setDriverSignature}
-                          />
-                          {myProfile?.signature_image && !operatorSignature && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="col-span-2 h-7 text-xs"
-                              onClick={() => setOperatorSignature(myProfile.signature_image)}
-                            >
-                              Use my saved signature
-                            </Button>
-                          )}
-                        </div>
                         <div className="space-y-1.5 col-span-2 rounded-md bg-muted/40 p-2">
                           <Label className="text-xs">Second Weight / Tare (kg) — optional</Label>
                           <Input
@@ -1358,10 +1304,10 @@ const WeighOnePage = () => {
                   </div>
 
                   {/* Column 2 — Customer & waste */}
-                  <div className="space-y-4">
-                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
-                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Customer</span>
+                  <div className="weigh-in-column">
+                    <div className="weigh-in-panel">
+                      <div className="weigh-in-section-heading">
+                        <span className="text-sm font-semibold text-foreground">2 · Customer & waste</span>
                       </div>
                       <div className="p-3 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
@@ -1410,17 +1356,21 @@ const WeighOnePage = () => {
                           <Label className="text-xs">Site</Label>
                           <Input className="h-9" placeholder="Site name" value={formData.site} onChange={(e) => setFormData((p) => ({ ...p, site: e.target.value }))} />
                         </div>
-                        <div className="space-y-1.5 col-span-2">
-                          <Label className="text-xs">Driver Name</Label>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Driver</Label>
                           <Input className="h-9" placeholder="Driver name" value={formData.driver_name} onChange={(e) => setFormData((p) => ({ ...p, driver_name: e.target.value }))} />
+                          <div className="space-y-1.5">
+                          <Label className="text-xs">Haulier</Label>
+                          <Input className="h-9" placeholder="Carrier / haulier" value={formData.carrier_name} onChange={(e) => setFormData((p) => ({ ...p, carrier_name: e.target.value }))} />
                         </div>
+                      </div>
                       </div>
                       </div>
                     </div>
 
-                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
-                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Waste & Rate</span>
+                    <div className="weigh-in-panel">
+                      <div className="weigh-in-section-heading">
+                        
                       </div>
                       <div className="p-3 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
@@ -1450,6 +1400,10 @@ const WeighOnePage = () => {
                           </Select>
                         </div>
                       </div>
+                      <details className="rounded-md bg-muted px-3 py-2 text-xs">
+                        <summary className="cursor-pointer flex justify-between gap-2"><span>EWC <strong className="font-mono">{formData.ewc_code || selectedWasteType?.ewc_code || "—"}</strong></span><span className="text-primary">Override</span></summary>
+                        <Input aria-label="EWC override" className="mt-2 h-9 font-mono" value={formData.ewc_code} placeholder={selectedWasteType?.ewc_code || "EWC code"} onChange={e => setFormData(p => ({ ...p, ewc_code: e.target.value }))} />
+                      </details>
                       {selectedWasteType && selectedRate && (
                         <div className="flex flex-wrap items-center gap-2 text-xs p-2 rounded bg-muted/50">
                           <PoundSterling className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1466,31 +1420,27 @@ const WeighOnePage = () => {
                       </div>
                     </div>
 
-                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
-                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Notes</span>
+                    <div className="weigh-in-panel">
+                      <div className="weigh-in-section-heading">
+                        
                       </div>
                       <div className="p-3 space-y-1.5">
-                        <Textarea className="min-h-[70px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 resize-none" placeholder="Additional notes..." value={formData.notes} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} />
+                        <Textarea className="min-h-[44px] resize-none" aria-label="Ticket notes" placeholder="Add a note for this ticket…" value={formData.notes} onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))} />
                       </div>
                     </div>
                   </div>
 
                   {/* Column 3 — DWT + additional items */}
-                  <div className="space-y-4">
-                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
-                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Digital Waste Tracking</span>
+                  <div className="weigh-in-column">
+                    <div className="weigh-in-panel">
+                      <div className="weigh-in-section-heading">
+                        <span className="text-sm font-semibold text-foreground">3 · Digital waste tracking</span>
                       </div>
                       <div className="p-3 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                           <Label className="text-xs">Carrier Registration</Label>
                           <Input className="h-9 font-mono" placeholder="e.g. CBDU203180" value={formData.carrier_registration} onChange={(e) => setFormData((p) => ({ ...p, carrier_registration: e.target.value.toUpperCase() }))} />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Carrier Name</Label>
-                          <Input className="h-9" placeholder="Carrier / haulier" value={formData.carrier_name} onChange={(e) => setFormData((p) => ({ ...p, carrier_name: e.target.value }))} />
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs">Physical Form</Label>
@@ -1510,19 +1460,16 @@ const WeighOnePage = () => {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-1.5 col-span-2">
-                          <Label className="text-xs">EWC Code (override)</Label>
-                          <Input className="h-9 font-mono" placeholder="e.g. 20 03 01" value={formData.ewc_code} onChange={(e) => setFormData((p) => ({ ...p, ewc_code: e.target.value }))} />
-                        </div>
                       </div>
-                      <WasteClassificationFields value={classification} onChange={setClassification} ewcCode={formData.ewc_code || selectedWasteType?.ewc_code || ""} compact />
+                      </div>
+                      <WasteClassificationFields value={classification} onChange={setClassification} ewcCode={formData.ewc_code || selectedWasteType?.ewc_code || ""} compact streamlined />
                       </div>
                     </div>
 
                     {/* Additional Items */}
-                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
-                      <div className="bg-muted px-3 py-2 border-b border-foreground/15 flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Additional Items</span>
+                    <div className="weigh-in-panel">
+                      <div className="weigh-in-section-heading flex items-center justify-between">
+                        <span className="text-sm font-semibold text-foreground">Additional Items</span>
                         <Button
                           type="button"
                           variant="outline"
@@ -1637,34 +1584,42 @@ const WeighOnePage = () => {
                     </div>
 
                     {/* Documents & Photos */}
-                    <div className="rounded-lg border border-foreground/20 overflow-hidden bg-card">
-                      <div className="bg-muted px-3 py-2 border-b border-foreground/15">
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Documents & Photos</span>
+                    <div className="weigh-in-panel">
+                      <div className="weigh-in-section-heading">
+                        <span className="text-sm font-semibold text-foreground">Documents & Photos</span>
                       </div>
                       <div className="p-3">
-                        <StagedAttachmentPicker value={stagedAttachments} onChange={setStagedAttachments} />
+                        <StagedAttachmentPicker compact value={stagedAttachments} onChange={setStagedAttachments} />
                       </div>
                     </div>
                   </div>
+</div></div>
+              <div className="shrink-0 border-t border-border px-4 py-3 flex flex-wrap items-center gap-3 bg-card">
+                <div className="flex gap-4 text-xs mr-2"><div className="text-muted-foreground">Gross<strong className="block text-foreground font-mono">{formData.gross_weight_kg ? `${Number(formData.gross_weight_kg).toLocaleString()} kg` : "—"}</strong></div><div className="text-muted-foreground">Tare<strong className="block text-foreground font-mono">{formData.tare_weight_kg ? `${Number(formData.tare_weight_kg).toLocaleString()} kg` : "On exit"}</strong></div><div className="text-muted-foreground">Net<strong className="block text-foreground font-mono">{netPreviewKg !== null ? `${netPreviewKg.toLocaleString()} kg` : "—"}</strong></div></div>
+                                          <SignatureField compact
+                            label={`Operator · ${operatorName}`}
+                            value={operatorSignature}
+                            onChange={setOperatorSignature}
+                            hint={myProfile?.signature_image && !operatorSignature ? "Tap to sign, or use your saved signature" : undefined}
+                          />
+                          <SignatureField compact
+                            label="Driver signature"
+                            value={driverSignature}
+                            onChange={setDriverSignature}
+                          />
+                          {myProfile?.signature_image && !operatorSignature && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="col-span-2 h-7 text-xs"
+                              onClick={() => setOperatorSignature(myProfile.signature_image)}
+                            >
+                              Use my saved signature
+                            </Button>
+                          )}
 
-                </div>
-              </div>
-              <div className="shrink-0 border-t border-foreground/20 px-6 py-3 flex items-center justify-end gap-3 bg-card">
-                {newAdditionalItems.length > 0 && (
-                  <span className="text-sm text-muted-foreground mr-auto">
-                    Items: <span className="font-semibold text-foreground">
-                      £{newAdditionalItems.reduce((sum, i) => sum + (parseFloat(i.cost) || 0) * Math.max(1, parseInt(i.qty || "1", 10) || 1), 0).toFixed(2)}
-                    </span>
-                  </span>
-                )}
-                <Button variant="outline" onClick={() => setNewDialogOpen(false)}>Cancel</Button>
-                <Button onClick={() => createMutation.mutate()} disabled={!formData.vehicle_reg || createMutation.isPending}>
-                  {createMutation.isPending
-                    ? "Recording..."
-                    : netPreviewKg !== null
-                      ? "Record & Complete"
-                      : "Record First Weigh"}
-                </Button>
+                <div className="ml-auto flex gap-2"><Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>Cancel</Button><Button onClick={() => createMutation.mutate()} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? "Recording…" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
               </div>
             </DialogContent>
           </Dialog>
