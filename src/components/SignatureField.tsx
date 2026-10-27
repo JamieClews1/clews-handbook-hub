@@ -12,16 +12,21 @@ interface SignatureFieldProps {
   /** Optional helper text under the field */
   hint?: string;
   disabled?: boolean;
+  compact?: boolean;
 }
 
 /** Reusable capture-or-clear signature control backed by the drawing pad. */
-export const SignatureField = ({ label, value, onChange, hint, disabled }: SignatureFieldProps) => {
+export const SignatureField = ({ label, value, onChange, hint, disabled, compact = false }: SignatureFieldProps) => {
   const [open, setOpen] = useState(false);
 
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs">{label}</Label>
-      {value ? (
+      {!compact && <Label className="text-xs">{label}</Label>}
+      {compact ? (
+        <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => setOpen(true)} className="gap-1.5">
+          <PenLine className="h-3.5 w-3.5" /> {label}{value ? " ✓" : ""}
+        </Button>
+      ) : value ? (
         <div className="relative rounded-md border border-foreground/20 bg-white p-1">
           <img src={value} alt={`${label} signature`} className="h-16 w-full object-contain" />
           {!disabled && (
