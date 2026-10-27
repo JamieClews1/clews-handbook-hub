@@ -105,9 +105,11 @@ export const RebateScreenshotUpload = ({ items, canEdit, onValuesImported }: Pro
         if (extracted.year) year = extracted.year;
         if (extracted.tableTitle) titles.push(extracted.tableTitle);
 
+        const validIds = new Set(items.map((i) => i.id));
         for (const entry of extracted.entries) {
-          if (entry.itemId) allEntries.push(entry);
-          else if (entry.unmatchedName) unmatchedNames.push(entry.unmatchedName);
+          if (entry.itemId && validIds.has(entry.itemId)) allEntries.push(entry);
+          else if (entry.unmatchedName || entry.itemId)
+            unmatchedNames.push(entry.unmatchedName || String(entry.itemId));
         }
       }
 
