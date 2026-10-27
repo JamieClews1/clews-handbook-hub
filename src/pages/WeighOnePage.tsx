@@ -1111,6 +1111,7 @@ const WeighOnePage = () => {
                 <FileText className="h-4 w-4" /> WTN Design
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              <DropdownMenuItem asChild><Link to="/weigh-one?tab=banksman"><HardHat className="h-4 w-4" />Banksman setup</Link></DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/help?guide=weighone-tablet">Install WeighOne</Link>
               </DropdownMenuItem>
@@ -1266,6 +1267,7 @@ const WeighOnePage = () => {
                               }));
                             }}
                           />
+                          <div className="flex flex-wrap gap-1 pt-1">{["Skip", "RoRo", "Enclosed", "Curtain-side"].map(c => <Button type="button" key={c} size="sm" variant={formData.container_type === c ? "default" : "outline"} className="h-7 rounded-full px-2 text-xs" onClick={() => setFormData(p => ({ ...p, container_type: c, vehicle_type: vehicleTypeForContainer(c) || p.vehicle_type }))}>{c}</Button>)}</div>
                           <datalist id="midweigh-container-types">
                             {containerTypeOptions.map((c) => <option key={c} value={c} />)}
                           </datalist>
@@ -1283,8 +1285,7 @@ const WeighOnePage = () => {
                             {vehicleTypeOptions.map((v) => <option key={v} value={v} />)}
                           </datalist>
                         </div>
-                        <div className="space-y-1.5 col-span-2 rounded-md bg-muted/40 p-2">
-                          <Label className="text-xs">Second Weight / Tare (kg) — optional</Label>
+                        <details className="space-y-1.5 col-span-2 rounded-md border border-dashed border-border p-2"><summary className="text-xs cursor-pointer">Tare · weigh out on exit <span className="text-primary">Enter now</span></summary>
                           <Input
                             className="h-9"
                             type="number"
@@ -1301,7 +1302,7 @@ const WeighOnePage = () => {
                               {" "}— ticket will complete immediately.
                             </p>
                           )}
-                        </div>
+                        </details>
                       </div>
                       </div>
                     </div>
@@ -1446,14 +1447,9 @@ const WeighOnePage = () => {
                           <Label className="text-xs">Carrier Registration</Label>
                           <Input className="h-9 font-mono" placeholder="e.g. CBDU203180" value={formData.carrier_registration} onChange={(e) => setFormData((p) => ({ ...p, carrier_registration: e.target.value.toUpperCase() }))} />
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 col-span-2">
                           <Label className="text-xs">Physical Form</Label>
-                          <Select value={formData.physical_form} onValueChange={(val) => setFormData((p) => ({ ...p, physical_form: val }))}>
-                            <SelectTrigger className="h-9"><SelectValue placeholder="Select form..." /></SelectTrigger>
-                            <SelectContent>
-                              {PHYSICAL_FORMS.map((f) => (<SelectItem key={f} value={f}>{f}</SelectItem>))}
-                            </SelectContent>
-                          </Select>
+                          <Tabs value={formData.physical_form} onValueChange={val => setFormData(p => ({ ...p, physical_form: val }))}><TabsList className="h-auto flex flex-wrap justify-start">{PHYSICAL_FORMS.map(f => <TabsTrigger value={f} key={f} className="text-xs px-2 py-1">{f}</TabsTrigger>)}</TabsList></Tabs>
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs">Means of Transport</Label>
@@ -1706,14 +1702,14 @@ const WeighOnePage = () => {
       </Dialog>
 
       {/* Transaction Log */}
-      <Tabs defaultValue={new URLSearchParams(window.location.search).get("tab") === "alerts" ? "alerts" : "yard"}>
+      <Tabs defaultValue={new URLSearchParams(window.location.search).get("tab") === "alerts" ? "alerts" : new URLSearchParams(window.location.search).get("tab") === "banksman" ? "banksman" : "yard"}>
       <TabsList className={`h-auto flex flex-wrap justify-start ${tablet ? "[&>button]:min-h-12 [&>button]:text-base" : ""}`}>
           <TabsTrigger value="yard" className="gap-2"><Truck className="h-4 w-4" /> Yard</TabsTrigger>
           <TabsTrigger value="tickets" className="gap-2"><FileText className="h-4 w-4 text-primary" /> All Tickets</TabsTrigger>
           <TabsTrigger value="alerts" className="gap-2"><AlertTriangleIcon className="h-4 w-4 text-warning" /> {tablet ? "Contamination & Photos" : "Live Alerts"}</TabsTrigger>
           <TabsTrigger value="log" className="gap-2"><Truck className="h-4 w-4 text-info" /> Transaction Log</TabsTrigger>
           {!tablet && <TabsTrigger value="midweigh" className="gap-2"><Scale className="h-4 w-4 text-secondary" /> Midweigh Data</TabsTrigger>}
-          {!tablet && <TabsTrigger value="banksman" className="gap-2"><HardHat className="h-4 w-4 text-warning" /> Banksman App</TabsTrigger>}
+
         </TabsList>
         <TabsContent value="yard" className="mt-4"><WeighOneYard tickets={transactions} jobs={banksmanJobs as LinkedBanksmanJob[]} onTicket={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setTicketDialogOpen(true); } }} onWeighOut={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setSecondWeighDialogOpen(true); } }} /></TabsContent>
         <TabsContent value="tickets" className="mt-4"><CombinedTicketList tablet={tablet} banksmanJobs={banksmanJobs as LinkedBanksmanJob[]} /></TabsContent>
