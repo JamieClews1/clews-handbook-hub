@@ -28,15 +28,17 @@ export interface ArrivingJob {
 }
 
 /** Search RouteOne jobs (today ± 2 days) arriving at the weighbridge, so nothing is retyped. */
-export function RouteOneArrivalPicker({ selected, onPick, onClear, vehicleReg }: {
+export function RouteOneArrivalPicker({ selected, onPick, onClear, vehicleReg, compact = false }: {
   selected: ArrivingJob | null;
   onPick: (job: ArrivingJob) => void;
   onClear: () => void;
   vehicleReg?: string;
+  compact?: boolean;
 }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<ArrivingJob[]>([]);
   const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const term = (q || vehicleReg || "").trim();
 
   useEffect(() => {
@@ -65,7 +67,7 @@ export function RouteOneArrivalPicker({ selected, onPick, onClear, vehicleReg }:
 
   if (selected) {
     return (
-      <div className="rounded-md border border-primary/40 bg-primary/5 p-2.5 text-sm flex items-start gap-2">
+      <div className="rounded-md border border-primary/40 bg-primary/5 p-2 text-sm flex items-center gap-2">
         <Truck className="h-4 w-4 text-primary mt-0.5 shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-foreground"><KindBadge job={selected} /> RouteOne job {selected.job_number} · {selected.job_type === "waste_out_skip" ? `to ${selected.destination_name || "tipping site"}` : selected.customer_name}</div>
@@ -78,6 +80,8 @@ export function RouteOneArrivalPicker({ selected, onPick, onClear, vehicleReg }:
       </div>
     );
   }
+
+  if (compact && !expanded) return <Button type="button" variant="outline" size="sm" onClick={() => setExpanded(true)}><Search className="h-4 w-4 mr-2" /> Find arriving job</Button>;
 
   return (
     <div className="space-y-1.5">

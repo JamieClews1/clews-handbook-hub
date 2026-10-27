@@ -32,9 +32,10 @@ type Props = {
   ewcCode: string;
   settings?: boolean;
   compact?: boolean;
+  streamlined?: boolean;
 };
 
-export function WasteClassificationFields({ value, onChange, ewcCode, settings = false, compact = false }: Props) {
+export function WasteClassificationFields({ value, onChange, ewcCode, settings = false, compact = false, streamlined = false }: Props) {
   const { data: codes = [] } = useEwcCodes(true);
   const matched = useMemo(() => codes.find((c) => codeKey(c.code) === codeKey(ewcCode) && !!ewcCode), [codes, ewcCode]);
   const defaults = asClassification(matched?.dwt_defaults);
@@ -43,8 +44,8 @@ export function WasteClassificationFields({ value, onChange, ewcCode, settings =
   const missing = needsConsignment && !value.consignment_code?.trim() && !value.missing_consignment_reason?.trim();
 
   return (
-    <div className="space-y-3 rounded-md border border-border p-3">
-      {!settings && (
+    <div className={streamlined ? "space-y-3 [&_label]:text-xs [&_input]:h-9" : "space-y-3 rounded-md border border-border p-3"}>
+      {!settings && !streamlined && (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-sm font-semibold">Hazardous & POPs details</p>

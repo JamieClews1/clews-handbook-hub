@@ -67,9 +67,11 @@ export async function uploadWeighbridgeAttachments(
 export const StagedAttachmentPicker = ({
   value,
   onChange,
+  compact = false,
 }: {
   value: StagedAttachment[];
   onChange: (next: StagedAttachment[]) => void;
+  compact?: boolean;
 }) => {
   const photoRef = useRef<HTMLInputElement>(null);
   const docRef = useRef<HTMLInputElement>(null);
@@ -112,7 +114,7 @@ export const StagedAttachmentPicker = ({
           }}
         />
       </div>
-      {value.length === 0 ? (
+      {value.length === 0 && !compact ? (
         <p className="text-xs text-muted-foreground">
           Attach scanned paperwork or photos from the driver / yard app. They upload when the weigh is saved.
         </p>
