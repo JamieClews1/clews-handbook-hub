@@ -45,7 +45,6 @@ export function PageCommandPalette() {
   const available = [
     ...STAFF_NAV_GROUPS.flatMap(group => group.items.filter(item => navigationAllowed(item, { isAdmin, canAccessFinance: canAccess, canAccessPl })).map(item => ({ name: `${group.title} · ${item.label}`, path: item.path, key: item.key }))),
     ...otherPages,
-    ...(canAccess ? [{ name: "Rebates", path: "/rebate-values" }] : []),
   ].filter(page => !page.key || !hidden.has(page.key) || superAdmin);
 
   return <>
