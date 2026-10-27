@@ -83,3 +83,5 @@
 - [x] Finance review: show every customer name on invoice lists and in the New invoice list; verify all 18 rows and the full active customer list.
 - [x] Show the date beside each Route One booking day (MON 19) on the bookings board; verify live board and day pickers.
 - [x] Restore sidebar primary on selected links using the logo green #4DD289 (near-black text, 9.5:1 contrast), neutral hover kept, active section heading and wordmark same logo green; signed-in preview verified.
+- [ ] Apply WeighOne design updates from Figma frames (nodes 31-2, 32-2) — blocked: Figma links not directly accessible; need screenshots uploaded by user.
+- [ ] Database resize Tiny→Mini offered (cost trade-off shown); approval card cancelled when user sent new message — re-offer when user is ready.
