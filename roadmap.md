@@ -83,5 +83,8 @@
 - [x] Finance review: show every customer name on invoice lists and in the New invoice list; verify all 18 rows and the full active customer list.
 - [x] Show the date beside each Route One booking day (MON 19) on the bookings board; verify live board and day pickers.
 - [x] Restore sidebar primary on selected links using the logo green #4DD289 (near-black text, 9.5:1 contrast), neutral hover kept, active section heading and wordmark same logo green; signed-in preview verified.
-- [ ] Apply uploaded WeighOne recommendations: simplified first weigh, yard dashboard, Banksman status on vehicles/tickets, report evidence and existing charge workflow. Preserve operational rules; never invent scale readings or DEFRA readiness.
+- [x] Apply WeighOne presentation: numbered first-weigh layout, prominent manual weight, segmented job/physical form, EWC override, fixed signatures/weight footer; Yard default with vehicle cards, quiet summary, urgent/recent reports and linked ticket/weigh-out evidence. Nine existing tests pass; preview compiles.
+- [ ] Verify signed-in WeighOne desktop/tablet flows — blocked: no requesting-user account matched; sign-in needed.
+- [ ] Live scale capture / saved tare — blocked: no connected scale feed or approved tare source.
+- [ ] Banksman operational recommendations (persisted holding, sorting minutes/percentage handoff, approved charges on weigh-out and customer report email) — blocked: require approved operational rules; existing contamination approval/email workflow retained, no automatic charges or sends.
 - [ ] Database resize Tiny→Mini offered (cost trade-off shown); approval card cancelled when user sent new message — re-offer when user is ready.

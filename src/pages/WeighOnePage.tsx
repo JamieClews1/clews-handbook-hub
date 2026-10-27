@@ -1711,7 +1711,7 @@ const WeighOnePage = () => {
           {!tablet && <TabsTrigger value="midweigh" className="gap-2"><Scale className="h-4 w-4 text-secondary" /> Midweigh Data</TabsTrigger>}
 
         </TabsList>
-        <TabsContent value="yard" className="mt-4"><WeighOneYard tickets={transactions} jobs={banksmanJobs as LinkedBanksmanJob[]} onTicket={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setTicketDialogOpen(true); } }} onWeighOut={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setSecondWeighDialogOpen(true); } }} /></TabsContent>
+        <TabsContent value="yard" className="mt-4"><div className="mb-4"><RouteOneArrivalPicker compact selected={null} onPick={job => { applyRouteOneJob(job); setNewDialogOpen(true); }} onClear={() => {}} /></div><WeighOneYard tickets={transactions} jobs={banksmanJobs as LinkedBanksmanJob[]} onTicket={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setTicketDialogOpen(true); } }} onWeighOut={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setSecondWeighDialogOpen(true); } }} /></TabsContent>
         <TabsContent value="tickets" className="mt-4"><CombinedTicketList tablet={tablet} banksmanJobs={banksmanJobs as LinkedBanksmanJob[]} /></TabsContent>
         <TabsContent value="alerts" className="mt-4"><BanksmanAlertsPanel /></TabsContent>
         <TabsContent value="log" className="mt-4">
