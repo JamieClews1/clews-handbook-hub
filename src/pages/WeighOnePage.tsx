@@ -1073,28 +1073,37 @@ const WeighOnePage = () => {
   return (
     <div className={tablet ? "p-3 sm:p-4 w-full max-w-none min-h-dvh space-y-4" : fullScreen ? "fixed inset-0 z-40 overflow-y-auto bg-background p-4 md:p-6 space-y-6" : "p-4 md:p-6 max-w-screen-2xl mx-auto space-y-6"}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 min-w-0">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4 min-w-0">
           <h1 className="text-2xl font-bold text-foreground">WeighOne</h1>
-          <span className="text-sm text-muted-foreground truncate">
-            {londonTodayLabel}
-            {midweighSyncedLabel && <> · Midweigh synced {midweighSyncedLabel}</>}
-          </span>
+          <div role="tablist" aria-label="WeighOne views" className="inline-flex rounded-lg bg-muted p-1">
+            {([["yard", "Yard"], ["tickets", "Tickets"], ["log", "Transaction log"], ...(tablet ? [] : [["midweigh", "Midweigh data"]])] as [string, string][]).map(([v, l]) => (
+              <button key={v} role="tab" aria-selected={tab === v} onClick={() => setTab(v)} className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === v ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{l}</button>
+            ))}
+          </div>
+        </div>
+        <div className="flex-1 flex justify-center items-center gap-3">
+          <span className="text-sm font-semibold text-foreground">{londonLongLabel}</span>
+          <Button variant="outline" size="sm" onClick={() => setTab("yard")}>Today</Button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" className={tablet ? "h-12 gap-2" : "gap-2"} onClick={() => setTablet(!tablet)}>
-            {tablet ? "Exit tablet mode" : "Tablet mode"}
+          <Button variant="outline" className={tablet ? "h-12 gap-2" : "gap-2"} onClick={() => setTab("tickets")}>
+            <Search className="h-4 w-4" /> Search
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className={tablet ? "h-12 gap-2" : "gap-2"}>
-                Setup <ChevronDown className="h-4 w-4" />
-              </Button>
+              <Button variant="outline" aria-label="More options" className={tablet ? "h-12 px-3" : "px-3"}>•••</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={() => setTablet(!tablet)}>
+                {tablet ? "Exit tablet mode" : "Tablet mode"}
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={toggleFullScreen}>
                 {fullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 {fullScreen ? "Exit full screen" : "Full screen"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTab("alerts")}>
+                <AlertTriangleIcon className="h-4 w-4" /> Live alerts
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setCmsDialogOpen(true)}>
@@ -1111,7 +1120,7 @@ const WeighOnePage = () => {
                 <FileText className="h-4 w-4" /> WTN Design
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild><Link to="/weigh-one?tab=banksman"><HardHat className="h-4 w-4" />Banksman setup</Link></DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTab("banksman")}><HardHat className="h-4 w-4" />Banksman setup</DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/help?guide=weighone-tablet">Install WeighOne</Link>
               </DropdownMenuItem>
@@ -1123,7 +1132,7 @@ const WeighOnePage = () => {
                 <Plus className="h-4 w-4" /> New weigh-in
               </Button>
             </DialogTrigger>
-            <DialogContent className="weigh-in-dialog max-w-[1500px] w-[97vw] h-[min(728px,94dvh)] p-0 gap-0 flex flex-col overflow-hidden bg-background">
+            <DialogContent onKeyDown={(e) => { const t = e.target as HTMLElement; if (e.key === "Enter" && t.tagName === "INPUT" && !t.closest("[role=listbox]") && formData.vehicle_reg && !createMutation.isPending) { e.preventDefault(); createMutation.mutate(); } }} className="weigh-in-dialog max-w-[1318px] w-[calc(100vw-48px)] h-[min(728px,calc(100dvh-40px))] rounded-2xl p-0 gap-0 flex flex-col overflow-hidden bg-background">
               <DialogHeader className="px-4 py-3 border-b border-border shrink-0 bg-card pr-12">
                 <div className="flex flex-wrap items-center gap-3"><DialogTitle className="text-base font-semibold">New weigh-in</DialogTitle><Tabs value={formData.job_type} onValueChange={(val) => {
                             setFormData((p) => ({
