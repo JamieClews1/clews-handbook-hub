@@ -188,6 +188,9 @@ const WeighOnePage = () => {
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [secondWeighDialogOpen, setSecondWeighDialogOpen] = useState(false);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
+  const [tab, setTab] = useState(() => { const q = new URLSearchParams(window.location.search).get("tab"); return q === "alerts" || q === "banksman" ? q : "yard"; });
+  const [showTareNow, setShowTareNow] = useState(false);
+  const [showOtherContainer, setShowOtherContainer] = useState(false);
   const [wasteTypesDialogOpen, setWasteTypesDialogOpen] = useState(false);
   const [cmsDialogOpen, setCmsDialogOpen] = useState(false);
   const [ratesDialogOpen, setRatesDialogOpen] = useState(false);
@@ -1062,6 +1065,12 @@ const WeighOnePage = () => {
     ? secondWeighWeightCharge + (selectedTransaction?.additional_items_total ?? 0)
     : null;
 
+  const londonKey = (d: string | Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date(d));
+  const todayKey = londonKey(new Date());
+  const todayTickets = transactions.filter(t => t.created_at && londonKey(t.created_at) === todayKey);
+  const awaitingSecondWeigh = pendingTransactions.filter(t => banksmanJobs.some(j => j.weighbridge_transaction_id === t.id && j.status === "completed")).length;
+  const alertCount = banksmanJobs.filter(j => j.alert_status === "urgent" || (j.has_contamination && j.status !== "completed")).length;
+  const londonLongLabel = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", weekday: "long", day: "numeric", month: "long" }).format(new Date()).replace(",", "");
   const londonTodayLabel = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Europe/London", weekday: "short", day: "numeric", month: "short",
   }).format(new Date()).replace(",", "");
@@ -1450,7 +1459,7 @@ const WeighOnePage = () => {
                         </div>
                         <div className="space-y-1.5 col-span-2">
                           <Label className="text-xs">Physical Form</Label>
-                          <Tabs value={formData.physical_form} onValueChange={val => setFormData(p => ({ ...p, physical_form: val }))}><TabsList className="h-auto flex flex-wrap justify-start">{PHYSICAL_FORMS.map(f => <TabsTrigger value={f} key={f} className="text-xs px-2 py-1">{f}</TabsTrigger>)}</TabsList></Tabs>
+                          <Tabs value={formData.physical_form} onValueChange={val => setFormData(p => ({ ...p, physical_form: val }))}><TabsList className="h-auto flex flex-wrap justify-start">{PHYSICAL_FORMS.filter(f => f !== "Powder" || formData.physical_form === "Powder").map(f => <TabsTrigger value={f} key={f} className="text-xs px-2 py-1">{f}</TabsTrigger>)}</TabsList></Tabs>
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs">Means of Transport</Label>
