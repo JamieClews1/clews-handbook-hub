@@ -180,7 +180,7 @@ serve(async (req) => {
     const rentalBits: string[] = [];
     if (p.freeRentalWeeks != null) {
       rentalBits.push(
-        `A free rental period of <strong>${p.freeRentalWeeks} week${p.freeRentalWeeks === 1 ? "" : "s"}</strong> is included.`,
+        `The price includes <strong>${p.freeRentalWeeks} week${p.freeRentalWeeks === 1 ? "" : "s"}' container rental</strong>.`,
       );
     }
     if (p.rentalSkip != null || p.rentalRoRo != null) {

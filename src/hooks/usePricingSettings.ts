@@ -20,7 +20,7 @@ const DEFAULTS: PricingSettings = {
   free_rental_weeks_trade: 4,
   rental_cost_skip: 18,
   rental_cost_roro: 42,
-  bespoke_rules: "Mixed waste loads cannot accept any soil, hardcore or plasterboard.",
+  bespoke_rules: "Mixed waste loads cannot accept any soil, hardcore, plasterboard or batteries.",
   terms_url: "https://www.clewsrecycling.co.uk/terms-and-conditions",
   quote_attachment_enabled: true,
   quote_attachment_path: "skip-permitted-waste.pdf",
