@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -188,6 +189,9 @@ const WeighOnePage = () => {
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [secondWeighDialogOpen, setSecondWeighDialogOpen] = useState(false);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
+  const [tab, setTab] = useState(() => { const q = new URLSearchParams(window.location.search).get("tab"); return q === "alerts" || q === "banksman" ? q : "yard"; });
+  const [showTareNow, setShowTareNow] = useState(false);
+  const [showOtherContainer, setShowOtherContainer] = useState(false);
   const [wasteTypesDialogOpen, setWasteTypesDialogOpen] = useState(false);
   const [cmsDialogOpen, setCmsDialogOpen] = useState(false);
   const [ratesDialogOpen, setRatesDialogOpen] = useState(false);
@@ -1062,6 +1066,12 @@ const WeighOnePage = () => {
     ? secondWeighWeightCharge + (selectedTransaction?.additional_items_total ?? 0)
     : null;
 
+  const londonKey = (d: string | Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date(d));
+  const todayKey = londonKey(new Date());
+  const todayTickets = transactions.filter(t => t.created_at && londonKey(t.created_at) === todayKey);
+  const awaitingSecondWeigh = pendingTransactions.filter(t => (banksmanJobs as LinkedBanksmanJob[]).some(j => j.weighbridge_transaction_id === t.id && j.status === "completed")).length;
+  const alertCount = banksmanJobs.filter(j => j.alert_status === "urgent" || (j.has_contamination && j.status !== "completed")).length;
+  const londonLongLabel = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", weekday: "long", day: "numeric", month: "long" }).format(new Date()).replace(",", "");
   const londonTodayLabel = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Europe/London", weekday: "short", day: "numeric", month: "short",
   }).format(new Date()).replace(",", "");
@@ -1073,28 +1083,37 @@ const WeighOnePage = () => {
   return (
     <div className={tablet ? "p-3 sm:p-4 w-full max-w-none min-h-dvh space-y-4" : fullScreen ? "fixed inset-0 z-40 overflow-y-auto bg-background p-4 md:p-6 space-y-6" : "p-4 md:p-6 max-w-screen-2xl mx-auto space-y-6"}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 min-w-0">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4 min-w-0">
           <h1 className="text-2xl font-bold text-foreground">WeighOne</h1>
-          <span className="text-sm text-muted-foreground truncate">
-            {londonTodayLabel}
-            {midweighSyncedLabel && <> · Midweigh synced {midweighSyncedLabel}</>}
-          </span>
+          <div role="tablist" aria-label="WeighOne views" className="inline-flex rounded-lg bg-muted p-1">
+            {([["yard", "Yard"], ["tickets", "Tickets"], ["log", "Transaction log"], ...(tablet ? [] : [["midweigh", "Midweigh data"]])] as [string, string][]).map(([v, l]) => (
+              <button key={v} role="tab" aria-selected={tab === v} onClick={() => setTab(v)} className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === v ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{l}</button>
+            ))}
+          </div>
+        </div>
+        <div className="flex-1 flex justify-center items-center gap-3">
+          <span className="whitespace-nowrap text-sm font-semibold text-foreground">{londonLongLabel}</span>
+          <Button variant="outline" size="sm" onClick={() => setTab("yard")}>Today</Button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" className={tablet ? "h-12 gap-2" : "gap-2"} onClick={() => setTablet(!tablet)}>
-            {tablet ? "Exit tablet mode" : "Tablet mode"}
+          <Button variant="outline" className={tablet ? "h-12 gap-2" : "gap-2"} onClick={() => setTab("tickets")}>
+            <Search className="h-4 w-4" /> Search
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className={tablet ? "h-12 gap-2" : "gap-2"}>
-                Setup <ChevronDown className="h-4 w-4" />
-              </Button>
+              <Button variant="outline" aria-label="More options" className={tablet ? "h-12 px-3" : "px-3"}>•••</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={() => setTablet(!tablet)}>
+                {tablet ? "Exit tablet mode" : "Tablet mode"}
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={toggleFullScreen}>
                 {fullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 {fullScreen ? "Exit full screen" : "Full screen"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTab("alerts")}>
+                <AlertTriangleIcon className="h-4 w-4" /> Live alerts
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setCmsDialogOpen(true)}>
@@ -1111,7 +1130,7 @@ const WeighOnePage = () => {
                 <FileText className="h-4 w-4" /> WTN Design
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild><Link to="/weigh-one?tab=banksman"><HardHat className="h-4 w-4" />Banksman setup</Link></DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setTab("banksman")}><HardHat className="h-4 w-4" />Banksman setup</DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/help?guide=weighone-tablet">Install WeighOne</Link>
               </DropdownMenuItem>
@@ -1123,7 +1142,7 @@ const WeighOnePage = () => {
                 <Plus className="h-4 w-4" /> New weigh-in
               </Button>
             </DialogTrigger>
-            <DialogContent className="weigh-in-dialog max-w-[1500px] w-[97vw] h-[min(728px,94dvh)] p-0 gap-0 flex flex-col overflow-hidden bg-background">
+            <DialogContent onKeyDown={(e) => { const t = e.target as HTMLElement; if (e.key === "Enter" && t.tagName === "INPUT" && !t.closest("[role=listbox]") && formData.vehicle_reg && !createMutation.isPending) { e.preventDefault(); createMutation.mutate(); } }} className="weigh-in-dialog max-w-[1318px] w-[calc(100vw-48px)] h-[min(728px,calc(100dvh-40px))] rounded-2xl p-0 gap-0 flex flex-col overflow-hidden bg-background">
               <DialogHeader className="px-4 py-3 border-b border-border shrink-0 bg-card pr-12">
                 <div className="flex flex-wrap items-center gap-3"><DialogTitle className="text-base font-semibold">New weigh-in</DialogTitle><Tabs value={formData.job_type} onValueChange={(val) => {
                             setFormData((p) => ({
@@ -1210,7 +1229,7 @@ const WeighOnePage = () => {
                           <Label className="text-xs">Vehicle reg *</Label>
                           <div className="relative">
                             <Input
-                              aria-label="Vehicle registration" className="h-11 uppercase font-mono text-xl font-bold bg-warning-subtle text-foreground"
+                              aria-label="Vehicle registration" className="h-[42px] uppercase font-mono text-xl font-bold !bg-warning-subtle border-warning/40 text-foreground"
                               placeholder="Search or type reg..."
                               value={formData.vehicle_reg}
                               onChange={(e) => {
@@ -1247,49 +1266,21 @@ const WeighOnePage = () => {
                             )}
                           </div>
                         </div>
-                        <div className="col-span-2 rounded-lg bg-sidebar p-4 text-sidebar-foreground space-y-2">
-                          <div className="flex justify-between text-xs"><Label htmlFor="new-gross">Gross weight</Label><span>Manual entry · kg</span></div>
-                          <Input id="new-gross" aria-label="Gross weight (kg)" className="h-16 border-0 bg-transparent text-4xl font-bold font-mono text-sidebar-accent-foreground focus-visible:ring-primary" type="number" placeholder="0" value={formData.gross_weight_kg} onChange={(e) => setFormData((p) => ({ ...p, gross_weight_kg: e.target.value }))} />
+                        <div className="col-span-2 rounded-lg bg-sidebar p-3 text-sidebar-foreground space-y-2">
+                          <div className="flex justify-between text-xs"><Label htmlFor="new-gross">Gross weight</Label><span className="opacity-70">{formData.gross_weight_kg ? "Manual entry" : "Awaiting weight"}</span></div>
+                          <div className="flex items-baseline gap-2"><Input id="new-gross" aria-label="Gross weight (kg)" className="h-14 border-0 bg-transparent px-0 text-4xl font-bold font-mono text-sidebar-accent-foreground focus-visible:ring-0" type="number" placeholder="0" value={formData.gross_weight_kg} onChange={(e) => setFormData((p) => ({ ...p, gross_weight_kg: e.target.value }))} /><span className="text-base opacity-70">kg</span></div>
+                          <div className="grid grid-cols-[1fr_auto] gap-2">
+                            <Button type="button" disabled title="No scale connected">Capture from scale</Button>
+                            <Button type="button" variant="secondary" onClick={() => document.getElementById("new-gross")?.focus()}>Enter manually</Button>
+                          </div>
                         </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Container Type</Label>
+                        <div className="col-span-2 rounded-md border border-dashed border-border px-3 py-2 space-y-2">
+                          <div className="flex items-center justify-between gap-2 text-xs"><span><strong className="text-foreground">Tare</strong> <span className="text-muted-foreground">· weigh out on exit</span></span><label className="flex items-center gap-2"><span className="text-muted-foreground">Enter now</span><Switch checked={showTareNow} onCheckedChange={(v) => { setShowTareNow(v); if (!v) setFormData(p => ({ ...p, tare_weight_kg: "" })); }} /></label></div>
+                          {showTareNow && <>
                           <Input
-                            className="h-9"
-                            list="midweigh-container-types"
-                            placeholder="Skip, RoRo, etc."
-                            value={formData.container_type}
-                            onChange={(e) => {
-                              const container = e.target.value;
-                              setFormData((p) => ({
-                                ...p,
-                                container_type: container,
-                                vehicle_type: vehicleTypeForContainer(container) || p.vehicle_type,
-                              }));
-                            }}
-                          />
-                          <div className="flex flex-wrap gap-1 pt-1">{["Skip", "RoRo", "Enclosed", "Curtain-side"].map(c => <Button type="button" key={c} size="sm" variant={formData.container_type === c ? "default" : "outline"} className="h-7 rounded-full px-2 text-xs" onClick={() => setFormData(p => ({ ...p, container_type: c, vehicle_type: vehicleTypeForContainer(c) || p.vehicle_type }))}>{c}</Button>)}</div>
-                          <datalist id="midweigh-container-types">
-                            {containerTypeOptions.map((c) => <option key={c} value={c} />)}
-                          </datalist>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Vehicle Type</Label>
-                          <Input
-                            className="h-9"
-                            list="midweigh-vehicle-types"
-                            placeholder="Skip, Roll on Roll off, ..."
-                            value={formData.vehicle_type}
-                            onChange={(e) => setFormData((p) => ({ ...p, vehicle_type: e.target.value }))}
-                          />
-                          <datalist id="midweigh-vehicle-types">
-                            {vehicleTypeOptions.map((v) => <option key={v} value={v} />)}
-                          </datalist>
-                        </div>
-                        <details className="space-y-1.5 col-span-2 rounded-md border border-dashed border-border p-2"><summary className="text-xs cursor-pointer">Tare · weigh out on exit <span className="text-primary">Enter now</span></summary>
-                          <Input
-                            className="h-9"
+                            className="h-9 font-mono"
                             type="number"
-                            placeholder="Leave blank to weigh out later"
+                            placeholder="Tare kg"
                             value={formData.tare_weight_kg}
                             onChange={(e) => setFormData((p) => ({ ...p, tare_weight_kg: e.target.value }))}
                           />
@@ -1302,7 +1293,27 @@ const WeighOnePage = () => {
                               {" "}— ticket will complete immediately.
                             </p>
                           )}
-                        </details>
+                          </>}
+                        </div>
+                        <div className="col-span-2 space-y-1.5">
+                          <Label className="text-xs">Container</Label>
+                          <div className="flex flex-wrap gap-1.5">{["Skip", "RoRo", "Enclosed", "Curtain-side"].map(c => <Button type="button" key={c} size="sm" variant={formData.container_type === c ? "default" : "outline"} className="h-7 rounded-full px-3 text-xs" onClick={() => { setShowOtherContainer(false); setFormData(p => ({ ...p, container_type: c, vehicle_type: vehicleTypeForContainer(c) || p.vehicle_type })); }}>{c === "RoRo" ? "Ro Ro" : c}</Button>)}<Button type="button" size="sm" variant={showOtherContainer || (formData.container_type && !["Skip", "RoRo", "Enclosed", "Curtain-side"].includes(formData.container_type)) ? "default" : "outline"} className="h-7 rounded-full px-3 text-xs" onClick={() => setShowOtherContainer(true)}>Other…</Button></div>
+                          {(showOtherContainer || (formData.container_type && !["Skip", "RoRo", "Enclosed", "Curtain-side"].includes(formData.container_type))) && <>
+                          <Input
+                            className="h-9"
+                            list="midweigh-container-types"
+                            placeholder="Container type"
+                            value={formData.container_type}
+                            onChange={(e) => {
+                              const container = e.target.value;
+                              setFormData((p) => ({ ...p, container_type: container, vehicle_type: vehicleTypeForContainer(container) || p.vehicle_type }));
+                            }}
+                          />
+                          <datalist id="midweigh-container-types">
+                            {containerTypeOptions.map((c) => <option key={c} value={c} />)}
+                          </datalist>
+                          </>}
+                        </div>
                       </div>
                       </div>
                     </div>
@@ -1364,11 +1375,11 @@ const WeighOnePage = () => {
                         <div className="space-y-1.5">
                           <Label className="text-xs">Driver</Label>
                           <Input className="h-9" placeholder="Driver name" value={formData.driver_name} onChange={(e) => setFormData((p) => ({ ...p, driver_name: e.target.value }))} />
+                        </div>
                           <div className="space-y-1.5">
                           <Label className="text-xs">Haulier</Label>
                           <Input className="h-9" placeholder="Carrier / haulier" value={formData.carrier_name} onChange={(e) => setFormData((p) => ({ ...p, carrier_name: e.target.value }))} />
                         </div>
-                      </div>
                       </div>
                       </div>
                     </div>
@@ -1449,7 +1460,7 @@ const WeighOnePage = () => {
                         </div>
                         <div className="space-y-1.5 col-span-2">
                           <Label className="text-xs">Physical Form</Label>
-                          <Tabs value={formData.physical_form} onValueChange={val => setFormData(p => ({ ...p, physical_form: val }))}><TabsList className="h-auto flex flex-wrap justify-start">{PHYSICAL_FORMS.map(f => <TabsTrigger value={f} key={f} className="text-xs px-2 py-1">{f}</TabsTrigger>)}</TabsList></Tabs>
+                          <Tabs value={formData.physical_form} onValueChange={val => setFormData(p => ({ ...p, physical_form: val }))}><TabsList className="h-auto flex flex-wrap justify-start">{PHYSICAL_FORMS.filter(f => f !== "Powder" || formData.physical_form === "Powder").map(f => <TabsTrigger value={f} key={f} className="text-xs px-2 py-1">{f}</TabsTrigger>)}</TabsList></Tabs>
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs">Means of Transport</Label>
@@ -1618,15 +1629,20 @@ const WeighOnePage = () => {
                             </Button>
                           )}
 
-                <div className="ml-auto flex gap-2"><Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>Cancel</Button><Button onClick={() => createMutation.mutate()} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? "Recording…" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
+                <div className="ml-auto flex items-center gap-3"><span className="hidden md:inline text-xs text-muted-foreground">Enter ↵ to record</span><Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>Cancel</Button><Button onClick={() => createMutation.mutate()} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? "Recording…" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
               </div>
             </DialogContent>
           </Dialog>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-x-6 gap-y-2 border-y border-border py-3 text-sm text-muted-foreground">
-        <span><strong className="text-foreground">{pendingTransactions.length}</strong> in yard</span><span><strong className="text-foreground">{todayCompleted.length}</strong> completed today</span><span><strong className="text-foreground">{todayTotalTonnes.toFixed(2)} t</strong> net today</span><span className={banksmanJobs.some(j => j.alert_status === "urgent") ? "text-destructive font-semibold" : ""}>{banksmanJobs.filter(j => j.alert_status === "urgent").length} urgent Banksman alerts</span>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-border py-2.5 text-sm text-muted-foreground">
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-primary" /><strong className="text-foreground">{pendingTransactions.length}</strong> in yard</span>
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-warning" /><strong className="text-foreground">{awaitingSecondWeigh}</strong> awaiting 2nd weigh</span>
+        <span><strong className="text-foreground">{todayTickets.length}</strong> tickets</span>
+        <span><strong className="text-foreground font-mono">{todayTotalTonnes.toFixed(1)} t</strong> net today</span>
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-destructive" /><strong className="text-foreground">{alertCount}</strong> banksman alerts</span>
+        {midweighSyncedLabel && <span className="ml-auto text-xs">● Midweigh synced {midweighSyncedLabel}</span>}
       </div>
 
       {/* Second Weigh Dialog */}
@@ -1702,16 +1718,8 @@ const WeighOnePage = () => {
       </Dialog>
 
       {/* Transaction Log */}
-      <Tabs defaultValue={new URLSearchParams(window.location.search).get("tab") === "alerts" ? "alerts" : new URLSearchParams(window.location.search).get("tab") === "banksman" ? "banksman" : "yard"}>
-      <TabsList className={`h-auto flex flex-wrap justify-start ${tablet ? "[&>button]:min-h-12 [&>button]:text-base" : ""}`}>
-          <TabsTrigger value="yard" className="gap-2"><Truck className="h-4 w-4" /> Yard</TabsTrigger>
-          <TabsTrigger value="tickets" className="gap-2"><FileText className="h-4 w-4 text-primary" /> All Tickets</TabsTrigger>
-          <TabsTrigger value="alerts" className="gap-2"><AlertTriangleIcon className="h-4 w-4 text-warning" /> {tablet ? "Contamination & Photos" : "Live Alerts"}</TabsTrigger>
-          <TabsTrigger value="log" className="gap-2"><Truck className="h-4 w-4 text-info" /> Transaction Log</TabsTrigger>
-          {!tablet && <TabsTrigger value="midweigh" className="gap-2"><Scale className="h-4 w-4 text-secondary" /> Midweigh Data</TabsTrigger>}
-
-        </TabsList>
-        <TabsContent value="yard" className="mt-4"><div className="mb-4"><RouteOneArrivalPicker compact selected={null} onPick={job => { applyRouteOneJob(job); setNewDialogOpen(true); }} onClear={() => {}} /></div><WeighOneYard tickets={transactions} jobs={banksmanJobs as LinkedBanksmanJob[]} onTicket={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setTicketDialogOpen(true); } }} onWeighOut={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setSecondWeighDialogOpen(true); } }} /></TabsContent>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsContent value="yard" className="mt-4"><WeighOneYard todayTickets={todayTickets} tickets={transactions} jobs={banksmanJobs as LinkedBanksmanJob[]} onTicket={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setTicketDialogOpen(true); } }} onWeighOut={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setSecondWeighDialogOpen(true); } }} /></TabsContent>
         <TabsContent value="tickets" className="mt-4"><CombinedTicketList tablet={tablet} banksmanJobs={banksmanJobs as LinkedBanksmanJob[]} /></TabsContent>
         <TabsContent value="alerts" className="mt-4"><BanksmanAlertsPanel /></TabsContent>
         <TabsContent value="log" className="mt-4">
