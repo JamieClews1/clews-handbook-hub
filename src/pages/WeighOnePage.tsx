@@ -1093,7 +1093,7 @@ const WeighOnePage = () => {
           </div>
         </div>
         <div className="flex-1 flex justify-center items-center gap-3">
-          <span className="text-sm font-semibold text-foreground">{londonLongLabel}</span>
+          <span className="whitespace-nowrap text-sm font-semibold text-foreground">{londonLongLabel}</span>
           <Button variant="outline" size="sm" onClick={() => setTab("yard")}>Today</Button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -1229,7 +1229,7 @@ const WeighOnePage = () => {
                           <Label className="text-xs">Vehicle reg *</Label>
                           <div className="relative">
                             <Input
-                              aria-label="Vehicle registration" className="h-11 uppercase font-mono text-xl font-bold bg-warning-subtle text-foreground"
+                              aria-label="Vehicle registration" className="h-[42px] uppercase font-mono text-xl font-bold !bg-warning-subtle border-warning/40 text-foreground"
                               placeholder="Search or type reg..."
                               value={formData.vehicle_reg}
                               onChange={(e) => {
@@ -1375,11 +1375,11 @@ const WeighOnePage = () => {
                         <div className="space-y-1.5">
                           <Label className="text-xs">Driver</Label>
                           <Input className="h-9" placeholder="Driver name" value={formData.driver_name} onChange={(e) => setFormData((p) => ({ ...p, driver_name: e.target.value }))} />
+                        </div>
                           <div className="space-y-1.5">
                           <Label className="text-xs">Haulier</Label>
                           <Input className="h-9" placeholder="Carrier / haulier" value={formData.carrier_name} onChange={(e) => setFormData((p) => ({ ...p, carrier_name: e.target.value }))} />
                         </div>
-                      </div>
                       </div>
                       </div>
                     </div>
