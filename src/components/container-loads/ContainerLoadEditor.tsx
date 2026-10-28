@@ -347,7 +347,11 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
 
       toast({ title: "Photos uploaded", description: `${files.length} photo(s) added.` });
     } catch (e: any) {
-      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+      toast({
+        title: "Upload stopped",
+        description: `${saved} photo(s) were saved. ${e.message} — please retry the rest.`,
+        variant: "destructive",
+      });
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
