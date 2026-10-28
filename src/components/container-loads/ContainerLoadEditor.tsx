@@ -297,9 +297,21 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
     onBack();
   };
 
+  // Warn before closing the tab while photos are still uploading.
+  useEffect(() => {
+    if (!uploading) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [uploading]);
+
   const handleUpload = async (files: FileList | null) => {
     if (!files || !files.length || !load) return;
     setUploading(true);
+    let saved = 0;
     try {
       const newPhotos = [...load.photos];
       for (const file of Array.from(files)) {
@@ -308,11 +320,16 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
         const path = `container-loads/${loadId}/${Date.now()}-${Math.random()
           .toString(36)
           .slice(2, 8)}.jpg`;
-        const { error } = await supabase.storage.from(BUCKET).upload(path, stamped, {
-          cacheControl: "3600",
-          upsert: false,
-          contentType: "image/jpeg",
-        });
+        let error: any = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          ({ error } = await supabase.storage.from(BUCKET).upload(path, stamped, {
+            cacheControl: "3600",
+            upsert: true,
+            contentType: "image/jpeg",
+          }));
+          if (!error) break;
+          await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+        }
         if (error) throw error;
         const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
         newPhotos.push({
@@ -323,12 +340,18 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
           taken_at: taken.toISOString(),
           category: uploadCategory,
         });
+        // Save after every photo so nothing already uploaded can be lost.
+        await persist({ photos: [...newPhotos] });
+        saved++;
       }
 
-      await persist({ photos: newPhotos });
       toast({ title: "Photos uploaded", description: `${files.length} photo(s) added.` });
     } catch (e: any) {
-      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+      toast({
+        title: "Upload stopped",
+        description: `${saved} photo(s) were saved. ${e.message} — please retry the rest.`,
+        variant: "destructive",
+      });
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -591,7 +614,16 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete container load?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This permanently deletes {containerLoadTitle(load)} and its details. Uploaded photos remain in storage.
+                  {load.photos.length > 0 ? (
+                    <>
+                      <strong className="text-destructive">
+                        Are you sure? This load has {load.photos.length} photo{load.photos.length === 1 ? "" : "s"} attached.
+                      </strong>{" "}
+                      Deleting removes {containerLoadTitle(load)} and its link to those photos. Download the photos first if you need them.
+                    </>
+                  ) : (
+                    <>This permanently deletes {containerLoadTitle(load)} and its details.</>
+                  )}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -932,7 +964,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
                             variant="destructive"
                             size="icon"
                             className="absolute top-1 right-1 h-7 w-7 opacity-90"
-                            onClick={() => removePhoto(p.path)}
+                            onClick={() => { if (window.confirm("Are you sure you want to delete this photo? This cannot be undone.")) removePhoto(p.path); }}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>

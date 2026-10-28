@@ -88,3 +88,5 @@
 - [ ] Live scale capture / saved tare — blocked: no connected scale feed or approved tare source.
 - [ ] Banksman operational recommendations (persisted holding, sorting minutes/percentage handoff, approved charges on weigh-out and customer report email) — blocked: require approved operational rules; existing contamination approval/email workflow retained, no automatic charges or sends.
 - [ ] Database resize Tiny→Mini offered (cost trade-off shown); approval card cancelled when user sent new message — re-offer when user is ready.
+
+- [x] Container load photos save one-by-one with retries; warn before deleting loads with photos
