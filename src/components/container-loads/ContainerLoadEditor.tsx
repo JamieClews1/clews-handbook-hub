@@ -964,7 +964,7 @@ export const ContainerLoadEditor = ({ loadId, onBack }: Props) => {
                             variant="destructive"
                             size="icon"
                             className="absolute top-1 right-1 h-7 w-7 opacity-90"
-                            onClick={() => removePhoto(p.path)}
+                            onClick={() => { if (window.confirm("Are you sure you want to delete this photo? This cannot be undone.")) removePhoto(p.path); }}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
