@@ -34,6 +34,7 @@ Imported exchange pricing copies only explicit source booking charges, never der
 - Rental assignment menus share a profiles/staff-role eligibility helper; a database trigger validates new assignees to prevent alternate writes bypassing eligibility.
 - Rental job pagination must succeed in full before publishing results; failed reads show a retry state, never an empty or partial rental count.
 - Rentals and Live Jobs share chronological physical-container replay: completed historical movements only, spelling/price-suffix size matching, collections consume slots and exchanges replace tickets, so closed tickets cannot be chased and replacement rental clocks remain independent.
+- Rental replay scopes site identity to the customer and only removes non-address contact prefixes before exact numbered streets; preserve house numbers/units and isolate unknown sites to avoid clearing unrelated containers. Both views reject incomplete paginated reads.
 - Sign-in and staff-role checks use withTimeout and show Try again / Sign out on failure, so a stalled request never leaves an endless spinner.
 - Customer recovery uses the public /reset-password page and Auth recovery emails; recovery events bypass staff landing pages so links cannot skip password entry.
 - Data Uploads write only new or changed rows (rowNeedsWrite) and list orphans by id first; repeat full-file uploads must not rewrite unchanged data, which exhausted the database disk budget.

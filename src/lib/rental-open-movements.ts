@@ -27,6 +27,21 @@ export function isCompletedRentalMovement(job: OverRentalJob, today = londonCale
 
 type Slot = { job: OverRentalJob; date: string; ewc: string };
 
+/** Remove only a non-address contact prefix before an explicit numbered street.
+ * House numbers, units and customer identity remain part of the physical key. */
+export function rentalSiteKey(job: Pick<OverRentalJob, "customer" | "site" | "id">): string {
+  const normalise = (text: string) => text.toLowerCase().replace(/[.]/g, "").replace(/\s+/g, " ").trim();
+  const site = normalise(job.site ?? "");
+  const parts = site.split(/,\s*/);
+  const prefix = parts.slice(0, -1).join(" ");
+  const address = parts.at(-1) ?? "";
+  const isContactPrefix = prefix && !/\d|\b(unit|plot|phase|block|building|flat|suite|floor|yard|depot)\b/.test(prefix);
+  const isNumberedStreet = /^\d+[a-z]?(?:\s*[-/]\s*\d+[a-z]?)?\s+.+\b(street|road|lane|close|avenue|drive|way|crescent|terrace|place|court|grove)\b$/.test(address);
+  const identity = isContactPrefix && isNumberedStreet ? address : site;
+  // Missing locations must not let unrelated unknown-site collections cancel stock.
+  return `${normalise(job.customer ?? "")}|||${identity || `unknown:${job.id}`}`;
+}
+
 /** Replay physical movements so collections consume stock and exchanges replace
  * the old ticket, even when its EWC or container spelling changed. */
 export function openRentalBins(
@@ -40,7 +55,7 @@ export function openRentalBins(
   for (const job of movements) {
     const category = categorise(job.container_type, job.vehicle_registration, settings);
     if (!category || category === "artic" || !job.container_type || !job.job_date) continue;
-    const key = `${(job.site ?? "Unknown").trim().toLowerCase().replace(/\s+/g, " ")}|||${category}|||${rentalContainerKey(job.container_type)}`;
+    const key = `${rentalSiteKey(job)}|||${category}|||${rentalContainerKey(job.container_type)}`;
     const group = groups.get(key) ?? { category, slots: [] };
     groups.set(key, group);
     const ewc = (job.ewc ?? "").replace(/\s/g, "");

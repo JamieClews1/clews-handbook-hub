@@ -48,4 +48,32 @@ describe("Only overdue open skips and RoRos are chased", () => {
     assert.equal(result[0].netOnSite, 1);
     assert.equal(result[0].lastJobNumber, "2");
   });
+  it("clears Loftus delivery 51436 and exchange 51437 with collection 51910", () => {
+    assert.deepEqual(bins([
+      job("51436", "2026-09-25", "Deliver", { site: "24 George Street" }),
+      job("51437", "2026-09-28", "Exchange", { site: "Dan Clancy, 24 George Street" }),
+      job("51910", "2026-10-13", "Collect", { site: "Dan Clancy, 24 George Street" }),
+    ]), []);
+  });
+  it("keeps 2, 22 and 24 George Street separate", () => {
+    const result = bins([
+      job("1", "2026-04-01", "Deliver", { site: "24 George Street" }),
+      job("2", "2026-10-01", "Collect", { site: "Dan Clancy, 2 George Street" }),
+      job("3", "2026-10-01", "Collect", { site: "Dan Clancy, 22 George Street" }),
+    ]);
+    assert.equal(result[0].lastJobNumber, "1");
+  });
+  it("does not clear another customer's skip at the same address", () => {
+    assert.equal(bins([
+      job("1", "2026-04-01", "Deliver", { site: "24 George Street" }),
+      job("2", "2026-10-01", "Collect", { site: "24 George Street", customer: "Other Customer" }),
+    ])[0].lastJobNumber, "1");
+  });
+  it("preserves units and never matches unknown sites", () => {
+    assert.equal(bins([
+      job("1", "2026-04-01", "Deliver", { site: "Unit A, 24 George Street" }),
+      job("2", "2026-10-01", "Collect", { site: "24 George Street" }),
+    ])[0].lastJobNumber, "1");
+    assert.equal(bins([job("1", "2026-04-01", "Deliver", { site: null }), job("2", "2026-10-01", "Collect", { site: null })])[0].lastJobNumber, "1");
+  });
 });
