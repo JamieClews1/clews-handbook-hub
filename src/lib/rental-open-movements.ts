@@ -24,6 +24,11 @@ export function isCompletedRentalMovement(job: OverRentalJob, today = londonCale
 
 type Slot = { job: OverRentalJob; date: string; ewc: string };
 
+export function rentalMovementStatus(raw: unknown): string | null {
+  if (!raw || typeof raw !== "object" || !("Status" in raw)) return null;
+  return raw.Status == null ? null : String(raw.Status);
+}
+
 /** Replay physical movements so collections consume stock and exchanges replace
  * the old ticket, even when its EWC or container spelling changed. */
 export function openRentalBins(

@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import * as XLSX from "xlsx";
 import { format, startOfMonth, subMonths, differenceInDays } from "date-fns";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
-import { isCompletedRentalMovement } from "@/lib/rental-open-movements";
+import { isCompletedRentalMovement, rentalMovementStatus } from "@/lib/rental-open-movements";
 import { computeOverRentalBins, containerTypeCap } from "@/lib/overRental";
 
 type Job = {
@@ -139,7 +139,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration,ewc,rental_status:raw->>Status")
+          .select("id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration,ewc,raw")
           .eq("source", "skiptrak")
           .gte("job_date", since)
           .in("movement_type", ["Deliver", "Exchange", "Collect", "Tip/Return"])
@@ -153,7 +153,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         from += pageSize;
       }
 
-      setJobs(allJobs.filter(job => isCompletedRentalMovement(job)));
+      setJobs(allJobs.map(job => ({ ...job, rental_status: rentalMovementStatus((job as Job & { raw?: unknown }).raw) })).filter(job => isCompletedRentalMovement(job)));
       setLoading(false);
     };
     fetchJobs();
