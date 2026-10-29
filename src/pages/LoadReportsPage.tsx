@@ -537,6 +537,28 @@ const LoadReportsPage = () => {
     });
   };
 
+  const withMissingWasteTypes = (existing: LineItem[], customer: string | null) => {
+    const have = new Set(existing.map((i) => i.waste_type.toLowerCase()));
+    const extra = wasteTypes
+      .filter((wt: any) => wt.is_active !== false && !have.has(wt.waste_type.toLowerCase()))
+      .filter((wt: any) => {
+        const f = wt.customer_type_filter;
+        if (!f || f.length === 0) return true;
+        return customer ? f.includes(customer) : false;
+      })
+      .map((wt) => ({
+        waste_type: wt.waste_type,
+        pallet_count: 0,
+        avg_weight_kg: Number(wt.default_avg_weight_kg),
+        total_weight_kg: 0,
+        display_order: wt.display_order,
+        pallet_weight_kg: defaultPalletWeight,
+        wet_charge_applied: false,
+        rebate_threshold_applied: false,
+      }));
+    return [...existing, ...extra].sort((a, b) => a.display_order - b.display_order);
+  };
+
   const initializeLineItems = () => {
     const filtered = filterWasteTypesByCustomer(wasteTypes);
     const items: LineItem[] = filtered.map((wt) => ({
@@ -690,7 +712,7 @@ const LoadReportsPage = () => {
       setSelectedCustomer(detectedType);
       
       if (items && items.length > 0) {
-        setLineItems(
+        setLineItems(withMissingWasteTypes(
           items.map((item) => ({
             waste_type: item.waste_type,
             pallet_count: item.pallet_count,
@@ -704,8 +726,8 @@ const LoadReportsPage = () => {
               (item as any).rebate_rate_per_tonne === null || (item as any).rebate_rate_per_tonne === undefined
                 ? null
                 : Number((item as any).rebate_rate_per_tonne),
-          }))
-        );
+          })), detectedType
+        ));
       } else if (staciEntries.length === 0) {
         initializeLineItems();
       }
@@ -802,7 +824,7 @@ const LoadReportsPage = () => {
       }
 
       if (items && items.length > 0) {
-        setLineItems(
+        setLineItems(withMissingWasteTypes(
           items.map((item) => ({
             waste_type: item.waste_type,
             pallet_count: item.pallet_count,
@@ -816,8 +838,8 @@ const LoadReportsPage = () => {
               (item as any).rebate_rate_per_tonne === null || (item as any).rebate_rate_per_tonne === undefined
                 ? null
                 : Number((item as any).rebate_rate_per_tonne),
-          }))
-        );
+          })), detectedType
+        ));
       } else if (staciEntries.length === 0) {
         initializeLineItems();
       }
