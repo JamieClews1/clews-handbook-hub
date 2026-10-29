@@ -10,6 +10,7 @@ import jsPDF from "jspdf";
 import { useUnicodeFont } from "@/lib/pdf-fonts";
 import { appendToolboxTalkSignatures } from "@/lib/toolbox-talk-signatures";
 import { loadToolboxTalkSignatures } from "@/lib/load-toolbox-talk-signatures";
+import { numberedPdfItem } from "@/lib/pdf-list-numbering";
 
 interface ToolboxTalk {
   id: string;
@@ -166,7 +167,7 @@ const renderCompactPage = (
       pdf.setFontSize(9);
       pdf.setFont(font, "normal");
       pdf.setTextColor(30, 30, 30);
-      const lines = pdf.splitTextToSize(`${block.level}.  ${block.text}`, contentWidth - 6);
+      const lines = pdf.splitTextToSize(numberedPdfItem(block.text, block.level), contentWidth - 6);
       pdf.text(lines, marginL + 4, y);
       y += lines.length * 4 + 1;
     }

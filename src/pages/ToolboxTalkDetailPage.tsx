@@ -14,6 +14,7 @@ import jsPDF from "jspdf";
 import { useUnicodeFont } from "@/lib/pdf-fonts";
 import { appendToolboxTalkSignatures } from "@/lib/toolbox-talk-signatures";
 import { loadToolboxTalkSignatures } from "@/lib/load-toolbox-talk-signatures";
+import { numberedPdfItem } from "@/lib/pdf-list-numbering";
 
 const LANGUAGES = [
   { code: "EN", label: "English" },
@@ -186,7 +187,7 @@ const generateCompactPDF = async (
       pdf.setFontSize(9);
       pdf.setFont(font, "normal");
       pdf.setTextColor(30, 30, 30);
-      const numberedText = `${block.level}.  ${block.text}`;
+      const numberedText = numberedPdfItem(block.text, block.level);
       const lines = pdf.splitTextToSize(numberedText, contentWidth - 6);
       pdf.text(lines, marginL + 4, y);
       y += lines.length * 4 + 1;
