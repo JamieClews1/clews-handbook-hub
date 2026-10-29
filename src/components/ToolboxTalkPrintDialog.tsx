@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Printer } from "lucide-react";
 import jsPDF from "jspdf";
 import { useUnicodeFont } from "@/lib/pdf-fonts";
+import { appendToolboxTalkSignatures } from "@/lib/toolbox-talk-signatures";
+import { loadToolboxTalkSignatures } from "@/lib/load-toolbox-talk-signatures";
 
 interface ToolboxTalk {
   id: string;
@@ -91,7 +93,8 @@ const renderCompactPage = (
   langLabel: string,
   createdDate: string,
   userTypes: string[],
-  font: string
+  font: string,
+  blankSignatures = true
 ) => {
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
@@ -170,6 +173,7 @@ const renderCompactPage = (
   }
 
   // Signature section
+  if (!blankSignatures) return;
   addPageIfNeeded(55);
   y += 4;
   pdf.setDrawColor(30, 64, 42);
@@ -222,6 +226,7 @@ export const ToolboxTalkPrintDialog = ({
   const { toast } = useToast();
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>(["EN"]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [includeSignatures, setIncludeSignatures] = useState(false);
 
   const handleLanguageToggle = (code: string) => {
     setSelectedLanguages((prev) =>
@@ -278,7 +283,12 @@ export const ToolboxTalkPrintDialog = ({
         const langLabel = LANGUAGES.find(l => l.code === langCode)?.label || "English";
         const { title, blocks: translatedBlocks } = await translateContent(toolboxTalk.title, blocks, langCode);
 
-        renderCompactPage(pdf, title, translatedBlocks, langLabel, toolboxTalk.created_date, toolboxTalk.user_types, font);
+        renderCompactPage(pdf, title, translatedBlocks, langLabel, toolboxTalk.created_date, toolboxTalk.user_types, font, !includeSignatures);
+      }
+
+      if (includeSignatures) {
+        const signatures = await loadToolboxTalkSignatures(toolboxTalk.id);
+        appendToolboxTalkSignatures(pdf, toolboxTalk.title, signatures, font);
       }
 
       // Add page numbers
@@ -293,7 +303,7 @@ export const ToolboxTalkPrintDialog = ({
         pdf.text(`Clews Recycling  |  Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 8, { align: "center" });
       }
 
-      pdf.save(`${toolboxTalk.title.replace(/[^a-z0-9]/gi, "_")}_Toolbox_Talk.pdf`);
+      pdf.save(`${toolboxTalk.title.replace(/[^a-z0-9]/gi, "_")}_Toolbox_Talk${includeSignatures ? "_Signed" : ""}.pdf`);
       toast({ title: "Success", description: "PDF generated successfully" });
       onOpenChange(false);
     } catch (error) {
@@ -331,6 +341,11 @@ export const ToolboxTalkPrintDialog = ({
             </div>
           </div>
 
+          <div className="flex items-center gap-2">
+            <Checkbox id="include-recorded-signatures" checked={includeSignatures} disabled={isGenerating}
+              onCheckedChange={(checked) => setIncludeSignatures(checked === true)} />
+            <Label htmlFor="include-recorded-signatures">Include all recorded signatures</Label>
+          </div>
           <Button onClick={generatePDF} disabled={selectedLanguages.length === 0 || isGenerating} className="w-full gap-2">
             {isGenerating ? (
               <><Loader2 className="h-4 w-4 animate-spin" />Generating...</>
