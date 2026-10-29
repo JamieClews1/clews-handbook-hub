@@ -1,4 +1,4 @@
-import { Inbox, Route, Scale, Box, Radio, FileCheck, PoundSterling, Container, Users, AlertTriangle, CalendarCheck, CalendarDays, FileText, Package, Building2, FileSpreadsheet, Fuel, Upload, BarChart3, Gauge, TrendingUp, ClipboardList, Gem, ShieldCheck, HardHat, MessageSquare, Flame, BookOpen, ScrollText, Smartphone, Settings } from "lucide-react";
+import { Inbox, Route, Scale, Box, Radio, FileCheck, PoundSterling, Container, Users, AlertTriangle, CalendarCheck, CalendarDays, FileText, Package, Building2, FileSpreadsheet, Fuel, Upload, BarChart3, Gauge, TrendingUp, ClipboardList, Gem, ShieldCheck, HardHat, MessageSquare, Flame, BookOpen, ScrollText, Smartphone, Settings, Truck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type NavigationAccess = { isAdmin: boolean; canAccessFinance: boolean; canAccessPl: boolean };
@@ -30,6 +30,7 @@ export const STAFF_NAV_GROUPS: StaffNavGroup[] = [
     { label: "Contaminations", path: "/performance-hub/contaminations", icon: AlertTriangle, key: "performance-contaminations" },
     { label: "Bookings", path: "/bookings", icon: CalendarCheck, key: "bookings" },
     { label: "Customer Reports", path: "/customer-reporting", icon: FileText, key: "customer-reporting" },
+    { label: "Load Reports", path: "/load-reports", icon: Truck, key: "load-reports" },
     { label: "Rebates", path: "/rebate-values", icon: PoundSterling, access: "finance" },
     { label: "Staci Reports", path: "/staci-reports", icon: Package, key: "staci-reports" },
     { label: "Customer Setup", path: "/admin/customers", icon: Building2, access: "admin" },
