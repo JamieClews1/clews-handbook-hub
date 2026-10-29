@@ -1,4 +1,5 @@
 import { differenceInDays, format, startOfMonth, subMonths } from "date-fns";
+import { openRentalBins } from "./rental-open-movements";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
 // Faithful copy of the over-rental detection used by the Live Jobs dashboard, so
@@ -8,6 +9,7 @@ import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
 export type OverRentalJob = {
   id: string;
+  rental_status?: string | null;
   job_number: string;
   job_date: string | null;
   customer: string | null;
@@ -197,185 +199,7 @@ export function computeOverRentalBins(
 ): OverRentalBin[] {
   const windowStart =
     activityWindowStart ?? format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
-  const siteMap: Record<string, SiteAgg> = {};
-
-  for (const job of jobs) {
-    const cat = categoriseContainer(job.container_type, job.vehicle_registration, settings);
-    if (!cat) continue;
-
-    const key = `${(job.site || "Unknown").toLowerCase().trim()}|||${cat}`;
-    const customerName = job.customer || "Unknown";
-
-    if (!siteMap[key]) {
-      siteMap[key] = {
-        customers: new Set(),
-        latestCustomer: customerName,
-        latestCustomerDate: job.job_date,
-        site: job.site || "Unknown",
-        category: cat,
-        delivered: 0,
-        collected: 0,
-        exchanged: 0,
-        lastDeliveryOrExchangeDate: null,
-        lastTipReturnDate: null,
-        lastCollectionDate: null,
-        containerTypeBreakdown: {},
-      };
-    }
-
-    siteMap[key].customers.add(customerName);
-    if (job.job_date && (!siteMap[key].latestCustomerDate || job.job_date > siteMap[key].latestCustomerDate!)) {
-      siteMap[key].latestCustomer = customerName;
-      siteMap[key].latestCustomerDate = job.job_date;
-    }
-
-    if (job.container_type) {
-      if (!siteMap[key].containerTypeBreakdown[job.container_type]) {
-        siteMap[key].containerTypeBreakdown[job.container_type] = {
-          delivered: 0,
-          collected: 0,
-          exchanged: 0,
-          lastDeliveryOrExchangeDate: null,
-          lastTipReturnDate: null,
-          lastCollectionDate: null,
-          lastKeepDate: null,
-          lastKeepJobNumber: null,
-          wasteTypes: new Set(),
-          positions: {},
-        };
-      }
-      const ctb = siteMap[key].containerTypeBreakdown[job.container_type];
-      if (isDelivery(job.movement_type)) ctb.delivered++;
-      if (isCollection(job.movement_type)) ctb.collected++;
-      if (isExchange(job.movement_type)) ctb.exchanged++;
-      if (job.waste_description) ctb.wasteTypes.add(job.waste_description);
-      if (job.job_date && (isDelivery(job.movement_type) || isExchange(job.movement_type))) {
-        if (!ctb.lastDeliveryOrExchangeDate || job.job_date > ctb.lastDeliveryOrExchangeDate) {
-          ctb.lastDeliveryOrExchangeDate = job.job_date;
-        }
-      }
-      if (job.job_date && isTipReturn(job.movement_type)) {
-        if (!ctb.lastTipReturnDate || job.job_date > ctb.lastTipReturnDate) {
-          ctb.lastTipReturnDate = job.job_date;
-        }
-      }
-      // Track the job number of the most recent keep movement (deliver/exchange/tip-return)
-      // so the over-rental row can display the establishing/last ticket number.
-      if (job.job_date && staysOnSite(job.movement_type)) {
-        if (!ctb.lastKeepDate || job.job_date > ctb.lastKeepDate) {
-          ctb.lastKeepDate = job.job_date;
-          ctb.lastKeepJobNumber = job.job_number;
-        }
-      }
-      if (job.job_date && isCollection(job.movement_type)) {
-        if (!ctb.lastCollectionDate || job.job_date > ctb.lastCollectionDate) {
-          ctb.lastCollectionDate = job.job_date;
-        }
-      }
-
-      const posKey = (job.ewc && job.ewc.trim()) || "__none__";
-      if (!ctb.positions[posKey]) {
-        ctb.positions[posKey] = {
-          delivered: 0,
-          collected: 0,
-          exchanged: 0,
-          tipReturn: 0,
-          lastKeepDate: null,
-          lastCollectionDate: null,
-          ewc: (job.ewc && job.ewc.trim()) || null,
-          wasteTypes: new Set(),
-        };
-      }
-      const pos = ctb.positions[posKey];
-      if (job.waste_description) pos.wasteTypes.add(job.waste_description);
-      if (isDelivery(job.movement_type)) pos.delivered++;
-      if (isCollection(job.movement_type)) pos.collected++;
-      if (isExchange(job.movement_type)) pos.exchanged++;
-      if (isTipReturn(job.movement_type)) pos.tipReturn++;
-      if (job.job_date && staysOnSite(job.movement_type)) {
-        if (!pos.lastKeepDate || job.job_date > pos.lastKeepDate) pos.lastKeepDate = job.job_date;
-      }
-      if (job.job_date && isCollection(job.movement_type)) {
-        if (!pos.lastCollectionDate || job.job_date > pos.lastCollectionDate) pos.lastCollectionDate = job.job_date;
-      }
-    }
-
-    if (isDelivery(job.movement_type)) siteMap[key].delivered++;
-    if (isCollection(job.movement_type)) siteMap[key].collected++;
-    if (isExchange(job.movement_type)) siteMap[key].exchanged++;
-
-    if (job.job_date && (isDelivery(job.movement_type) || isExchange(job.movement_type))) {
-      if (!siteMap[key].lastDeliveryOrExchangeDate || job.job_date > siteMap[key].lastDeliveryOrExchangeDate!) {
-        siteMap[key].lastDeliveryOrExchangeDate = job.job_date;
-      }
-    }
-    if (job.job_date && isTipReturn(job.movement_type)) {
-      if (!siteMap[key].lastTipReturnDate || job.job_date > siteMap[key].lastTipReturnDate!) {
-        siteMap[key].lastTipReturnDate = job.job_date;
-      }
-    }
-    if (job.job_date && isCollection(job.movement_type)) {
-      if (!siteMap[key].lastCollectionDate || job.job_date > siteMap[key].lastCollectionDate!) {
-        siteMap[key].lastCollectionDate = job.job_date;
-      }
-    }
-  }
-
-  const overRental: OverRentalBin[] = [];
-
-  for (const s of Object.values(siteMap)) {
-    if (s.category === "artic") continue;
-
-    const lastKeepDate = [s.lastDeliveryOrExchangeDate, s.lastTipReturnDate]
-      .filter((d): d is string => !!d)
-      .sort()
-      .pop() ?? null;
-    const collectionClearedIt = s.lastCollectionDate && lastKeepDate && s.lastCollectionDate >= lastKeepDate;
-    const daysSinceLastKeep = lastKeepDate ? differenceInDays(new Date(), new Date(lastKeepDate)) : null;
-    const netDeliveredOnSite = Object.values(s.containerTypeBreakdown).reduce(
-      (sum, ctb) => sum + typeNetOnSite(ctb.positions, windowStart),
-      0
-    );
-    const isOverRental =
-      daysSinceLastKeep !== null &&
-      daysSinceLastKeep > settings.rental_free_days &&
-      netDeliveredOnSite > 0 &&
-      !collectionClearedIt &&
-      // Exclude ancient ghost deliveries with no recent activity
-      lastKeepDate !== null &&
-      lastKeepDate >= windowStart;
-
-    if (!isOverRental) continue;
-
-    for (const [containerType, ctb] of Object.entries(s.containerTypeBreakdown)) {
-      const onSiteForType = typeNetOnSite(ctb.positions, windowStart);
-      if (onSiteForType <= 0) continue;
-      const ctbLastKeep = [ctb.lastDeliveryOrExchangeDate, ctb.lastTipReturnDate]
-        .filter((d): d is string => !!d)
-        .sort()
-        .pop() ?? null;
-      const days = ctbLastKeep ? differenceInDays(new Date(), new Date(ctbLastKeep)) : null;
-      if (days === null || days <= settings.rental_free_days) continue;
-      // This container type must itself have had recent activity (not an old ghost)
-      if (ctbLastKeep < windowStart) continue;
-
-      const binKey = `${s.site.toLowerCase().trim()}|||${containerType.toLowerCase().trim()}`;
-      overRental.push({
-        binKey,
-        customer: s.latestCustomer,
-        site: s.site,
-        category: s.category,
-        containerType,
-        netOnSite: onSiteForType,
-        daysSinceActivity: days,
-        lastActivityDate: ctbLastKeep,
-        lastJobNumber: ctb.lastKeepJobNumber,
-      });
-    }
-  }
-
-  overRental.sort((a, b) => (b.daysSinceActivity ?? 0) - (a.daysSinceActivity ?? 0));
-  return overRental;
+  return openRentalBins(jobs, settings, windowStart, categoriseContainer);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
