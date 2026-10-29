@@ -1196,7 +1196,7 @@ const LoadReportsPage = () => {
     (viewMode === "tally" || viewMode === "review") && jobNumber.trim().length > 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-[calc(100dvh-3.5rem)] overflow-auto bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="container mx-auto px-4 py-4">
