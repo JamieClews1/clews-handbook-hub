@@ -3,6 +3,9 @@ import { londonCalendarKey } from "./ui-calendar";
 import type { OverRentalBin, OverRentalJob } from "./overRental";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
+// Read the one status scalar rather than transferring every upload's raw row.
+export const RENTAL_JOB_FIELDS: string = "id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration,ewc,rental_status:raw->>Status";
+
 /** Match physical sizes, not spelling or a pricing 'Inc 3t' suffix. */
 export function rentalContainerKey(value: string): string {
   return value.toLowerCase()
@@ -23,11 +26,6 @@ export function isCompletedRentalMovement(job: OverRentalJob, today = londonCale
 }
 
 type Slot = { job: OverRentalJob; date: string; ewc: string };
-
-export function rentalMovementStatus(raw: unknown): string | null {
-  if (!raw || typeof raw !== "object" || !("Status" in raw)) return null;
-  return raw.Status == null ? null : String(raw.Status);
-}
 
 /** Replay physical movements so collections consume stock and exchanges replace
  * the old ticket, even when its EWC or container spelling changed. */

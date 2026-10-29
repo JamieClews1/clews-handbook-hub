@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import * as XLSX from "xlsx";
 import { format, startOfMonth, subMonths, differenceInDays } from "date-fns";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
-import { isCompletedRentalMovement, rentalMovementStatus } from "@/lib/rental-open-movements";
+import { isCompletedRentalMovement, RENTAL_JOB_FIELDS } from "@/lib/rental-open-movements";
 import { computeOverRentalBins, containerTypeCap } from "@/lib/overRental";
 
 type Job = {
@@ -27,6 +27,7 @@ type Job = {
   waste_description: string | null;
   vehicle_registration: string | null;
   ewc: string | null;
+  rental_status?: string | null;
 };
 
 type ContainerCategory = "skip" | "roro" | "artic";
@@ -139,13 +140,13 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration,ewc,raw")
+          .select(RENTAL_JOB_FIELDS)
           .eq("source", "skiptrak")
           .gte("job_date", since)
           .in("movement_type", ["Deliver", "Exchange", "Collect", "Tip/Return"])
           .order("job_date", { ascending: false })
           .order("id", { ascending: true })
-          .range(from, from + pageSize - 1);
+          .range(from, from + pageSize - 1).returns<Job[]>();
 
         if (error) { console.error(error); break; }
         allJobs = allJobs.concat((data ?? []) as Job[]);
@@ -153,7 +154,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         from += pageSize;
       }
 
-      setJobs(allJobs.map(job => ({ ...job, rental_status: rentalMovementStatus((job as Job & { raw?: unknown }).raw) })).filter(job => isCompletedRentalMovement(job)));
+      setJobs(allJobs.filter(job => isCompletedRentalMovement(job)));
       setLoading(false);
     };
     fetchJobs();

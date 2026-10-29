@@ -33,7 +33,7 @@ import { eligibleRentalAssignees } from "@/lib/rental-assignees";
 import { loadSeenMap, notesBadgeLabel, unreadNoteCount, type NoteStamp, type SeenMap } from "@/lib/rental-notes-unread";
 import { cleanEmail } from "@/lib/email-clean";
 import { loadRentalJobPages } from "@/lib/rental-job-loading";
-import { rentalMovementStatus } from "@/lib/rental-open-movements";
+import { RENTAL_JOB_FIELDS } from "@/lib/rental-open-movements";
 
 type Chase = {
   id: string;
@@ -150,14 +150,14 @@ export default function RentalsDashboard() {
       try {
         const all = await loadRentalJobPages((from, to) => supabase
           .from("data_hub_jobs")
-          .select("id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration,ewc,raw")
+          .select(RENTAL_JOB_FIELDS)
           .eq("source", "skiptrak")
           .gte("job_date", since)
           .in("movement_type", ["Deliver", "Exchange", "Collect", "Tip/Return"])
           .order("job_date", { ascending: false })
           .order("id", { ascending: true })
-          .range(from, to));
-        setJobs(all.map(job => ({ ...job, rental_status: rentalMovementStatus((job as OverRentalJob & { raw?: unknown }).raw) })));
+          .range(from, to).returns<OverRentalJob[]>());
+        setJobs(all);
       } catch (error) {
         console.error("Failed to load rental jobs", error);
         setJobsError(true);
