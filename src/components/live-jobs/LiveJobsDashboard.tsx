@@ -15,6 +15,8 @@ import { format, startOfMonth, subMonths, differenceInDays } from "date-fns";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 import { isCompletedRentalMovement, RENTAL_JOB_FIELDS } from "@/lib/rental-open-movements";
 import { computeOverRentalBins, containerTypeCap } from "@/lib/overRental";
+import { loadRentalJobPages } from "@/lib/rental-job-loading";
+import { agreementCoversBin, type RentalCoverage } from "@/lib/rental-agreements";
 
 type Job = {
   id: string;
@@ -120,9 +122,13 @@ function typeNetOnSite(positions: Record<string, PosCounts> | undefined): number
 export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSettings }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [jobsError, setJobsError] = useState(false);
+  const [jobsReload, setJobsReload] = useState(0);
   // Bins staff have manually confirmed as collected in the Rentals section. These are
   // hidden from the over-rental list here too, so Live Jobs and Rentals match exactly.
   const [collectedBinKeys, setCollectedBinKeys] = useState<Set<string>>(new Set());
+  const [ownBinKeys, setOwnBinKeys] = useState<Set<string>>(new Set());
+  const [agreements, setAgreements] = useState<RentalCoverage[]>([]);
   // Customer-owned skips we service regularly (flagged in Rentals). These sites are
   // treated as live in the lookup even when deliveries/collections don't balance.
   const [ownSkipSites, setOwnSkipSites] = useState<{ key: string; site: string | null; customer: string | null; containerType: string | null }[]>([]);
@@ -130,15 +136,11 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
   useEffect(() => {
     const fetchJobs = async () => {
       setLoading(true);
+      setJobsError(false);
       // Fetch last 12 months of skiptrak data
       const since = format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
-      let allJobs: Job[] = [];
-      let from = 0;
-      const pageSize = 1000;
-      let hasMore = true;
-
-      while (hasMore) {
-        const { data, error } = await supabase
+      try {
+        const allJobs = await loadRentalJobPages((from, to) => supabase
           .from("data_hub_jobs")
           .select(RENTAL_JOB_FIELDS)
           .eq("source", "skiptrak")
@@ -146,18 +148,21 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           .in("movement_type", ["Deliver", "Exchange", "Collect", "Tip/Return"])
           .order("job_date", { ascending: false })
           .order("id", { ascending: true })
-          .range(from, from + pageSize - 1).returns<Job[]>();
-
-        if (error) { console.error(error); break; }
-        allJobs = allJobs.concat((data ?? []) as Job[]);
-        hasMore = (data?.length ?? 0) === pageSize;
-        from += pageSize;
+          .range(from, to).returns<Job[]>());
+        setJobs(allJobs.filter(job => isCompletedRentalMovement(job)));
+      } catch (error) {
+        console.error("Failed to load live jobs", error);
+        setJobsError(true);
+      } finally {
+        setLoading(false);
       }
-
-      setJobs(allJobs.filter(job => isCompletedRentalMovement(job)));
-      setLoading(false);
     };
     fetchJobs();
+
+    supabase.from("rental_agreements")
+      .select("customer,site,container_type,start_date,end_date,status,rental_mode")
+      .eq("status", "active")
+      .then(({ data }) => setAgreements(data ?? []));
 
     supabase
       .from("rental_chases")
@@ -169,15 +174,16 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       .from("rental_chases")
       .select("bin_key,site,customer,container_type")
       .eq("own_skip", true)
-      .then(({ data }) =>
+      .then(({ data }) => {
+        setOwnBinKeys(new Set((data ?? []).map(row => row.bin_key)));
         setOwnSkipSites((data ?? []).map((r: any) => ({
           key: String(r.bin_key).split("|||")[0],
           site: r.site,
           customer: r.customer,
           containerType: r.container_type,
-        })))
-      );
-  }, []);
+        })));
+      });
+  }, [jobsReload]);
 
 
   // ── Compute live containers (net on-site per customer+site) ──
@@ -408,7 +414,9 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
     // Uses the shared computeOverRentalBins so the Rentals section produces IDENTICAL
     // results (same data window, same logic). Do not reimplement inline.
     // Also hide bins staff manually confirmed as collected in Rentals, so both views match.
-    const overRental = computeOverRentalBins(jobs, settings).filter(b => !collectedBinKeys.has(b.binKey));
+    const overRental = computeOverRentalBins(jobs, settings).filter(b =>
+      !collectedBinKeys.has(b.binKey) && !ownBinKeys.has(b.binKey)
+      && !agreements.some(agreement => agreementCoversBin(agreement, b)));
 
     return {
       liveSites: live,
@@ -418,7 +426,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       recentActivity: recentJobs.slice(0, 100),
       overRentalSites: overRental,
     };
-  }, [jobs, settings, collectedBinKeys]);
+  }, [jobs, settings, collectedBinKeys, ownBinKeys, agreements]);
 
   const skipSites = useMemo(() => liveSites.filter(s => s.category === "skip"), [liveSites]);
   const roroSites = useMemo(() => liveSites.filter(s => s.category === "roro"), [liveSites]);
@@ -446,6 +454,13 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         <Skeleton className="h-80 rounded-xl" />
       </div>
     );
+  }
+
+  if (jobsError) {
+    return <div role="alert" className="space-y-3 text-destructive">
+      <p>Could not load all container movements. Over-rental totals are unavailable.</p>
+      <Button variant="outline" onClick={() => setJobsReload(value => value + 1)}>Try again</Button>
+    </div>;
   }
 
   function downloadLiveJobsExcel() {
