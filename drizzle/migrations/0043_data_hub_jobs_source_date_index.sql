@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS idx_data_hub_jobs_source_job_date ON public.data_hub_jobs USING btree (source, job_date);
