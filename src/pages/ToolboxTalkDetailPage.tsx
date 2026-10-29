@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import jsPDF from "jspdf";
 import { useUnicodeFont } from "@/lib/pdf-fonts";
+import { appendToolboxTalkSignatures } from "@/lib/toolbox-talk-signatures";
+import { loadToolboxTalkSignatures } from "@/lib/load-toolbox-talk-signatures";
 
 const LANGUAGES = [
   { code: "EN", label: "English" },
@@ -99,7 +101,9 @@ const generateCompactPDF = async (
   refCode: string,
   createdDate: string,
   userTypes: string[],
-  langLabel: string
+  langLabel: string,
+  includeSignatures = false,
+  talkId?: string
 ) => {
   const pdf = new jsPDF({ unit: "mm", format: "a4" });
   const font = await useUnicodeFont(pdf);
@@ -190,6 +194,10 @@ const generateCompactPDF = async (
   }
 
   // --- Signature section ---
+  if (includeSignatures && talkId) {
+    const signatures = await loadToolboxTalkSignatures(talkId);
+    appendToolboxTalkSignatures(pdf, `${refCode} — ${title}`, signatures, font);
+  } else {
   const sigHeight = 60;
   addPageIfNeeded(sigHeight);
 
@@ -236,6 +244,8 @@ const generateCompactPDF = async (
       pdf.setFontSize(7);
       pdf.setTextColor(100, 100, 100);
     }
+  }
+
   }
 
   // Footer
@@ -325,13 +335,13 @@ const ToolboxTalkDetailPage = () => {
     }
   };
 
-  const handlePrint = async () => {
+  const handlePrint = async (includeSignatures = false) => {
     if (!talk) return;
     setIsPrinting(true);
     try {
       const langLabel = LANGUAGES.find(l => l.code === selectedLanguage)?.label || "English";
-      const pdf = await generateCompactPDF(displayTitle, displayContent, talk.reference_code, talk.created_date, talk.user_types, langLabel);
-      pdf.save(`${talk.title.replace(/[^a-z0-9]/gi, "_")}_${selectedLanguage}.pdf`);
+      const pdf = await generateCompactPDF(displayTitle, displayContent, talk.reference_code, talk.created_date, talk.user_types, langLabel, includeSignatures, talk.id);
+      pdf.save(`${talk.title.replace(/[^a-z0-9]/gi, "_")}_${selectedLanguage}${includeSignatures ? "_Signed" : ""}.pdf`);
       toast({ title: "Success", description: "PDF generated successfully" });
     } catch (error) {
       console.error("Error generating PDF:", error);
@@ -428,11 +438,17 @@ const ToolboxTalkDetailPage = () => {
                 )}
               </div>
             </div>
-            <div className="flex gap-1.5 shrink-0">
-              <Button variant="outline" size="sm" onClick={handlePrint} disabled={isPrinting} className="h-8 gap-1 text-xs">
+            <div className="flex gap-1.5 flex-wrap justify-end">
+              <Button variant="outline" size="sm" onClick={() => handlePrint()} disabled={isPrinting} className="h-8 gap-1 text-xs">
                 {isPrinting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Printer className="h-3 w-3" />}
                 PDF
               </Button>
+              {isAdmin && (
+                <Button variant="outline" size="sm" onClick={() => handlePrint(true)} disabled={isPrinting} className="h-8 gap-1 text-xs">
+                  {isPrinting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Printer className="h-3 w-3" />}
+                  PDF with signatures
+                </Button>
+              )}
               {!isSigned && (
                 <Button size="sm" onClick={() => setShowSignDialog(true)} className="h-8 text-xs">
                   Sign Off
