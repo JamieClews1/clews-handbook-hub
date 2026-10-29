@@ -33,6 +33,7 @@ Imported exchange pricing copies only explicit source booking charges, never der
 - Rental note history is append-only and authors are stamped from the authenticated user in database triggers, including edits to legacy notes; No Rental is an agreement mode with a server-enforced zero rate, and covered-container tracking reuses the shared physical-balance calculator without the chase free-period threshold.
 - Rental assignment menus share a profiles/staff-role eligibility helper; a database trigger validates new assignees to prevent alternate writes bypassing eligibility.
 - Rental job pagination must succeed in full before publishing results; failed reads show a retry state, never an empty or partial rental count.
+- Rentals and Live Jobs share chronological physical-container replay: completed historical movements only, spelling/price-suffix size matching, collections consume slots and exchanges replace tickets, so closed tickets cannot be chased and replacement rental clocks remain independent.
 - Sign-in and staff-role checks use withTimeout and show Try again / Sign out on failure, so a stalled request never leaves an endless spinner.
 - Customer recovery uses the public /reset-password page and Auth recovery emails; recovery events bypass staff landing pages so links cannot skip password entry.
 - Data Uploads write only new or changed rows (rowNeedsWrite) and list orphans by id first; repeat full-file uploads must not rewrite unchanged data, which exhausted the database disk budget.

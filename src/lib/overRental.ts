@@ -9,7 +9,7 @@ import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
 export type OverRentalJob = {
   id: string;
-  raw?: { Status?: unknown } | null;
+  rental_status?: string | null;
   job_number: string;
   job_date: string | null;
   customer: string | null;

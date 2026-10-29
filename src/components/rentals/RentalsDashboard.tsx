@@ -149,7 +149,7 @@ export default function RentalsDashboard() {
       try {
         const all = await loadRentalJobPages((from, to) => supabase
           .from("data_hub_jobs")
-          .select("id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration,ewc,raw")
+          .select("id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration,ewc,rental_status:raw->>Status")
           .eq("source", "skiptrak")
           .gte("job_date", since)
           .in("movement_type", ["Deliver", "Exchange", "Collect", "Tip/Return"])

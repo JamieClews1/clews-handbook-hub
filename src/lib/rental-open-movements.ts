@@ -16,7 +16,7 @@ export function rentalContainerKey(value: string): string {
 
 export function isCompletedRentalMovement(job: OverRentalJob, today = londonCalendarKey()): boolean {
   if (!job.job_date || !parseLoadReportDate(job.job_date) || job.job_date > today) return false;
-  const status = String(job.raw?.Status ?? "").trim().toUpperCase();
+  const status = String(job.rental_status ?? "").trim().toUpperCase();
   // Older uploads omitted Status. Retain their historical movements, but never
   // count explicitly uncompleted/query/void bookings as physical movements.
   return status === "" || status === "Y";
