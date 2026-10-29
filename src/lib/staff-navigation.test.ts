@@ -30,6 +30,14 @@ it("rebates sits under Customers & Sales and keeps the finance gate", () => {
   assert.equal(navigationAllowed(item, { ...staff, canAccessFinance: true }), true);
   assert.equal(navigationActive(item.path, "/rebate-values"), true);
 });
+it("load reports sits under Customers & Sales and selects only itself", () => {
+  const group = STAFF_NAV_GROUPS.find(g => g.key === "nav-customers-sales");
+  const item = group?.items.find(i => i.path === "/load-reports");
+  assert.ok(item);
+  assert.equal(navigationAllowed(item, staff), true);
+  assert.equal(navigationActive(item.path, "/load-reports"), true);
+  assert.deepEqual(all.filter(i => navigationActive(i.path, "/load-reports")).map(i => i.path), ["/load-reports"]);
+});
 it("weighbridge pricing has its own active destination", () => {
   assert.equal(navigationActive("/weigh-one", "/weigh-one/pricing"), false);
   assert.equal(navigationActive("/weigh-one/pricing", "/weigh-one/pricing"), true);
