@@ -16,6 +16,7 @@ import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 import { isCompletedRentalMovement, RENTAL_JOB_FIELDS } from "@/lib/rental-open-movements";
 import { computeOverRentalBins, containerTypeCap } from "@/lib/overRental";
 import { loadRentalJobPages } from "@/lib/rental-job-loading";
+import { agreementCoversBin, type RentalCoverage } from "@/lib/rental-agreements";
 
 type Job = {
   id: string;
@@ -126,6 +127,8 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
   // Bins staff have manually confirmed as collected in the Rentals section. These are
   // hidden from the over-rental list here too, so Live Jobs and Rentals match exactly.
   const [collectedBinKeys, setCollectedBinKeys] = useState<Set<string>>(new Set());
+  const [ownBinKeys, setOwnBinKeys] = useState<Set<string>>(new Set());
+  const [agreements, setAgreements] = useState<RentalCoverage[]>([]);
   // Customer-owned skips we service regularly (flagged in Rentals). These sites are
   // treated as live in the lookup even when deliveries/collections don't balance.
   const [ownSkipSites, setOwnSkipSites] = useState<{ key: string; site: string | null; customer: string | null; containerType: string | null }[]>([]);
@@ -156,6 +159,11 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
     };
     fetchJobs();
 
+    supabase.from("rental_agreements")
+      .select("customer,site,container_type,start_date,end_date,status,rental_mode")
+      .eq("status", "active")
+      .then(({ data }) => setAgreements(data ?? []));
+
     supabase
       .from("rental_chases")
       .select("bin_key")
@@ -166,14 +174,15 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       .from("rental_chases")
       .select("bin_key,site,customer,container_type")
       .eq("own_skip", true)
-      .then(({ data }) =>
+      .then(({ data }) => {
+        setOwnBinKeys(new Set((data ?? []).map(row => row.bin_key)));
         setOwnSkipSites((data ?? []).map((r: any) => ({
           key: String(r.bin_key).split("|||")[0],
           site: r.site,
           customer: r.customer,
           containerType: r.container_type,
-        })))
-      );
+        })));
+      });
   }, [jobsReload]);
 
 
@@ -405,7 +414,9 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
     // Uses the shared computeOverRentalBins so the Rentals section produces IDENTICAL
     // results (same data window, same logic). Do not reimplement inline.
     // Also hide bins staff manually confirmed as collected in Rentals, so both views match.
-    const overRental = computeOverRentalBins(jobs, settings).filter(b => !collectedBinKeys.has(b.binKey));
+    const overRental = computeOverRentalBins(jobs, settings).filter(b =>
+      !collectedBinKeys.has(b.binKey) && !ownBinKeys.has(b.binKey)
+      && !agreements.some(agreement => agreementCoversBin(agreement, b)));
 
     return {
       liveSites: live,
@@ -415,7 +426,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       recentActivity: recentJobs.slice(0, 100),
       overRentalSites: overRental,
     };
-  }, [jobs, settings, collectedBinKeys]);
+  }, [jobs, settings, collectedBinKeys, ownBinKeys, agreements]);
 
   const skipSites = useMemo(() => liveSites.filter(s => s.category === "skip"), [liveSites]);
   const roroSites = useMemo(() => liveSites.filter(s => s.category === "roro"), [liveSites]);
