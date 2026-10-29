@@ -27,6 +27,8 @@
 - [ ] 10. End-to-end test with a real booking (blocked: needs a real job booked, driven and weighed by your team)
 - [x] Repair customer reset email requests and add public recovery page; request API returns 200, invalid links rejected, six tests pass, preview build clean, create-user deployed.
 - [ ] Verify delivery and password saving from a real customer reset email (blocked: customer inbox/link unavailable; customer-facing page changes need publishing).
+- [x] Keep the load report job/ticket number pinned small at the top while tallying items and reviewing; page header now stays on screen while scrolling and is opaque. Signed-in tally and review verified with no page errors.
+
 - [x] Limit the P&L access list to active office staff; Jamie-only management and existing grants retained. Five authenticated tests pass and Jamie’s settings list verified.
 - [x] Add Jamie-only P&L access management; signed-in grant/revoke save and reload verified, original permissions restored; staff read only, Jamie imports.
 - [x] Add private P&L Year-on-Year tracker with revenue/cost selection, matched months and bar charts; 25 tests pass and signed-in Waste Income/Diesel, complete-year and missing-month controls verified against real worksheets.

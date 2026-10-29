@@ -3,7 +3,7 @@ import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Truck } from "lucide-react";
+import { ArrowLeft, Truck, Hash } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getWeighbridgeSource } from "@/lib/weighbridge-source";
 import { getTodayLoadReportDate, normalizeLoadReportDate } from "@/lib/load-report-dates";
@@ -1189,10 +1189,16 @@ const LoadReportsPage = () => {
     }
   };
 
+  // Small always-visible ticket reference while tallying / reviewing a load.
+  const selectedSiteName = sites.find((s) => s.id === selectedSiteId)?.site_name || "";
+  const jobStripLabel = selectedCustomer === "evri" ? "Ticket" : "Job";
+  const showJobStrip =
+    (viewMode === "tally" || viewMode === "review") && jobNumber.trim().length > 0;
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-[calc(100dvh-3.5rem)] overflow-auto bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
+      <header className="sticky top-0 z-50 bg-background border-b border-border/50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1223,6 +1229,21 @@ const LoadReportsPage = () => {
               />
             </div>
           </div>
+
+          {showJobStrip && (
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-background px-2 py-0.5 font-semibold text-foreground tabular-nums">
+                <Hash className="h-3 w-3" />
+                {jobStripLabel} {jobNumber.trim()}
+              </span>
+              {selectedSiteName && (
+                <span className="max-w-[40ch] truncate">{selectedSiteName}</span>
+              )}
+              {vehicleReg.trim() && (
+                <span className="uppercase">{vehicleReg.trim()}</span>
+              )}
+            </div>
+          )}
         </div>
       </header>
 
