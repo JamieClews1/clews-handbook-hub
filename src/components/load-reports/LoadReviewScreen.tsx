@@ -88,6 +88,7 @@ export const LoadReviewScreen = ({
     const colors: Record<string, string> = {
       "Waste": "bg-red-100 dark:bg-red-950/30",
       "Wood": "bg-amber-100 dark:bg-amber-950/30",
+      "Other": "bg-slate-100 dark:bg-slate-950/30",
     };
     return colors[wasteType] || "";
   };
