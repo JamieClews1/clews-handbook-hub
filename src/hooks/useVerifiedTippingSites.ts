@@ -15,9 +15,15 @@ export interface VerifiedTippingSite {
   notes: string | null;
   created_by: string | null;
   created_at: string;
+  register_details?: RegisterDetails | null;
+  register_checked_at?: string | null;
 }
 
-export type NewVerifiedTippingSite = Omit<VerifiedTippingSite, "id" | "created_at" | "created_by">;
+export interface RegisterPermit { permit_number: string; licence_holder: string | null; site_name: string | null; facility_type: string | null; status: string | null; holder_match?: boolean }
+export interface RegisterCarrier { business_name: string; registration_number: string; postcode: string | null; company_type: string | null; tier: string | null }
+export interface RegisterDetails { permits?: RegisterPermit[]; carriers?: RegisterCarrier[] }
+
+export type NewVerifiedTippingSite = Omit<VerifiedTippingSite, "id" | "created_at" | "created_by" | "register_details" | "register_checked_at">;
 
 export function useVerifiedTippingSites() {
   return useQuery({
