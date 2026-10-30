@@ -55,6 +55,13 @@ export function outgoingStream(ewc: string | null | undefined, description?: str
 /** Midweigh weighbridge weights are stored in kilograms. */
 export const midweighRowTonnes = (row: { weight_t?: number | null }) => (row.weight_t ?? 0) / 1000;
 
+/** A missing/zero denominator cannot establish a meaningful percentage. */
+export const outgoingPercentage = (out: number, incoming: number): number | null =>
+  incoming > 0 ? (out / incoming) * 100 : null;
+
+export const outgoingYearChange = (current: number, previous: number): number | null =>
+  previous > 0 ? ((current - previous) / previous) * 100 : null;
+
 export const LANDFILL_STREAM = "Landfill";
 export const RDF_STREAM = "Waste RDF";
 

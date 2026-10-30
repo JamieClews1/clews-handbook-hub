@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { outgoingStream, outgoingHeadlineTotals, midweighRowTonnes as tonnes } from "@/lib/outgoing-waste-streams";
+import { outgoingStream, outgoingHeadlineTotals, outgoingPercentage, outgoingYearChange, midweighRowTonnes as tonnes } from "@/lib/outgoing-waste-streams";
 
 type Row = { job_number: string; job_date: string; ewc: string | null; waste_description: string | null; customer: string | null; weight_t: number | null; product: string | null };
 
@@ -42,6 +42,7 @@ const OutgoingWastes = () => {
   const out = useQuery({ queryKey: ["outgoing-wastes", year], queryFn: () => fetchYear(year, "WASTEOUT") });
   const prev = useQuery({ queryKey: ["outgoing-wastes", year - 1], queryFn: () => fetchYear(year - 1, "WASTEOUT") });
   const inc = useQuery({ queryKey: ["incoming-wastes-total", year], queryFn: () => fetchYear(year, "IN") });
+  const prevInc = useQuery({ queryKey: ["incoming-wastes-total", year - 1], queryFn: () => fetchYear(year - 1, "IN") });
 
   const data = useMemo(() => {
     const rows = out.data ?? [];
@@ -70,19 +71,29 @@ const OutgoingWastes = () => {
     const total = rows.reduce((a, r) => a + tonnes(r), 0);
     const prevTotal = (prev.data ?? []).reduce((a, r) => a + tonnes(r), 0);
     const inTotal = (inc.data ?? []).reduce((a, r) => a + tonnes(r), 0);
+    const prevInTotal = (prevInc.data ?? []).reduce((a, r) => a + tonnes(r), 0);
     const headlines = outgoingHeadlineTotals(rows);
     const prevHeadlines = outgoingHeadlineTotals(prev.data ?? []);
     return {
-      total, prevTotal, inTotal, loads: rows.length, headlines, prevHeadlines,
+      total, prevTotal, inTotal, prevInTotal, loads: rows.length, prevLoads: prev.data?.length ?? 0, headlines, prevHeadlines,
 
       streams: [...streams.entries()].map(([name, v]) => ({ name, ...v })).sort((a, b) => b.t - a.t),
-      dest: [...dest.entries()].map(([name, v]) => ({ name, loads: v.loads, t: v.t, streams: [...v.streams].join(", ") })).sort((a, b) => b.t - a.t),
+      dest: [...new Set([...dest.keys(), ...prevDest.keys()])].map((name) => {
+        const v = dest.get(name);
+        return { name, loads: v?.loads ?? 0, t: v?.t ?? 0, prev: prevDest.get(name) ?? 0, streams: [...(v?.streams ?? [])].join(", ") };
+      }).sort((a, b) => b.t - a.t),
       monthly: monthly.map((m) => ({ ...m, [String(year)]: Math.round(m[String(year)] as number), [String(year - 1)]: Math.round(m[String(year - 1)] as number) })),
     };
-  }, [out.data, prev.data, inc.data, year]);
+  }, [out.data, prev.data, inc.data, prevInc.data, year]);
 
-  const loading = out.isLoading || prev.isLoading || inc.isLoading;
-  const change = (a: number, b: number) => (b > 0 ? `${a >= b ? "+" : ""}${(((a - b) / b) * 100).toFixed(1)}%` : "—");
+  const loading = out.isLoading || prev.isLoading || inc.isLoading || prevInc.isLoading;
+  const change = (a: number, b: number) => {
+    const value = outgoingYearChange(a, b);
+    return value === null ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
+  };
+  const outToIn = outgoingPercentage(data.headlines.total, data.inTotal);
+  const previousOutToIn = outgoingPercentage(data.prevHeadlines.total, data.prevInTotal);
+  const comparison = (current: number, previous: number, unit = "t") => `${year - 1}: ${t(previous)}${unit} · YoY ${change(current, previous)}`;
 
   return (
     <div className="space-y-6">
@@ -99,8 +110,8 @@ const OutgoingWastes = () => {
 
       {loading ? (
         <Card><CardContent className="py-10 text-center text-muted-foreground">Loading outgoing wastes…</CardContent></Card>
-      ) : out.error ? (
-        <Card><CardContent className="py-10 text-center text-destructive">Couldn't load outgoing loads. Please try again.</CardContent></Card>
+      ) : out.error || prev.error || inc.error || prevInc.error ? (
+        <Card><CardContent className="py-10 text-center text-destructive">Couldn't load the complete annual waste figures. Please try again.</CardContent></Card>
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-3">
@@ -108,17 +119,21 @@ const OutgoingWastes = () => {
               {
                 label: "Total tonnes out",
                 value: t(data.headlines.total),
-                note: `${data.loads.toLocaleString("en-GB")} loads · vs ${year - 1} ${change(data.headlines.total, data.prevHeadlines.total)}`,
+                note: `${data.loads.toLocaleString("en-GB")} loads`,
+                comparison: comparison(data.headlines.total, data.prevHeadlines.total),
+                showIncoming: true,
               },
               {
                 label: "Zero to landfill",
                 value: t(data.headlines.zeroToLandfill),
                 note: `${data.headlines.total ? ((data.headlines.zeroToLandfill / data.headlines.total) * 100).toFixed(1) : "0"}% of tonnes out · landfill ${t(data.headlines.landfill)}t`,
+                comparison: comparison(data.headlines.zeroToLandfill, data.prevHeadlines.zeroToLandfill),
               },
               {
                 label: "Recycling",
                 value: t(data.headlines.recycling),
                 note: `${data.headlines.total ? ((data.headlines.recycling / data.headlines.total) * 100).toFixed(1) : "0"}% of tonnes out · excludes landfill and RDF ${t(data.headlines.rdf)}t`,
+                comparison: comparison(data.headlines.recycling, data.prevHeadlines.recycling),
               },
             ].map((c) => (
               <Card key={c.label}>
@@ -126,6 +141,18 @@ const OutgoingWastes = () => {
                   <p className="text-sm text-muted-foreground">{c.label}</p>
                   <p className="text-2xl font-semibold tabular-nums">{c.value}</p>
                   <p className="mt-1 text-xs text-muted-foreground">{c.note}</p>
+                  <p className="mt-2 text-xs tabular-nums text-muted-foreground">{c.comparison}</p>
+                  {c.showIncoming && (
+                    <div className="mt-3 border-t border-border pt-3">
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <span className="text-sm font-semibold text-primary">Waste in (yard)</span>
+                        <span className="text-lg font-semibold tabular-nums text-primary">{t(data.inTotal)}t</span>
+                      </div>
+                      <p className="text-xs tabular-nums text-muted-foreground">{comparison(data.inTotal, data.prevInTotal)}</p>
+                      <p className="mt-2 text-sm font-semibold tabular-nums">Waste out = {outToIn === null ? "—" : `${outToIn.toFixed(1)}%`} of waste in</p>
+                      <p className="text-xs tabular-nums text-muted-foreground">{year - 1}: {previousOutToIn === null ? "—" : `${previousOutToIn.toFixed(1)}%`} of waste in</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -133,11 +160,11 @@ const OutgoingWastes = () => {
 
           <div className="grid gap-4 sm:grid-cols-3">
             {[
-              ["Loads out", data.loads.toLocaleString("en-GB")],
-              ["RDF out (tonnes)", t(data.headlines.rdf)],
-              ["Tonnes in (yard)", t(data.inTotal)],
-            ].map(([label, value]) => (
-              <Card key={label}><CardContent className="pt-5"><p className="text-sm text-muted-foreground">{label}</p><p className="text-2xl font-semibold tabular-nums">{value}</p></CardContent></Card>
+              ["Loads out", data.loads.toLocaleString("en-GB"), comparison(data.loads, data.prevLoads, "")],
+              ["RDF out (tonnes)", t(data.headlines.rdf), comparison(data.headlines.rdf, data.prevHeadlines.rdf)],
+              ["Tonnes in (yard)", t(data.inTotal), comparison(data.inTotal, data.prevInTotal)],
+            ].map(([label, value, prior]) => (
+              <Card key={label}><CardContent className="pt-5"><p className="text-sm text-muted-foreground">{label}</p><p className="text-2xl font-semibold tabular-nums">{value}</p><p className="mt-2 text-xs tabular-nums text-muted-foreground">{prior}</p></CardContent></Card>
             ))}
           </div>
 
@@ -186,6 +213,7 @@ const OutgoingWastes = () => {
               <Table>
                 <TableHeader><TableRow>
                   <TableHead>Destination</TableHead><TableHead>Streams</TableHead><TableHead className="text-right">Loads</TableHead><TableHead className="text-right">Tonnes</TableHead>
+                  <TableHead className="text-right">{year - 1} tonnes</TableHead><TableHead className="text-right">Change</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {data.dest.map((d) => (
@@ -194,6 +222,8 @@ const OutgoingWastes = () => {
                       <TableCell className="text-muted-foreground text-sm">{d.streams}</TableCell>
                       <TableCell className="text-right tabular-nums">{d.loads}</TableCell>
                       <TableCell className="text-right tabular-nums">{t(d.t)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{t(d.prev)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{change(d.t, d.prev)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
