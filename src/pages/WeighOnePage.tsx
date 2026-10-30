@@ -261,6 +261,10 @@ const WeighOnePage = () => {
   const [formData, setFormData] = useState(emptyForm);
   const [arrivingJob, setArrivingJob] = useState<ArrivingJob | null>(null);
   const isWasteOut = formData.job_type === "waste_out";
+  const [containerGroupOpen, setContainerGroupOpen] = useState<string | null>(null);
+  useEffect(() => {
+    if (isWasteOut && formData.vehicle_type) setContainerGroupOpen(formData.vehicle_type);
+  }, [isWasteOut, formData.vehicle_type]);
   const [outProductId, setOutProductId] = useState("");
   const { data: outgoingSites = [] } = useTippingSites();
   /** Prefill the weigh-in from a RouteOne job so nothing is retyped. */
