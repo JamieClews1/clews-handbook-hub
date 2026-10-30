@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { outgoingStream } from "@/lib/outgoing-waste-streams";
+import { outgoingStream, outgoingHeadlineTotals, midweighRowTonnes as tonnes } from "@/lib/outgoing-waste-streams";
 
 type Row = { job_number: string; job_date: string; ewc: string | null; waste_description: string | null; customer: string | null; weight_t: number | null; product: string | null };
 
@@ -33,9 +33,8 @@ async function fetchYear(year: number, jobType: "WASTEOUT" | "IN"): Promise<Row[
   return all.filter((r) => (seen.has(r.job_number) ? false : (seen.add(r.job_number), true)));
 }
 
-const tonnes = (r: Row) => (r.weight_t ?? 0) / 1000; // Midweigh stores kg
-
 const OutgoingWastes = () => {
+
   const thisYear = new Date().getFullYear();
   const [year, setYear] = useState(thisYear);
   const years = [thisYear, thisYear - 1, thisYear - 2];
