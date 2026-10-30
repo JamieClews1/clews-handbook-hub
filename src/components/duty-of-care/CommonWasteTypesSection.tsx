@@ -1,19 +1,40 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useEwcCodes } from "@/hooks/useCodeRegisters";
 import { normaliseEwcCode } from "@/lib/code-registers";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import wasteOut from "@/data/midweigh-waste-out-types.json";
 
 type Part = { name: string; loads: number; tonnes: number };
 type Row = { ewc: string; description: string; loads: number; tonnes: number; products: Part[]; destinations: Part[] };
+type SortKey = "code" | "loads" | "tonnes" | "share";
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: "code", label: "Waste code (number)" },
+  { value: "tonnes", label: "Tonnes" },
+  { value: "loads", label: "Loads" },
+  { value: "share", label: "Share of total" },
+];
 
 const fmtT = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 1 });
 const fmtDate = (d: string) => new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
+const ewcNumber = (ewc: string) => Number(ewc.replace(/[^0-9]/g, ""));
+
 export function CommonWasteTypesSection() {
   const { data: codes = [] } = useEwcCodes(true);
+  const [sortBy, setSortBy] = useState<SortKey>("code");
   const register = useMemo(() => new Map(codes.map(c => [c.code.replace(/[^0-9]/g, ""), c])), [codes]);
-  const rows = wasteOut.rows as Row[];
+  const sorted = useMemo(() => {
+    const rows = [...(wasteOut.rows as Row[])];
+    rows.sort((a, b) => {
+      if (sortBy === "code") return ewcNumber(a.ewc) - ewcNumber(b.ewc);
+      if (sortBy === "loads") return b.loads - a.loads;
+      if (sortBy === "tonnes") return b.tonnes - a.tonnes;
+      return b.tonnes / wasteOut.tonnes - a.tonnes / wasteOut.tonnes;
+    });
+    return rows;
+  }, [sortBy]);
 
   return <section className="space-y-3">
     <div>
