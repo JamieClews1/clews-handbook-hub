@@ -36,8 +36,8 @@ export function WasteProductsSection({ isAdmin }: { isAdmin: boolean }) {
 
   return <section className="space-y-3">
     <div>
-      <h2 className="text-xl font-semibold">Products</h2>
-      <p className="text-sm text-muted-foreground">Each product name as recorded on Midweigh tickets, with a clear name and its usual waste code. {review > 0 && <strong className="text-foreground">{review} need review.</strong>} Changes here don't alter past tickets.</p>
+      <h2 className="text-xl font-semibold">Waste Out Products</h2>
+      <p className="text-sm text-muted-foreground">Each product name as recorded on weighbridge tickets, with a clear name and its usual waste code. {review > 0 && <strong className="text-foreground">{review} need review.</strong>} Changes here don't alter past tickets.</p>
     </div>
     <div className="flex flex-wrap gap-2">
       <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Search product or waste code" className="max-w-sm" aria-label="Search products" />

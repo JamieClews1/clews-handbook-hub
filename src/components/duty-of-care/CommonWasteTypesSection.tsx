@@ -38,9 +38,9 @@ export function CommonWasteTypesSection() {
 
   return <section className="space-y-3">
     <div>
-      <h2 className="text-xl font-semibold">Most common waste types · Waste Out</h2>
+      <h2 className="text-xl font-semibold">Waste Types</h2>
       <p className="text-sm text-muted-foreground">
-        From the Midweigh export, {fmtDate(wasteOut.from)} – {fmtDate(wasteOut.to)}: {wasteOut.loads.toLocaleString()} Waste Out loads, {fmtT(wasteOut.tonnes)} tonnes, grouped by EWC code.
+        Waste Out loads from {fmtDate(wasteOut.from)} – {fmtDate(wasteOut.to)}: {wasteOut.loads.toLocaleString()} loads, {fmtT(wasteOut.tonnes)} tonnes, grouped by EWC code — one method for every weighbridge source.
       </p>
     </div>
     <div className="flex items-center justify-end gap-2">

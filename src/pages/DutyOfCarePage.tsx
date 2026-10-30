@@ -123,10 +123,17 @@ const DutyOfCarePage = () => {
             <PublicRegisterSection />
           </TabsContent>
 
-          <TabsContent value="ewc" className="space-y-10">
-            <CommonWasteTypesSection />
-            <WasteProductsSection isAdmin={isAdmin} />
-            <EwcRegisterSection isAdmin={isAdmin} />
+          <TabsContent value="ewc">
+            <Tabs defaultValue="types" className="space-y-6">
+              <TabsList>
+                <TabsTrigger value="types">Waste Types</TabsTrigger>
+                <TabsTrigger value="products">Waste Out Products</TabsTrigger>
+                <TabsTrigger value="register">EWC Code Register</TabsTrigger>
+              </TabsList>
+              <TabsContent value="types"><CommonWasteTypesSection /></TabsContent>
+              <TabsContent value="products"><WasteProductsSection isAdmin={isAdmin} /></TabsContent>
+              <TabsContent value="register"><EwcRegisterSection isAdmin={isAdmin} /></TabsContent>
+            </Tabs>
           </TabsContent>
 
           {isAdmin && (
