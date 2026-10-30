@@ -2014,6 +2014,9 @@ export function CustomerSetupAdmin() {
                                         onCheckedChange={(v) => toggleSiteAccess(m.id, s.id, Boolean(v))}
                                       />
                                       <span className="text-sm">{s.site_name}</span>
+                                      {s.is_archived && (
+                                        <span className="ml-auto text-xs text-muted-foreground">Archived</span>
+                                      )}
                                     </label>
                                   ))}
                                 </div>
