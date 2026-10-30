@@ -617,11 +617,14 @@ const WeighOnePage = () => {
     mutationFn: async () => {
       const ticket = await generateTicket();
       const grossKg = parseFloat(formData.gross_weight_kg);
-      const wasteType = activeWasteTypes.find(wt => wt.id === formData.waste_type_id);
+      const outProduct = isWasteOut ? wasteOutProducts.find(x => x.id === outProductId) : undefined;
+      const wasteType = isWasteOut
+        ? (outProduct ? { waste_type: outProduct.display_name, ewc_code: formData.ewc_code || outProduct.ewc_code } : undefined)
+        : activeWasteTypes.find(wt => wt.id === formData.waste_type_id);
 
-      const tableRate = formData.waste_type_id ? rateFor(formData.waste_type_id, formData.rate_group_id) : null;
-      // A RouteOne job's booked £/t wins over the weighbridge rate table.
-      const rate = arrivingJob?.charge_per_tonne != null
+      const tableRate = !isWasteOut && formData.waste_type_id ? rateFor(formData.waste_type_id, formData.rate_group_id) : null;
+      // A RouteOne job's booked £/t wins over the weighbridge rate table. Waste Out carries no rates.
+      const rate = isWasteOut ? null : arrivingJob?.charge_per_tonne != null
         ? { price_per_tonne: Number(arrivingJob.charge_per_tonne), min_charge: tableRate?.min_charge ?? 0 }
         : tableRate;
 
@@ -641,7 +644,7 @@ const WeighOnePage = () => {
       const { data: txData, error } = await supabase.from("weighbridge_transactions").insert({
         ticket_number: ticket,
         vehicle_reg: formData.vehicle_reg.toUpperCase(),
-        customer: formData.customer || null,
+        customer: isWasteOut ? (ownCompanyName || null) : (formData.customer || null),
         site: formData.site || null,
         driver_name: formData.driver_name || null,
         waste_description: wasteType?.waste_type || null,
@@ -653,10 +656,10 @@ const WeighOnePage = () => {
         driver_signature: driverSignature,
         operator_id: user?.id ?? null,
         gross_weight_kg: isNaN(grossKg) ? null : grossKg,
-        waste_type_id: formData.waste_type_id || null,
+        waste_type_id: isWasteOut ? null : (formData.waste_type_id || null),
         price_per_tonne: rate?.price_per_tonne ?? null,
         min_charge: rate?.min_charge ?? null,
-        rate_group_id: effectiveRateGroupId(formData.rate_group_id),
+        rate_group_id: isWasteOut ? null : effectiveRateGroupId(formData.rate_group_id),
         operator_name: operatorName || formData.operator_name || null,
         notes: formData.notes || null,
         carrier_registration: formData.carrier_registration || null,
