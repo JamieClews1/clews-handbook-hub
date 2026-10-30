@@ -11,7 +11,7 @@ import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
 import { BanksmanSettings } from "@/components/banksman/BanksmanSettings";
 import { CombinedTicketList } from "@/components/weighone/CombinedTicketList";
 import { Link, useSearchParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all";
@@ -401,6 +401,44 @@ const WeighOnePage = () => {
       return [...seen.values()].sort((a, b) => a.localeCompare(b));
     },
   });
+
+  // Saved driver lists from WeighOne Settings (vehicles by reg, customers by name)
+  const regKey = formData.vehicle_reg.replace(/\s+/g, "").toUpperCase();
+  const customerKey = formData.customer.trim().toLowerCase();
+  const { data: savedDrivers = [] } = useQuery({
+    queryKey: ["weighone-saved-drivers", regKey, customerKey],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const names = new Map<string, string>();
+      const add = (list: unknown) => {
+        for (const n of Array.isArray(list) ? list : []) {
+          const s = String(n).trim();
+          if (s && !names.has(s.toLowerCase())) names.set(s.toLowerCase(), s);
+        }
+      };
+      if (regKey.length > 3) {
+        const { data } = await supabase.from("weighbridge_vehicles").select("drivers")
+          .or(`registration.ilike.%${regKey}%`).limit(5);
+        for (const r of data ?? []) add((r as { drivers?: string[] }).drivers);
+      }
+      if (names.size === 0 && customerKey.length > 1) {
+        const { data } = await supabase.from("weighbridge_customers").select("drivers")
+          .ilike("name", customerKey).limit(5);
+        for (const r of data ?? []) add((r as { drivers?: string[] }).drivers);
+      }
+      return [...names.values()].sort((a, b) => a.localeCompare(b));
+    },
+  });
+
+  // Saved drivers first, then names seen on past tickets for this haulier
+  const driverSuggestions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const d of [...savedDrivers, ...haulierDrivers]) {
+      if (!seen.has(d.toLowerCase())) seen.set(d.toLowerCase(), d);
+    }
+    return [...seen.values()];
+  }, [savedDrivers, haulierDrivers]);
+
   const { data: knownHauliers = [] } = useQuery({
     queryKey: ["weighone-known-hauliers"],
     queryFn: async () => {
@@ -1616,8 +1654,8 @@ const WeighOnePage = () => {
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs">Driver</Label>
-                          <Input className="h-9" list="weighone-haulier-drivers" placeholder={haulierDrivers.length ? `${haulierDrivers.length} saved for this haulier` : "Driver name"} value={formData.driver_name} onChange={(e) => setFormData((p) => ({ ...p, driver_name: e.target.value }))} />
-                          <datalist id="weighone-haulier-drivers">{haulierDrivers.map(d => <option key={d} value={d} />)}</datalist>
+                          <Input className="h-9" list="weighone-haulier-drivers" placeholder={driverSuggestions.length ? `${driverSuggestions.length} saved drivers` : "Driver name"} value={formData.driver_name} onChange={(e) => setFormData((p) => ({ ...p, driver_name: e.target.value }))} />
+                          <datalist id="weighone-haulier-drivers">{driverSuggestions.map(d => <option key={d} value={d} />)}</datalist>
                         </div>
                         <div className="space-y-1.5 col-span-2">
                           <Label className="text-xs">Carrier registration</Label>
