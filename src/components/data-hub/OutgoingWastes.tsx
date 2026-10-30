@@ -47,7 +47,8 @@ const OutgoingWastes = () => {
   const data = useMemo(() => {
     const rows = out.data ?? [];
     const streams = new Map<string, { loads: number; t: number; prev: number }>();
-    const dest = new Map<string, { loads: number; t: number; streams: Set<string> }>();
+    const dest = new Map<string, { loads: number; t: number; prev: number; streams: Set<string> }>();
+    const prevDest = new Map<string, number>();
     const monthly = MONTHS.map((m) => ({ month: m, [String(year)]: 0, [String(year - 1)]: 0 } as Record<string, number | string>));
     for (const r of rows) {
       const s = outgoingStream(r.ewc, r.waste_description);
