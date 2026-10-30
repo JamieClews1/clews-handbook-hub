@@ -29,3 +29,39 @@ describe("outgoingStream", () => {
     assert.equal(outgoingStream("20 03 01", null, "Some Landfill Site"), "Residual");
   });
 });
+
+describe("outgoingHeadlineTotals", () => {
+  const rows = [
+    { ewc: "19 12 12", waste_description: null, product: "WASTE OUT", weight_t: 1000 },
+    { ewc: "19 12 10", waste_description: null, product: null, weight_t: 2000 },
+    { ewc: "19 12 12", waste_description: null, product: "TROMMEL", weight_t: 3000 },
+    { ewc: "15 01 01", waste_description: null, product: null, weight_t: 4000 },
+  ];
+
+  it("totals tonnes out from kilogram weights", () => {
+    assert.equal(outgoingHeadlineTotals(rows).total, 10);
+  });
+
+  it("zero to landfill excludes only recorded Waste Out landfill loads", () => {
+    const r = outgoingHeadlineTotals(rows);
+    assert.equal(r.landfill, 1);
+    assert.equal(r.zeroToLandfill, 9);
+  });
+
+  it("recycling excludes landfill and RDF", () => {
+    const r = outgoingHeadlineTotals(rows);
+    assert.equal(r.rdf, 2);
+    assert.equal(r.recycling, 7);
+  });
+
+  it("counts residual loads with no recorded product as zero to landfill", () => {
+    const r = outgoingHeadlineTotals([{ ewc: "20 03 01", waste_description: null, product: null, weight_t: 5000 }]);
+    assert.equal(r.zeroToLandfill, 5);
+    assert.equal(r.recycling, 5);
+  });
+
+  it("returns zeros when there are no outgoing loads", () => {
+    assert.deepEqual(outgoingHeadlineTotals([]), { total: 0, landfill: 0, rdf: 0, zeroToLandfill: 0, recycling: 0 });
+  });
+});
+
