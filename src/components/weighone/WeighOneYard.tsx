@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BanksmanTicketReport, banksmanLabel, type LinkedBanksmanJob } from "./BanksmanTicketReport";
@@ -30,7 +31,7 @@ const toneClass = {
   clean: "bg-primary/10 text-primary",
 } as const;
 
-export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWeighOut }: { tickets: YardTicket[]; todayTickets?: YardTicket[]; jobs: LinkedBanksmanJob[]; onTicket: (id: string) => void; onWeighOut: (id: string) => void }) {
+export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWeighOut, onEdit }: { tickets: YardTicket[]; todayTickets?: YardTicket[]; jobs: LinkedBanksmanJob[]; onTicket: (id: string) => void; onWeighOut: (id: string) => void; onEdit?: (id: string) => void }) {
   const [filter, setFilter] = useState<"all" | "alert" | "awaiting">("all");
   const [report, setReport] = useState<LinkedBanksmanJob | null>(null);
   const onsite = tickets.filter(t => t.status === "first_weigh");
@@ -52,7 +53,7 @@ export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWei
             <div><p className="truncate font-semibold text-foreground">{ticket.customer || "No customer"}</p><p className="truncate text-xs text-muted-foreground">{ticket.waste_description || "—"} · {hhmm(ticket.first_weigh_at)}</p></div>
             <p className="font-mono text-xs text-muted-foreground">1st {hhmm(ticket.first_weigh_at)} · {ticket.gross_weight_kg !== null ? `${(ticket.gross_weight_kg / 1000).toFixed(2)} t gross` : "—"} · #{ticket.ticket_number}</p>
             <div className="grid grid-cols-4 gap-1">{STEPS.map((s, i) => <span key={s} className={`h-1 rounded-full ${i <= stage ? (t === "urgent" ? "bg-destructive" : "bg-primary") : "bg-muted"}`} />)}</div>
-            <div className="flex justify-between text-xs"><span className="font-medium text-foreground">{STEPS[stage]}</span><button type="button" className="text-muted-foreground hover:text-primary hover:underline" onClick={e => { e.stopPropagation(); onWeighOut(ticket.id); }}>Next: {STEPS[stage + 1]}</button></div>
+            <div className="flex items-center justify-between gap-2 text-xs"><span className="font-medium text-foreground">{STEPS[stage]}</span><span className="flex items-center gap-3">{onEdit && <button type="button" className="inline-flex items-center gap-1 text-muted-foreground hover:text-primary hover:underline" onClick={e => { e.stopPropagation(); onEdit(ticket.id); }}><Pencil className="h-3 w-3" />Edit</button>}<button type="button" className="text-muted-foreground hover:text-primary hover:underline" onClick={e => { e.stopPropagation(); onWeighOut(ticket.id); }}>Next: {STEPS[stage + 1]}</button></span></div>
             {t && <p className={`rounded-md px-2 py-1 text-xs font-medium ${toneClass[t]}`}>Banksman · {banksmanLabel(job)}</p>}
           </div>;
         })}</div>
