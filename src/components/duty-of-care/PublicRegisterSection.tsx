@@ -1,5 +1,6 @@
 import { normaliseResponse, type RegisterResponse } from "@/lib/public-register-response";
-import { useState } from "react";
+import { Fragment, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from "@/components/ui/table";
-import { Search, ShieldCheck, MapPin, Trash2, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { Search, ShieldCheck, MapPin, Trash2, ChevronLeft, ChevronRight, RefreshCw, ChevronDown } from "lucide-react";
 import {
   useVerifiedTippingSites,
   useSaveVerifiedTippingSite,
@@ -30,6 +31,12 @@ export function PublicRegisterSection() {
   const { data: saved = [], isLoading: savedLoading } = useVerifiedTippingSites();
   const saveSite = useSaveVerifiedTippingSite();
   const deleteSite = useDeleteVerifiedTippingSite();
+  const qc = useQueryClient();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const usePermit = async (id: string, permit: string) => {
+    const { error } = await supabase.from("verified_tipping_sites").update({ registration_number: permit }).eq("id", id);
+    if (!error) qc.invalidateQueries({ queryKey: ["verified-tipping-sites"] });
+  };
 
   const search = async (targetPage = 1) => {
     setSearching(true);
@@ -235,23 +242,83 @@ export function PublicRegisterSection() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {saved.map(s => (
-                    <TableRow key={s.id}>
+                  {saved.map(s => {
+                    const open = openId === s.id;
+                    const permits = s.register_details?.permits ?? [];
+                    const carriers = s.register_details?.carriers ?? [];
+                    return (
+                    <Fragment key={s.id}>
+                    <TableRow className="cursor-pointer" onClick={() => setOpenId(open ? null : s.id)} aria-expanded={open}>
                       <TableCell className="font-medium">
-                        {s.site_name}
-                        {s.operator_name && <div className="text-xs text-muted-foreground">{s.operator_name}</div>}
+                        <div className="flex items-start gap-2">
+                          <ChevronDown className={`h-4 w-4 mt-0.5 shrink-0 transition-transform ${open ? "" : "-rotate-90"}`} />
+                          <div>
+                            {s.site_name}
+                            {s.operator_name && <div className="text-xs text-muted-foreground">{s.operator_name}</div>}
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{s.registration_number || "—"}</TableCell>
                       <TableCell>{s.facility_type || "—"}</TableCell>
                       <TableCell className="whitespace-nowrap">{s.postcode || "—"}</TableCell>
                       <TableCell>{s.status ? <Badge variant="secondary">{s.status}</Badge> : "—"}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm" disabled={deleteSite.isPending} onClick={() => deleteSite.mutate(s.id)} aria-label={`Remove ${s.site_name}`}>
+                        <Button variant="ghost" size="sm" disabled={deleteSite.isPending} onClick={e => { e.stopPropagation(); deleteSite.mutate(s.id); }} aria-label={`Remove ${s.site_name}`}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    {open && (
+                      <TableRow className="bg-muted/30 hover:bg-muted/30">
+                        <TableCell colSpan={6} className="space-y-4 py-4">
+                          <div className="grid gap-4 md:grid-cols-2 text-sm">
+                            <div><div className="text-xs text-muted-foreground">Address</div>{s.address || "—"}</div>
+                            <div><div className="text-xs text-muted-foreground">Notes</div>{s.notes || "—"}</div>
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium mb-1">Environmental permits at this postcode</div>
+                            {permits.length === 0 ? <p className="text-sm text-muted-foreground">No permits found on the public register for this postcode.</p> : (
+                              <div className="space-y-1">
+                                {permits.map(p => (
+                                  <div key={p.permit_number} className="flex flex-wrap items-center gap-2 text-sm rounded border bg-background px-3 py-2">
+                                    <span className="font-mono font-medium">{p.permit_number}</span>
+                                    <span>{p.licence_holder}</span>
+                                    <span className="text-muted-foreground">· {p.site_name} · {p.facility_type}</span>
+                                    {p.status && <Badge variant={p.status === "Effective" ? "secondary" : "outline"}>{p.status}</Badge>}
+                                    {p.holder_match && <Badge variant="outline">Likely match</Badge>}
+                                    <span className="ml-auto">
+                                      {s.registration_number === p.permit_number ? <Badge>In use</Badge> : (
+                                        <Button size="sm" variant="outline" onClick={() => usePermit(s.id, p.permit_number)}>Use this permit</Button>
+                                      )}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium mb-1">Waste carrier registrations</div>
+                            {carriers.length === 0 ? <p className="text-sm text-muted-foreground">No carrier registration found for this company name.</p> : (
+                              <div className="space-y-1">
+                                {carriers.map(c => (
+                                  <div key={c.registration_number} className="flex flex-wrap gap-2 text-sm rounded border bg-background px-3 py-2">
+                                    <span className="font-mono font-medium">{c.registration_number}</span>
+                                    <span>{c.business_name}</span>
+                                    <span className="text-muted-foreground">· {c.postcode} · {c.company_type} {c.tier ? `(${c.tier} tier)` : ""}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {s.register_checked_at ? `Checked against the Environment Agency public register on ${new Date(s.register_checked_at).toLocaleDateString("en-GB")}.` : "Not yet checked against the public register."} Contains public sector information licensed under the Open Government Licence v3.0.
+                          </p>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    </Fragment>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
