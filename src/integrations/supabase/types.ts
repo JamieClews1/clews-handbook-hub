@@ -2344,6 +2344,27 @@ export type Database = {
           },
         ]
       }
+      customer_doc_import: {
+        Row: {
+          e: string | null
+          id: string
+          l: string | null
+          s: string | null
+        }
+        Insert: {
+          e?: string | null
+          id: string
+          l?: string | null
+          s?: string | null
+        }
+        Update: {
+          e?: string | null
+          id?: string
+          l?: string | null
+          s?: string | null
+        }
+        Relationships: []
+      }
       customer_finance_details: {
         Row: {
           accounting_customer_ref: string | null
