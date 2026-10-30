@@ -103,16 +103,44 @@ const OutgoingWastes = () => {
         <Card><CardContent className="py-10 text-center text-destructive">Couldn't load outgoing loads. Please try again.</CardContent></Card>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-3">
             {[
-              ["Tonnes out", t(data.total)],
+              {
+                label: "Total tonnes out",
+                value: t(data.headlines.total),
+                note: `${data.loads.toLocaleString("en-GB")} loads · vs ${year - 1} ${change(data.headlines.total, data.prevHeadlines.total)}`,
+              },
+              {
+                label: "Zero to landfill",
+                value: t(data.headlines.zeroToLandfill),
+                note: `${data.headlines.total ? ((data.headlines.zeroToLandfill / data.headlines.total) * 100).toFixed(1) : "0"}% of tonnes out · landfill ${t(data.headlines.landfill)}t`,
+              },
+              {
+                label: "Recycling",
+                value: t(data.headlines.recycling),
+                note: `${data.headlines.total ? ((data.headlines.recycling / data.headlines.total) * 100).toFixed(1) : "0"}% of tonnes out · excludes landfill and RDF ${t(data.headlines.rdf)}t`,
+              },
+            ].map((c) => (
+              <Card key={c.label}>
+                <CardContent className="pt-5">
+                  <p className="text-sm text-muted-foreground">{c.label}</p>
+                  <p className="text-2xl font-semibold tabular-nums">{c.value}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{c.note}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
               ["Loads out", data.loads.toLocaleString("en-GB")],
-              [`vs ${year - 1}`, change(data.total, data.prevTotal)],
+              ["RDF out (tonnes)", t(data.headlines.rdf)],
               ["Tonnes in (yard)", t(data.inTotal)],
             ].map(([label, value]) => (
               <Card key={label}><CardContent className="pt-5"><p className="text-sm text-muted-foreground">{label}</p><p className="text-2xl font-semibold tabular-nums">{value}</p></CardContent></Card>
             ))}
           </div>
+
 
           <Card>
             <CardHeader><CardTitle>By waste stream</CardTitle><CardDescription>Real tonnes per stream, compared with {year - 1}.</CardDescription></CardHeader>
