@@ -261,6 +261,10 @@ const WeighOnePage = () => {
   const [formData, setFormData] = useState(emptyForm);
   const [arrivingJob, setArrivingJob] = useState<ArrivingJob | null>(null);
   const isWasteOut = formData.job_type === "waste_out";
+  const [containerGroupOpen, setContainerGroupOpen] = useState<string | null>(null);
+  useEffect(() => {
+    if (isWasteOut && formData.vehicle_type) setContainerGroupOpen(formData.vehicle_type);
+  }, [isWasteOut, formData.vehicle_type]);
   const [outProductId, setOutProductId] = useState("");
   const { data: outgoingSites = [] } = useTippingSites();
   /** Prefill the weigh-in from a RouteOne job so nothing is retyped. */
@@ -1485,11 +1489,28 @@ const WeighOnePage = () => {
                         <div className="col-span-2 space-y-1.5">
                           <Label className="text-xs">Container{isWasteOut && formData.vehicle_type ? <span className="ml-2 font-normal text-muted-foreground">Recognised: {formData.vehicle_type}</span> : null}</Label>
                           {isWasteOut ? (
-                            <div className="space-y-1.5">{WASTE_OUT_CONTAINERS.map(g => (
-                              <div key={g.group} className="flex flex-wrap items-center gap-1.5"><span className="w-12 text-[11px] font-semibold text-muted-foreground">{g.vehicle}</span>{g.options.map(o => (
-                                <Button type="button" key={o} size="sm" variant={formData.container_type === o ? "default" : "outline"} className="h-7 rounded-full px-3 text-xs" onClick={() => setFormData(p => ({ ...p, container_type: o, vehicle_type: g.vehicle }))}>{o.split(" · ")[1]}</Button>
-                              ))}</div>
-                            ))}</div>
+                            <div className="space-y-1.5">{WASTE_OUT_CONTAINERS.map(g => {
+                              const open = containerGroupOpen === g.vehicle;
+                              const selectedInGroup = formData.container_type && formData.container_type.startsWith(`${g.group} · `) ? formData.container_type : null;
+                              return (
+                                <div key={g.group} className="rounded-lg border bg-background overflow-hidden">
+                                  <button type="button" className="flex w-full items-center justify-between px-3 py-2 text-left" onClick={() => setContainerGroupOpen(open ? null : g.vehicle)} aria-expanded={open}>
+                                    <span className="flex items-center gap-2">
+                                      <span className="text-xs font-semibold text-foreground">{g.vehicle}</span>
+                                      {selectedInGroup ? <span className="text-[11px] font-medium text-primary">{selectedInGroup.split(" · ")[1]}</span> : <span className="text-[11px] text-muted-foreground">{g.options.length} types</span>}
+                                    </span>
+                                    <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", open && "rotate-180")} />
+                                  </button>
+                                  {open && (
+                                    <div className="flex flex-wrap gap-1.5 border-t px-3 py-2">
+                                      {g.options.map(o => (
+                                        <Button type="button" key={o} size="sm" variant={formData.container_type === o ? "default" : "outline"} className="h-7 rounded-full px-3 text-xs" onClick={() => setFormData(p => ({ ...p, container_type: o, vehicle_type: g.vehicle }))}>{o.split(" · ")[1]}</Button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}</div>
                           ) : <>
                           <div className="flex flex-wrap gap-1.5">{["Skip", "RoRo", "Enclosed", "Curtain-side"].map(c => <Button type="button" key={c} size="sm" variant={formData.container_type === c ? "default" : "outline"} className="h-7 rounded-full px-3 text-xs" onClick={() => { setShowOtherContainer(false); setFormData(p => ({ ...p, container_type: c, vehicle_type: vehicleTypeForContainer(c) || p.vehicle_type })); }}>{c === "RoRo" ? "Ro Ro" : c}</Button>)}<Button type="button" size="sm" variant={showOtherContainer || (formData.container_type && !["Skip", "RoRo", "Enclosed", "Curtain-side"].includes(formData.container_type)) ? "default" : "outline"} className="h-7 rounded-full px-3 text-xs" onClick={() => setShowOtherContainer(true)}>Other…</Button></div>
                           {(showOtherContainer || (formData.container_type && !["Skip", "RoRo", "Enclosed", "Curtain-side"].includes(formData.container_type))) && <>
