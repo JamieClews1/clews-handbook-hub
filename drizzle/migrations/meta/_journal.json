@@ -351,6 +351,13 @@
       "when": 1793381154037,
       "tag": "0049_customer_doc_import_staging",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1793381315212,
+      "tag": "0050_weighbridge_drivers",
+      "breakpoints": true
     }
   ]
 }
