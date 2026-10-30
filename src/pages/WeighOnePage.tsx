@@ -1654,8 +1654,8 @@ const WeighOnePage = () => {
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs">Driver</Label>
-                          <Input className="h-9" list="weighone-haulier-drivers" placeholder={haulierDrivers.length ? `${haulierDrivers.length} saved for this haulier` : "Driver name"} value={formData.driver_name} onChange={(e) => setFormData((p) => ({ ...p, driver_name: e.target.value }))} />
-                          <datalist id="weighone-haulier-drivers">{haulierDrivers.map(d => <option key={d} value={d} />)}</datalist>
+                          <Input className="h-9" list="weighone-haulier-drivers" placeholder={driverSuggestions.length ? `${driverSuggestions.length} saved drivers` : "Driver name"} value={formData.driver_name} onChange={(e) => setFormData((p) => ({ ...p, driver_name: e.target.value }))} />
+                          <datalist id="weighone-haulier-drivers">{driverSuggestions.map(d => <option key={d} value={d} />)}</datalist>
                         </div>
                         <div className="space-y-1.5 col-span-2">
                           <Label className="text-xs">Carrier registration</Label>
