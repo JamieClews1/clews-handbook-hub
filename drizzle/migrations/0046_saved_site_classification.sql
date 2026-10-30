@@ -1,0 +1,2 @@
+ALTER TABLE public.verified_tipping_sites ADD COLUMN site_class text NOT NULL DEFAULT 'tipping_site' CHECK (site_class IN ('tipping_site', 'broker', 'haulage'));
+COMMENT ON COLUMN public.verified_tipping_sites.site_class IS 'Staff-selected classification; only tipping_site entries are eligible for tipping location choices. Existing details and permit evidence are retained.';
