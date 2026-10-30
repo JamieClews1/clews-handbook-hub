@@ -3,16 +3,13 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FileCheck, Building2, Settings, ShieldCheck } from "lucide-react";
+import { ArrowLeft, FileCheck, Settings, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeading } from "@/components/PageHeading";
 import { DashboardOverview } from "@/components/duty-of-care/DashboardOverview";
 import { CompanyDocumentsSection } from "@/components/duty-of-care/CompanyDocumentsSection";
 import { CompanyProfile } from "@/components/duty-of-care/CompanyProfile";
-import { PartnersList } from "@/components/duty-of-care/PartnersList";
 import { RequirementsSettings } from "@/components/duty-of-care/RequirementsSettings";
-import { PartnerQuestionnairesList } from "@/components/duty-of-care/PartnerQuestionnairesList";
-import { PartnerQuestionnaireForm } from "@/components/duty-of-care/PartnerQuestionnaireForm";
 import { PublicRegisterSection } from "@/components/duty-of-care/PublicRegisterSection";
 import { EwcRegisterSection } from "@/components/duty-of-care/EwcRegisterSection";
 import { CommonWasteTypesSection } from "@/components/duty-of-care/CommonWasteTypesSection";
@@ -22,7 +19,6 @@ const DutyOfCarePage = () => {
   const navigate = useNavigate();
   const { user, loading, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
-  const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState<string | null>(null);
   
   const [companyDocuments, setCompanyDocuments] = useState<CompanyDocument[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
