@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { type SiteClass, SITE_CLASSES } from "@/lib/tipping-site-classification";
 
 export interface VerifiedTippingSite {
   id: string;
   site_name: string;
+  site_class?: SiteClass;
   operator_name: string | null;
   registration_number: string | null;
   register: string;
@@ -75,5 +77,24 @@ export function useDeleteVerifiedTippingSite() {
       toast({ title: "Site removed" });
     },
     onError: (e) => toast({ title: "Could not remove site", description: e instanceof Error ? e.message : undefined, variant: "destructive" }),
+  });
+}
+
+export function useUpdateSiteClass() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ id, site_class }: { id: string; site_class: SiteClass }) => {
+      const { data, error } = await supabase.from("verified_tipping_sites")
+        .update({ site_class }).eq("id", id).select("id").single();
+      if (error) throw error;
+      if (!data) throw new Error("The entry could not be updated.");
+    },
+    onSuccess: (_, { site_class }) => {
+      qc.invalidateQueries({ queryKey: ["verified-tipping-sites"] });
+      qc.invalidateQueries({ queryKey: ["tipping-sites"] });
+      toast({ title: `Moved to ${SITE_CLASSES[site_class]}`, description: "Company details and permit evidence have been kept." });
+    },
+    onError: () => toast({ title: "Could not change classification", description: "Please try again.", variant: "destructive" }),
   });
 }

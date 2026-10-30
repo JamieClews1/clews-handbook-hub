@@ -10093,6 +10093,7 @@ export type Database = {
           register_checked_at: string | null
           register_details: Json | null
           registration_number: string | null
+          site_class: string
           site_name: string
           status: string | null
         }
@@ -10109,6 +10110,7 @@ export type Database = {
           register_checked_at?: string | null
           register_details?: Json | null
           registration_number?: string | null
+          site_class?: string
           site_name: string
           status?: string | null
         }
@@ -10125,6 +10127,7 @@ export type Database = {
           register_checked_at?: string | null
           register_details?: Json | null
           registration_number?: string | null
+          site_class?: string
           site_name?: string
           status?: string | null
         }

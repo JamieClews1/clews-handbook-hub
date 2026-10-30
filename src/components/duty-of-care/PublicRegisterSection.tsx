@@ -7,13 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SITE_CLASSES, isSiteClass, type SiteClass } from "@/lib/tipping-site-classification";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from "@/components/ui/table";
-import { Search, ShieldCheck, MapPin, Trash2, ChevronLeft, ChevronRight, RefreshCw, ChevronDown } from "lucide-react";
+import { Search, ShieldCheck, MapPin, Trash2, ChevronLeft, ChevronRight, RefreshCw, ChevronDown, Pencil } from "lucide-react";
 import {
   useVerifiedTippingSites,
   useSaveVerifiedTippingSite,
   useDeleteVerifiedTippingSite,
+  useUpdateSiteClass,
+  type VerifiedTippingSite,
 } from "@/hooks/useVerifiedTippingSites";
 
 type RegisterKey = "waste-operations" | "companies";
@@ -31,6 +36,11 @@ export function PublicRegisterSection() {
   const { data: saved = [], isLoading: savedLoading } = useVerifiedTippingSites();
   const saveSite = useSaveVerifiedTippingSite();
   const deleteSite = useDeleteVerifiedTippingSite();
+  const updateClass = useUpdateSiteClass();
+  const [savedClass, setSavedClass] = useState<SiteClass>("tipping_site");
+  const [editing, setEditing] = useState<VerifiedTippingSite | null>(null);
+  const [editClass, setEditClass] = useState<SiteClass>("tipping_site");
+  const visibleSaved = saved.filter(s => (s.site_class ?? "tipping_site") === savedClass);
   const qc = useQueryClient();
   const [openId, setOpenId] = useState<string | null>(null);
   const applyPermit = async (id: string, permit: string) => {
@@ -109,7 +119,7 @@ export function PublicRegisterSection() {
                   <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All facility types</SelectItem>
-                    {result!.facilityTypes.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                    {result?.facilityTypes.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -220,14 +230,20 @@ export function PublicRegisterSection() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Verified tipping sites</CardTitle>
-          <CardDescription>Sites checked against the public register. These appear first when choosing tipping locations in RouteOne and WeighOne.</CardDescription>
+          <CardTitle>{savedClass === "tipping_site" ? "Verified tipping sites" : savedClass === "broker" ? "Brokers" : "Haulage"}</CardTitle>
         </CardHeader>
         <CardContent>
+          <Tabs value={savedClass} onValueChange={v => { if (isSiteClass(v)) { setSavedClass(v); setOpenId(null); } }} className="mb-4">
+            <TabsList className="flex h-auto flex-wrap justify-start">
+              {Object.entries(SITE_CLASSES).map(([value, label]) => (
+                <TabsTrigger key={value} value={value}>{value === "tipping_site" ? "Tipping sites" : label} ({saved.filter(s => (s.site_class ?? "tipping_site") === value).length})</TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
           {savedLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
-          ) : saved.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No verified sites yet — search the register above and save the sites you tip at.</p>
+          ) : visibleSaved.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No entries in this class.</p>
           ) : (
             <div className="rounded-md border overflow-auto">
               <Table>
@@ -242,7 +258,7 @@ export function PublicRegisterSection() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {saved.map(s => {
+                  {visibleSaved.map(s => {
                     const open = openId === s.id;
                     const permits = s.register_details?.permits ?? [];
                     const carriers = s.register_details?.carriers ?? [];
@@ -263,6 +279,9 @@ export function PublicRegisterSection() {
                       <TableCell className="whitespace-nowrap">{s.postcode || "—"}</TableCell>
                       <TableCell>{s.status ? <Badge variant="secondary">{s.status}</Badge> : "—"}</TableCell>
                       <TableCell>
+                        <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); setEditing(s); setEditClass(s.site_class ?? "tipping_site"); }} aria-label={`Edit classification for ${s.site_name}`} title="Edit classification">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="sm" disabled={deleteSite.isPending} onClick={e => { e.stopPropagation(); deleteSite.mutate(s.id); }} aria-label={`Remove ${s.site_name}`}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -325,6 +344,26 @@ export function PublicRegisterSection() {
           )}
         </CardContent>
       </Card>
+      <Dialog open={editing !== null} onOpenChange={open => { if (!open && !updateClass.isPending) setEditing(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit classification</DialogTitle></DialogHeader>
+          <p className="font-medium break-words">{editing?.site_name}</p>
+          <div className="space-y-2">
+            <Label htmlFor="site-class">Class</Label>
+            <Select value={editClass} onValueChange={v => { if (isSiteClass(v)) setEditClass(v); }}>
+              <SelectTrigger id="site-class"><SelectValue /></SelectTrigger>
+              <SelectContent>{Object.entries(SITE_CLASSES).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" disabled={updateClass.isPending} onClick={() => setEditing(null)}>Cancel</Button>
+            <Button disabled={updateClass.isPending || !editing || editClass === (editing.site_class ?? "tipping_site")} onClick={() => {
+              if (!editing) return;
+              updateClass.mutate({ id: editing.id, site_class: editClass }, { onSuccess: () => { setSavedClass(editClass); setEditing(null); setOpenId(null); } });
+            }}>{updateClass.isPending ? "Saving…" : "Save classification"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
