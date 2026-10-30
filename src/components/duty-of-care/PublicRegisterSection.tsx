@@ -76,20 +76,20 @@ export function PublicRegisterSection() {
               <Select value={register} onValueChange={(v) => { setRegister(v as RegisterKey); setFacility(""); setResult(null); }}>
                 <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="waste-operations">Waste operations</SelectItem>
-                  <SelectItem value="companies">Companies</SelectItem>
+                  <SelectItem value="waste-operations">Waste operators (sites we go to)</SelectItem>
+                  <SelectItem value="companies">Waste carriers (companies)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5 flex-1 min-w-52">
-              <Label className="text-xs" htmlFor="register-q">{register === "companies" ? "Search" : "Site name, town or postcode"}</Label>
+              <Label className="text-xs" htmlFor="register-q">{register === "companies" ? "Waste carrier name" : "Site name, town or postcode"}</Label>
               <Input id="register-q" value={query} onChange={e => setQuery(e.target.value)}
-                placeholder={register === "companies" ? "Company name or registration…" : "e.g. Ling Hall or Rugby…"}
+                placeholder={register === "companies" ? "Company name or registration — carriers tipping at our site" : "e.g. Ling Hall or Rugby…"}
                 onKeyDown={e => { if (e.key === "Enter") search(1); }} />
             </div>
             {register === "waste-operations" && (
               <div className="space-y-1.5 min-w-52">
-                <Label className="text-xs" htmlFor="register-operator">Operator / company (optional)</Label>
+                <Label className="text-xs" htmlFor="register-operator">Operator (optional)</Label>
                 <Input id="register-operator" value={operator} onChange={e => setOperator(e.target.value)}
                   placeholder="e.g. Veolia…"
                   onKeyDown={e => { if (e.key === "Enter") search(1); }} />
@@ -115,7 +115,13 @@ export function PublicRegisterSection() {
 
           {register === "waste-operations" && (
             <p className="text-xs text-muted-foreground">
-              Tip: the register matches one field at a time, so search the <strong>site name or place</strong> (e.g. "Ling Hall") and use <strong>Operator / company</strong> to narrow to a company (e.g. "Veolia").
+              Tip: the register matches one field at a time, so search the <strong>site name or place</strong> (e.g. "Ling Hall") and use <strong>Operator</strong> to narrow to a company (e.g. "Veolia").
+            </p>
+          )}
+
+          {register === "companies" && (
+            <p className="text-xs text-muted-foreground">
+              Waste carriers are the companies that bring waste to us — check their registration here. Tipping sites (where we take waste to) live in the <strong>Waste operators</strong> register instead.
             </p>
           )}
 
@@ -156,7 +162,9 @@ export function PublicRegisterSection() {
                           <TableCell className="whitespace-nowrap">{r.postcode || "—"}</TableCell>
                           <TableCell>{r.status ? <Badge variant="secondary">{r.status}</Badge> : "—"}</TableCell>
                           <TableCell>
-                            {already ? (
+                            {register === "companies" ? (
+                              <span className="text-xs text-muted-foreground">Carrier</span>
+                            ) : already ? (
                               <Badge variant="secondary">Saved</Badge>
                             ) : (
                               <Button size="sm" variant="secondary" disabled={saveSite.isPending}
