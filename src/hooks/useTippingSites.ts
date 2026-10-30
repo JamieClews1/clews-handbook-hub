@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useOutgoingSites } from "@/hooks/useOutgoingSites";
 import { useVerifiedTippingSites } from "@/hooks/useVerifiedTippingSites";
+import { tippingEligible, unlistedOutgoing } from "@/lib/tipping-site-classification";
 
 export interface TippingSiteOption {
   site_name: string;
@@ -20,8 +21,7 @@ export function useTippingSites() {
   const { data: verified = [] } = useVerifiedTippingSites();
 
   const sites = useMemo<TippingSiteOption[]>(() => {
-    const verifiedNames = new Set(verified.map(v => v.site_name.trim().toLowerCase()));
-    const pinned: TippingSiteOption[] = verified.map(v => ({
+    const pinned: TippingSiteOption[] = tippingEligible(verified).map(v => ({
       site_name: v.site_name,
       loads: 0,
       last_date: null,
@@ -29,8 +29,7 @@ export function useTippingSites() {
       registration_number: v.registration_number,
       postcode: v.postcode,
     }));
-    const rest = outgoing
-      .filter(o => !verifiedNames.has(o.site_name.trim().toLowerCase()))
+    const rest = unlistedOutgoing(outgoing, verified)
       .map(o => ({ ...o, verified: false }));
     return [...pinned, ...rest];
   }, [outgoing, verified]);
