@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
 export function licenceStatus(expiry: string | null, today = new Date()) {
-  if (!expiry) return null;
+  if (!expiry) return { label: "No expiry date", variant: "destructive" as const };
   const days = Math.floor((new Date(expiry + "T00:00:00").getTime() - today.getTime()) / 86400000);
   if (days < 0) return { label: "Expired", variant: "destructive" as const };
   if (days <= 60) return { label: `Expires in ${days} days`, variant: "secondary" as const };
