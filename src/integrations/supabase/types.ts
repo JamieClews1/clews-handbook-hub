@@ -2903,7 +2903,10 @@ export type Database = {
           po_notification_email: string | null
           po_spans_periods: boolean
           pod_email: string | null
+          sic_code: string | null
           updated_at: string
+          waste_carrier_licence: string | null
+          waste_carrier_licence_expiry: string | null
         }
         Insert: {
           all_data_hub_sites?: boolean
@@ -2922,7 +2925,10 @@ export type Database = {
           po_notification_email?: string | null
           po_spans_periods?: boolean
           pod_email?: string | null
+          sic_code?: string | null
           updated_at?: string
+          waste_carrier_licence?: string | null
+          waste_carrier_licence_expiry?: string | null
         }
         Update: {
           all_data_hub_sites?: boolean
@@ -2941,7 +2947,10 @@ export type Database = {
           po_notification_email?: string | null
           po_spans_periods?: boolean
           pod_email?: string | null
+          sic_code?: string | null
           updated_at?: string
+          waste_carrier_licence?: string | null
+          waste_carrier_licence_expiry?: string | null
         }
         Relationships: [
           {
