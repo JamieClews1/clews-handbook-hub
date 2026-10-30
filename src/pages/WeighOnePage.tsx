@@ -1547,7 +1547,7 @@ const WeighOnePage = () => {
                       <div className="p-3 space-y-3">
                       {isWasteOut ? (
                         <div className="space-y-1.5">
-                          <div className="flex items-center justify-between"><Label className="text-xs">Waste type (Duty of Care products)</Label><a href="/duty-of-care?tab=waste-types" target="_blank" rel="noreferrer" className="text-xs text-primary underline-offset-2 hover:underline">Manage</a></div>
+                          <div className="flex items-center justify-between"><Label className="text-xs">Waste type (Duty of Care products)</Label><a href="/duty-of-care" target="_blank" rel="noreferrer" className="text-xs text-primary underline-offset-2 hover:underline">Manage</a></div>
                           <Select value={outProductId} onValueChange={(val) => { setOutProductId(val); const pr = wasteOutProducts.find(x => x.id === val); if (pr) setFormData(p => ({ ...p, ewc_code: pr.ewc_code })); }}>
                             <SelectTrigger className="h-9"><SelectValue placeholder="Select waste out product..." /></SelectTrigger>
                             <SelectContent>
