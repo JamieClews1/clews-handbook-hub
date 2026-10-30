@@ -55,7 +55,7 @@ const OutgoingWastes = () => {
       const e = streams.get(s) ?? { loads: 0, t: 0, prev: 0 };
       e.loads++; e.t += tonnes(r); streams.set(s, e);
       const name = r.customer?.trim() || "Unknown";
-      const d = dest.get(name) ?? { loads: 0, t: 0, streams: new Set() };
+      const d = dest.get(name) ?? { loads: 0, t: 0, prev: 0, streams: new Set() };
       d.loads++; d.t += tonnes(r); d.streams.add(s); dest.set(name, d);
       const mi = new Date(r.job_date).getMonth();
       (monthly[mi][String(year)] as number) += tonnes(r);
