@@ -37,6 +37,7 @@ import { GdprCleanup } from "./GdprCleanup";
 import { cleanEmail } from "@/lib/email-clean";
 import { publicUrl } from "@/lib/public-url";
 import { allAccessSiteIds } from "@/lib/portal-site-access";
+import { PortalAccessDirectory } from "./PortalAccessDirectory";
 
 
 
@@ -155,6 +156,8 @@ export function CustomerSetupAdmin() {
   selectedCustomerIdRef.current = selectedCustomerId;
   const [customerSearch, setCustomerSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  const [setupTab, setSetupTab] = useState("customers");
+  const [customerTab, setCustomerTab] = useState("sites");
 
   const [sites, setSites] = useState<CustomerSite[]>([]);
   const [contacts, setContacts] = useState<CustomerContact[]>([]);
@@ -1420,9 +1423,10 @@ export function CustomerSetupAdmin() {
   };
 
   return (
-    <Tabs defaultValue="customers" className="w-full">
-      <TabsList>
+    <Tabs value={setupTab} onValueChange={setSetupTab} className="w-full">
+      <TabsList className="flex-wrap h-auto">
         <TabsTrigger value="customers">Customers</TabsTrigger>
+        <TabsTrigger value="portal-directory">Portal access</TabsTrigger>
         <TabsTrigger value="new-customers">New customers</TabsTrigger>
         <TabsTrigger value="gdpr">GDPR cleanup</TabsTrigger>
 
@@ -1540,7 +1544,7 @@ export function CustomerSetupAdmin() {
             {!selectedCustomer ? (
               <div className="text-sm text-muted-foreground">No customer selected.</div>
             ) : (
-              <Tabs defaultValue="sites" className="w-full">
+              <Tabs value={customerTab} onValueChange={setCustomerTab} className="w-full">
                 <TabsList className="flex-wrap h-auto">
                   <TabsTrigger value="sites">Sites</TabsTrigger>
                   <TabsTrigger value="midweigh">Midweigh Rebates</TabsTrigger>
@@ -2061,6 +2065,18 @@ export function CustomerSetupAdmin() {
 
         </div>
         </div>
+      </TabsContent>
+
+      <TabsContent value="portal-directory" className="mt-4">
+        <PortalAccessDirectory
+          customers={customers}
+          isAdmin={isAdmin}
+          onManage={(customerId) => {
+            setSelectedCustomerId(customerId);
+            setCustomerTab("portal");
+            setSetupTab("customers");
+          }}
+        />
       </TabsContent>
 
       <TabsContent value="new-customers" className="mt-4">
