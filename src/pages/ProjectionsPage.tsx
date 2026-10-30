@@ -18,7 +18,7 @@ export default function ProjectionsPage() {
   const query = useInsightsData(`${year}-01-01`, end); const prior = useInsightsData(`${year - 1}-01-01`, `${year - 1}-12-31`);
   const completed = year < Number(today.slice(0, 4)) ? 12 : Number(today.slice(5, 7)) - 1;
   const data = useMemo(() => {
-    const aggregate = (rows: NonNullable<typeof query.data>, source: string) => months.map((_, index) => { const matching = rows.filter(row => row.source === source && Number(row.job_date.slice(5, 7)) === index + 1); return matching.length ? matching.reduce((sum, row) => sum + ticketValue(row), 0) : null; });
+    const aggregate = (rows: NonNullable<typeof query.data>, source: string) => months.map((_, index) => { const matching = rows.filter(row => row.source === source && Number(row.job_date.slice(5, 7)) === index + 1); const total = matching.reduce((sum, row) => sum + ticketValue(row), 0); return matching.length && total !== 0 ? total : null; });
     const mw = aggregate(query.data ?? [], "midweigh"); const st = aggregate(query.data ?? [], "skiptrak");
     const fm = operationalForecast(mw, aggregate(prior.data ?? [], "midweigh"), year, completed, method);
     const fs = operationalForecast(st, aggregate(prior.data ?? [], "skiptrak"), year, completed, method);

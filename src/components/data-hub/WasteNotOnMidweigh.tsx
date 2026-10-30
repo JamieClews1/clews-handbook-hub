@@ -52,8 +52,8 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRang
 
   const weekStart = startOfWeek(externalStartDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(externalEndDate, { weekStartsOn: 1 });
-  const startStr = format(weekStart, "yyyy-MM-dd");
-  const endStr = format(weekEnd, "yyyy-MM-dd");
+  const startStr = format(externalStartDate, "yyyy-MM-dd");
+  const endStr = format(externalEndDate, "yyyy-MM-dd");
 
   const { data: midweighSkipKeys, isLoading: loadingMidweigh } = useQuery({
     queryKey: ["wnm-midweigh-skip", startStr, endStr],
@@ -82,7 +82,7 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRang
   });
 
   // Comparison year queries - single useQuery to avoid hooks-in-loop
-  const compRangeKey = comparisonRanges.map(r => `${r.year}`).join(",");
+  const compRangeKey = comparisonRanges.map(r => `${format(r.start, "yyyy-MM-dd")}:${format(r.end, "yyyy-MM-dd")}`).join(",");
   const { data: compData, isLoading: compLoading } = useQuery({
     queryKey: ["wnm-comparison", compRangeKey],
     queryFn: async () => {
@@ -207,7 +207,7 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRang
         siteTotals.set(site, (siteTotals.get(site) || 0) + tonnes);
       });
     });
-    const topSites = Array.from(siteTotals.entries()).sort(([, a], [, b]) => b - a).slice(0, 10).map(([name]) => name);
+    const topSites = Array.from(siteTotals.entries()).sort(([, a], [, b]) => b - a).slice(0, 5).map(([name]) => name);
 
     return Object.entries(buckets).sort(([a], [b]) => a.localeCompare(b)).map(([weekDate, siteData]) => {
       const row: any = { week: format(parseISO(weekDate), "dd MMM"), weekFull: weekDate };
@@ -256,7 +256,7 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRang
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 pb-2">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center">
             <AlertTriangle className="h-5 w-5 text-destructive" />
@@ -271,7 +271,7 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRang
         <div className="flex items-center gap-3">
           {!hasComparison && (
             <Select value={selectedSite} onValueChange={setSelectedSite}>
-              <SelectTrigger className="w-[260px]">
+              <SelectTrigger className="w-full sm:w-[260px]">
                 <SelectValue placeholder="All sites" />
               </SelectTrigger>
               <SelectContent>
@@ -307,7 +307,7 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRang
           </div>
         ) : hasComparison ? (
           <div className="w-full overflow-x-auto">
-            <div style={{ minWidth: "600px" }}>
+            <div className="min-w-0">
               <ChartContainer config={chartConfig} className="h-[300px] w-full">
                 <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
@@ -317,7 +317,7 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRang
                   <Legend />
                   <Bar dataKey="total" fill="hsl(0, 70%, 50%)" name={`Total ${currentYear}`} radius={[2, 2, 0, 0]} />
                   {comparisonRanges.map((range, i) => (
-                    <Line key={range.year} type="monotone" dataKey={`total_${range.year}`} stroke={COMPARISON_COLORS[i % COMPARISON_COLORS.length]} strokeWidth={2} strokeDasharray="6 3" dot={{ r: 3 }} name={`Total ${range.year}`} />
+                    <Line key={range.year} type="linear" dataKey={`total_${range.year}`} stroke={COMPARISON_COLORS[i % COMPARISON_COLORS.length]} strokeWidth={2} strokeDasharray="6 3" dot={{ r: 3 }} name={`Total ${range.year}`} />
                   ))}
                 </ComposedChart>
               </ChartContainer>
@@ -325,13 +325,14 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRang
           </div>
         ) : (
           <div className="w-full overflow-x-auto">
-            <div style={{ minWidth: "900px" }}>
+            <div className="min-w-0">
               <ChartContainer config={chartConfig} className="h-[300px] w-full">
                 <BarChart data={chartData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
                   <XAxis dataKey="week" tick={{ fontSize: 10 }} interval={3} angle={-45} textAnchor="end" height={60} />
                   <YAxis tick={{ fontSize: 11 }} label={{ value: "Tonnes", angle: -90, position: "insideLeft", style: { fontSize: 12 } }} />
                   <ChartTooltip content={<ChartTooltipContent />} />
+                  <Legend />
                   {seriesKeys.map((key, i) => (
                     <Bar key={key} dataKey={key} stackId="sites" fill={stringToColor(key, i)} name={key}
                       radius={i === seriesKeys.length - 1 ? [2, 2, 0, 0] : [0, 0, 0, 0]} />
@@ -365,7 +366,8 @@ const WasteNotOnMidweigh = ({ externalStartDate, externalEndDate, comparisonRang
                         </>
                       ) : (
                         <>
-                          {seriesKeys.map((key, i) => (
+                          <Legend />
+                  {seriesKeys.map((key, i) => (
                             <th key={key} className="text-right py-2 px-3 font-medium truncate max-w-[120px]" style={{ color: stringToColor(key, i) }} title={key}>
                               {key.length > 20 ? key.substring(0, 18) + "…" : key}
                             </th>

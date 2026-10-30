@@ -13,7 +13,7 @@ Use shared Button, Tabs and Toggle styles for consistent action hierarchy, text 
 Staff area titles use shared PageHeading with plain text, contextual details and right-aligned actions; keep printed-document branding separate from portal headings to avoid changing legal paperwork.
 Use shared ui-calendar helpers for local Diary keys, London ticket defaults and bounded ticket presentation; calendar-only values must not shift at timezone boundaries and pagination must not affect underlying ticket reads or actions.
 Keep daily driver grouping in focused presentation modules, resolving vehicle registration from the selected day's tickets before the usual driver vehicle, separate from routing mutations, so group display cannot reassign jobs.
-Day-board cards use CSS palette tokens; read-only day estimates reuse postcode travel rules in displayed order with explicit shared driver assumptions and yard returns, never reassignment or confirmation inference, so estimates cannot alter operational records.
+Day-board cards use palette tokens; read-only estimates use postcode travel, displayed order, driver assumptions and yard returns, never reassignment or confirmation inference.
 Keep printing read-only: daily sheets fetch the selected day's native and non-duplicated imported jobs independently of board filters; Midweigh print actions read by source and row ID and reuse the shared WeighOne ticket template so printing cannot alter records.
 Driver day-sheet PDFs measure wrapped content and adapt type size and spacing before drawing, preserving all job details without adding overflow pages.
 RouteOne booking site resolution uses customer account aliases and explicit site mappings; shared service-address parsing ignores tipping locations, and customer pricing remains separate from future internal business costs.
@@ -42,6 +42,6 @@ Imported exchange pricing copies only explicit source booking charges, never der
 Toolbox Talk PDFs share paged saved-signature appendices and explicit list numbering; preserve admin gates and content without inferred acknowledgements.
 Load report tally photo reference reuses the existing JobTicketPhotos viewer above both tally variants, with view-only thumbnails and enlargement, so reference viewing cannot change evidence or tally values.
 CEO reports use Jamie-gated history, server snapshots and shared P&L math; one-use dispatch, leased work and saved recipient delivery IDs prevent duplicates. Claude denial pauses automation; PDFs stay private.
-Customer Setup's portal directory pages memberships/profiles and links to the existing editor; browsing never changes grants or infers access from login activity.
+Customer Setup directory pages memberships/profiles; link to its existing editor, never infer grants from login activity.
 Outgoing stream comparisons share one classifier reading Midweigh raw Product; never infer product from destination.
-Register normaliser accepts business_name so carriers stay visible.
+Register normaliser accepts business_name. Insights uses URL-bound periods, cached read-only projected columns, and P&L scalar forecast math without private finance reads; keep Data Uploads untouched to protect ingestion.

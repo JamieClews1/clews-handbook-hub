@@ -86,24 +86,24 @@ async function fetchAllPaged(queryBuilder: any) {
 
 const WasteOnsiteOffsite = ({ externalStartDate, externalEndDate, comparisonRanges = [] }: WasteOnsiteOffsiteProps) => {
   const hasComparison = comparisonRanges.length > 0;
-  const [granularity, setGranularity] = useState<Granularity>("weekly");
+  const [granularity, setGranularity] = useState<Granularity>("monthly");
   const effectiveGranularity = hasComparison ? "monthly" : granularity;
   const [showTable, setShowTable] = useState(false);
 
   const weekStart = startOfWeek(externalStartDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(externalEndDate, { weekStartsOn: 1 });
-  const startStr = format(weekStart, "yyyy-MM-dd");
-  const endStr = format(weekEnd, "yyyy-MM-dd");
+  const startStr = format(externalStartDate, "yyyy-MM-dd");
+  const endStr = format(externalEndDate, "yyyy-MM-dd");
 
   const { data: skiptrakJobs, isLoading: loadingMain } = useQuery({
     queryKey: ["waste-onsite-offsite", startStr, endStr],
     queryFn: async () => fetchAllPaged(
       supabase.from("data_hub_jobs").select("job_date, weight_t, tipping_location")
-        .eq("source", "skiptrak").gte("job_date", startStr).lte("job_date", endStr)
+        .eq("source", "skiptrak").gte("job_date", startStr).lte("job_date", endStr).gt("weight_t", 0)
     ),
   });
 
-  const compRangeKey = comparisonRanges.map(r => `${r.year}`).join(",");
+  const compRangeKey = comparisonRanges.map(r => `${format(r.start, "yyyy-MM-dd")}:${format(r.end, "yyyy-MM-dd")}`).join(",");
   const { data: compData, isLoading: compLoading } = useQuery({
     queryKey: ["waste-onsite-offsite-comp", compRangeKey],
     queryFn: async () => {
@@ -113,7 +113,7 @@ const WasteOnsiteOffsite = ({ externalStartDate, externalEndDate, comparisonRang
         const cEndStr = format(range.end, "yyyy-MM-dd");
         results[range.year] = await fetchAllPaged(
           supabase.from("data_hub_jobs").select("job_date, weight_t, tipping_location")
-            .eq("source", "skiptrak").gte("job_date", cStartStr).lte("job_date", cEndStr)
+            .eq("source", "skiptrak").gte("job_date", cStartStr).lte("job_date", cEndStr).gt("weight_t", 0)
         );
       }));
       return results;
@@ -278,9 +278,9 @@ const WasteOnsiteOffsite = ({ externalStartDate, externalEndDate, comparisonRang
                   {hasComparison && <Legend />}
                   <Bar dataKey="onsite" stackId="waste" fill={chartConfig.onsite.color} name="On-Site (Clews)" radius={[0, 0, 0, 0]} />
                   <Bar dataKey="offsite" stackId="waste" fill={chartConfig.offsite.color} name="Off-Site" radius={[2, 2, 0, 0]} />
-                  <Line type="monotone" dataKey="total" stroke={chartConfig.total.color} strokeWidth={2} dot={false} name={`Total ${hasComparison ? currentYear : ""}`} />
+                  <Line type="linear" dataKey="total" stroke={chartConfig.total.color} strokeWidth={2} dot={false} name={`Total ${hasComparison ? currentYear : ""}`} />
                   {comparisonRanges.map((range, i) => (
-                    <Line key={range.year} type="monotone" dataKey={`total_${range.year}`} stroke={COMPARISON_COLORS[i % COMPARISON_COLORS.length]} strokeWidth={2} strokeDasharray="6 3" dot={{ r: 3 }} name={`Total ${range.year}`} />
+                    <Line key={range.year} type="linear" dataKey={`total_${range.year}`} stroke={COMPARISON_COLORS[i % COMPARISON_COLORS.length]} strokeWidth={2} strokeDasharray="6 3" dot={{ r: 3 }} name={`Total ${range.year}`} />
                   ))}
                 </ComposedChart>
               </ChartContainer>
