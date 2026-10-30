@@ -51,7 +51,7 @@ const OutgoingWastes = () => {
     const prevDest = new Map<string, number>();
     const monthly = MONTHS.map((m) => ({ month: m, [String(year)]: 0, [String(year - 1)]: 0 } as Record<string, number | string>));
     for (const r of rows) {
-      const s = outgoingStream(r.ewc, r.waste_description);
+      const s = outgoingStream(r.ewc, r.waste_description, r.customer);
       const e = streams.get(s) ?? { loads: 0, t: 0, prev: 0 };
       e.loads++; e.t += tonnes(r); streams.set(s, e);
       const name = r.customer?.trim() || "Unknown";
@@ -61,7 +61,7 @@ const OutgoingWastes = () => {
       (monthly[mi][String(year)] as number) += tonnes(r);
     }
     for (const r of prev.data ?? []) {
-      const s = outgoingStream(r.ewc, r.waste_description);
+      const s = outgoingStream(r.ewc, r.waste_description, r.customer);
       const e = streams.get(s) ?? { loads: 0, t: 0, prev: 0 };
       e.prev += tonnes(r); streams.set(s, e);
       const pname = r.customer?.trim() || "Unknown";
