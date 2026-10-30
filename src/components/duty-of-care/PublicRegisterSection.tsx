@@ -33,7 +33,7 @@ export function PublicRegisterSection() {
   const deleteSite = useDeleteVerifiedTippingSite();
   const qc = useQueryClient();
   const [openId, setOpenId] = useState<string | null>(null);
-  const usePermit = async (id: string, permit: string) => {
+  const applyPermit = async (id: string, permit: string) => {
     const { error } = await supabase.from("verified_tipping_sites").update({ registration_number: permit }).eq("id", id);
     if (!error) qc.invalidateQueries({ queryKey: ["verified-tipping-sites"] });
   };
@@ -288,7 +288,7 @@ export function PublicRegisterSection() {
                                     {p.holder_match && <Badge variant="outline">Likely match</Badge>}
                                     <span className="ml-auto">
                                       {s.registration_number === p.permit_number ? <Badge>In use</Badge> : (
-                                        <Button size="sm" variant="outline" onClick={() => usePermit(s.id, p.permit_number)}>Use this permit</Button>
+                                        <Button size="sm" variant="outline" onClick={() => applyPermit(s.id, p.permit_number)}>Use this permit</Button>
                                       )}
                                     </span>
                                   </div>
