@@ -1,5 +1,6 @@
 // Read-only analysis of imported P&L worksheets. Never writes records.
-import { SSF } from "npm:xlsx@0.18.5";
+import XLSX from "npm:xlsx@0.18.5";
+const { SSF } = XLSX;
 const MONTH = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-(\d{2})$/i;
 const SUMMARY = new Set(["sales", "purchases", "direct expenses", "gross profit", "gross profit %", "overheads", "net profit", "net profit/loss", "net profit/(loss)", "dividend"]);
 
