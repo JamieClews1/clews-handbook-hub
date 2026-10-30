@@ -42,3 +42,4 @@ Imported exchange pricing copies only explicit source booking charges, never der
 Toolbox Talk signed PDFs share a read-only paginated signature loader and appendix renderer, preserving existing admin access and actual saved images/dates without inferring unsigned staff acknowledgements.
 Toolbox Talk PDF exporters share list-marker formatting that preserves explicit step numbers to avoid duplicating ordered-list markers without changing saved content.
 Load report tally photo reference reuses the existing JobTicketPhotos viewer above both tally variants, with view-only thumbnails and enlargement, so reference viewing cannot change evidence or tally values.
+CEO reports use Jamie-gated history, server snapshots and shared P&L math; one-use dispatch, leased work and saved recipient delivery IDs prevent duplicates. Claude denial pauses automation; PDFs stay private.

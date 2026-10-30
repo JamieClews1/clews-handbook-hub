@@ -458,6 +458,84 @@ export type Database = {
           },
         ]
       }
+      ceo_monthly_reports: {
+        Row: {
+          commentary: string | null
+          created_at: string
+          deliveries: Json
+          error: string | null
+          id: string
+          lease_until: string | null
+          pdf_base64: string | null
+          period: string
+          snapshot: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          commentary?: string | null
+          created_at?: string
+          deliveries?: Json
+          error?: string | null
+          id?: string
+          lease_until?: string | null
+          pdf_base64?: string | null
+          period: string
+          snapshot?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          commentary?: string | null
+          created_at?: string
+          deliveries?: Json
+          error?: string | null
+          id?: string
+          lease_until?: string | null
+          pdf_base64?: string | null
+          period?: string
+          snapshot?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ceo_report_dispatch_tokens: {
+        Row: {
+          expires_at: string
+          token: string
+        }
+        Insert: {
+          expires_at?: string
+          token?: string
+        }
+        Update: {
+          expires_at?: string
+          token?: string
+        }
+        Relationships: []
+      }
+      ceo_report_settings: {
+        Row: {
+          enabled: boolean
+          id: boolean
+          paused_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          id?: boolean
+          paused_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          id?: boolean
+          paused_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       company_contacts: {
         Row: {
           contact_type: string
@@ -10791,11 +10869,17 @@ export type Database = {
         Args: { _job_customer: string; _job_site: string; _user_id: string }
         Returns: boolean
       }
+      ceo_waste_summary: { Args: { _cutoff: string }; Returns: Json }
+      claim_ceo_report: {
+        Args: { _period: string; _retry?: boolean }
+        Returns: string
+      }
       create_invoice_with_lines: {
         Args: { _header: Json; _lines: Json }
         Returns: string
       }
       crm_match_customer_by_email: { Args: { _email: string }; Returns: string }
+      dispatch_monthly_ceo_report: { Args: never; Returns: undefined }
       generate_ticket_number: { Args: never; Returns: string }
       get_common_waste_types: {
         Args: { _months?: number }
