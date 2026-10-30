@@ -162,7 +162,9 @@ export function PublicRegisterSection() {
                           <TableCell className="whitespace-nowrap">{r.postcode || "—"}</TableCell>
                           <TableCell>{r.status ? <Badge variant="secondary">{r.status}</Badge> : "—"}</TableCell>
                           <TableCell>
-                            {already ? (
+                            {register === "companies" ? (
+                              <span className="text-xs text-muted-foreground">Carrier</span>
+                            ) : already ? (
                               <Badge variant="secondary">Saved</Badge>
                             ) : (
                               <Button size="sm" variant="secondary" disabled={saveSite.isPending}
