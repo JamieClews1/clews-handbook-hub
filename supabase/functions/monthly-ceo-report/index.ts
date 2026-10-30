@@ -50,7 +50,9 @@ Deno.serve(async req => {
       if (gateError || !allowed) return response({ error: "Only Jamie can manage CEO reports." }, 403);
     }
     if (body.action === "settings" || body.action === "resume") {
-      const { error } = await db.from("ceo_report_settings").upsert({ id: true, ...(body.enabled === undefined ? {} : { enabled: body.enabled }), ...(body.action === "resume" ? { paused_reason: null } : {}), updated_at: new Date().toISOString() });
+      const { error: initError } = await db.from("ceo_report_settings").upsert({ id: true }, { onConflict: "id", ignoreDuplicates: true });
+      if (initError) throw initError;
+      const { error } = await db.from("ceo_report_settings").update({ ...(body.enabled === undefined ? {} : { enabled: body.enabled }), ...(body.action === "resume" ? { paused_reason: null } : {}), updated_at: new Date().toISOString() }).eq("id", true);
       if (error) throw error; return response({ ok: true });
     }
     const { data: settings, error: settingsError } = await db.from("ceo_report_settings").select("*").eq("id", true).maybeSingle();
@@ -83,7 +85,9 @@ Deno.serve(async req => {
       });
       if (!claude.ok) {
         const err = await claude.json().catch(() => ({}));
-        throw new ProviderError(claude.status, `Claude: ${String(err.error?.message ?? "Commentary request failed.")}`, [401, 402, 403, 404].includes(claude.status));
+        const reason = String(err.error?.message ?? "Commentary request failed.");
+        const accountProblem = /credit balance|billing|account.*(disabled|suspended)|payment/i.test(reason);
+        throw new ProviderError(claude.status, `Claude: ${reason}`, accountProblem || [401, 402, 403, 404].includes(claude.status));
       }
       const result = await claude.json();
       if (result.stop_reason === "refusal") throw new ProviderError(422, "Claude declined this report commentary. A new request is required.", false);
@@ -115,7 +119,10 @@ Deno.serve(async req => {
     return response({ ok: true, reportId: id });
   } catch (e) {
     const message = e instanceof Error ? e.message : "CEO reporting failed.";
-    if (e instanceof ProviderError && e.pause) await db.from("ceo_report_settings").upsert({ id: true, paused_reason: message });
+    if (e instanceof ProviderError && e.pause) {
+      await db.from("ceo_report_settings").upsert({ id: true }, { onConflict: "id", ignoreDuplicates: true });
+      await db.from("ceo_report_settings").update({ paused_reason: message }).eq("id", true);
+    }
     if (reportId) await db.from("ceo_monthly_reports").update({ status: "failed", error: message, lease_until: null, updated_at: new Date().toISOString() }).eq("id", reportId);
     return response({ error: message }, e instanceof ProviderError ? e.status : 500);
   }
