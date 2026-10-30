@@ -5,6 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PiggyBank, Recycle, Flame, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useWasteValueSettings, streamCostPerTonne } from "@/hooks/useWasteValueSettings";
 
 interface Props {
@@ -36,7 +40,7 @@ const WasteRecoverySavings = ({ externalStartDate, externalEndDate }: Props) => 
   const startStr = format(externalStartDate, "yyyy-MM-dd");
   const endStr = format(externalEndDate, "yyyy-MM-dd");
 
-  const { data: yardJobs, isLoading } = useQuery({
+  const { data: yardJobs, isLoading, error, refetch } = useQuery({
     queryKey: ["recovery-savings-yard", startStr, endStr],
     queryFn: async () =>
       fetchAllPaged(
@@ -99,10 +103,12 @@ const WasteRecoverySavings = ({ externalStartDate, externalEndDate }: Props) => 
   if (isLoading || loadingSettings) {
     return (
       <Card>
-        <CardContent className="py-10 text-center text-muted-foreground">Loading recovery savings…</CardContent>
+        <CardContent className="py-10"><Skeleton className="h-32 w-full" /></CardContent>
       </Card>
     );
   }
+
+  if (error) return <div role="alert" className="p-4">Midweigh recovery intake could not be loaded. <Button variant="outline" onClick={() => void refetch()}>Try again</Button></div>;
 
   return (
     <Card>
@@ -110,18 +116,18 @@ const WasteRecoverySavings = ({ externalStartDate, externalEndDate }: Props) => 
         <CardTitle className="flex items-center gap-2">
           <PiggyBank className="h-5 w-5 text-primary" />
           Recovery Savings — Landfill &amp; RDF
+          <Badge variant="outline" className="text-info border-info/30 bg-info/5">Modelled</Badge>
         </CardTitle>
         <CardDescription>
-          What {tonnes.toLocaleString("en-GB", { maximumFractionDigits: 0 })}t of waste received would have cost at
-          landfill (£{calc.landfillBaseline.toFixed(2)}/t) versus what it actually costs to process
-          (£{calc.actualPerTonne.toFixed(2)}/t). Values are set in Settings.
+          Estimate for {tonnes.toLocaleString("en-GB", { maximumFractionDigits: 1 })} t received using fixed waste-mix shares and configured costs. These are not measured outgoing stream tonnes or invoiced savings.
+          {" "}<Link className="text-primary underline" to="/performance-hub/insights-settings">View assumptions</Link>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-lg border bg-primary/5 p-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <PiggyBank className="h-4 w-4" /> Total saved
+              <PiggyBank className="h-4 w-4" /> Estimated saving
             </div>
             <p className="mt-1 text-2xl font-bold text-primary">{money(calc.totalSaving)}</p>
             <p className="text-xs text-muted-foreground">{money(calc.savingPerTonne)} per tonne</p>
@@ -153,7 +159,7 @@ const WasteRecoverySavings = ({ externalStartDate, externalEndDate }: Props) => 
             <p className="mt-1 text-2xl font-bold">
               {calc.landfillTonnes.toLocaleString("en-GB", { maximumFractionDigits: 0 })}t
             </p>
-            <p className="text-xs text-muted-foreground">{money(calc.landfillTonnes * calc.landfillBaseline)} cost</p>
+            <p className="text-xs text-muted-foreground">{money(calc.rows.filter(row => !streams.find(stream => stream.stream === row.stream)?.is_recovery).reduce((sum, row) => sum + row.cost, 0))} configured cost · same as table</p>
           </div>
         </div>
 
@@ -163,7 +169,7 @@ const WasteRecoverySavings = ({ externalStartDate, externalEndDate }: Props) => 
             <p className="text-lg font-semibold">{money(calc.totalBaseline)}</p>
           </div>
           <div className="rounded-lg border bg-muted/40 p-4">
-            <p className="text-muted-foreground">Actual processing cost</p>
+            <p className="text-muted-foreground">Modelled processing cost</p>
             <p className="text-lg font-semibold">{money(calc.totalActual)}</p>
           </div>
           <div className="rounded-lg border bg-muted/40 p-4">
