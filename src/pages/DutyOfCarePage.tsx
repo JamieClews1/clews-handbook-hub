@@ -95,20 +95,9 @@ const DutyOfCarePage = () => {
               <FileCheck className="h-4 w-4 hidden sm:inline" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="company" className="gap-2">
-              <FileCheck className="h-4 w-4 hidden sm:inline" />
-              Company
-            </TabsTrigger>
-            <TabsTrigger value="partners" className="gap-2">
-              <Building2 className="h-4 w-4 hidden sm:inline" />
-              Partners
-            </TabsTrigger>
-            <TabsTrigger value="questionnaires" className="gap-2">
-              Onboarding
-            </TabsTrigger>
             <TabsTrigger value="register" className="gap-2">
               <ShieldCheck className="h-4 w-4 hidden sm:inline" />
-              Register
+              Tipping Sites
             </TabsTrigger>
             <TabsTrigger value="ewc" className="gap-2">EWC codes</TabsTrigger>
             {isAdmin && (
@@ -133,47 +122,6 @@ const DutyOfCarePage = () => {
             />
           </TabsContent>
 
-          <TabsContent value="company" className="space-y-6">
-            <CompanyProfile isAdmin={isAdmin} />
-            <CompanyDocumentsSection
-              documents={companyDocuments}
-              documentTypes={documentTypes}
-              isAdmin={isAdmin}
-              onRefresh={fetchData}
-            />
-          </TabsContent>
-
-          <TabsContent value="partners">
-            <PartnersList
-              partners={partners}
-              partnerDocuments={partnerDocuments}
-              requirements={requirements}
-              isAdmin={isAdmin}
-              onRefresh={fetchData}
-            />
-          </TabsContent>
-
-          <TabsContent value="questionnaires">
-            {selectedQuestionnaireId ? (
-              <PartnerQuestionnaireForm
-                questionnaireId={selectedQuestionnaireId}
-                isAdmin={isAdmin}
-                onBack={() => setSelectedQuestionnaireId(null)}
-                onSaved={() => {
-                  fetchData();
-                  setSelectedQuestionnaireId(null);
-                }}
-              />
-            ) : (
-              <PartnerQuestionnairesList
-                questionnaires={questionnaires}
-                isAdmin={isAdmin}
-                onRefresh={fetchData}
-                onView={(id) => setSelectedQuestionnaireId(id)}
-              />
-            )}
-          </TabsContent>
-
           <TabsContent value="register">
             <PublicRegisterSection />
           </TabsContent>
@@ -184,7 +132,8 @@ const DutyOfCarePage = () => {
           </TabsContent>
 
           {isAdmin && (
-            <TabsContent value="settings">
+            <TabsContent value="settings" className="space-y-6">
+              <CompanyProfile isAdmin={isAdmin} />
               <RequirementsSettings
                 requirements={requirements}
                 documentTypes={documentTypes}
