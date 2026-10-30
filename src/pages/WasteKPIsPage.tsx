@@ -22,6 +22,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Settings2, Trophy, Recycle } from "lucide-react";
 import YardIncentives from "@/components/data-hub/YardIncentives";
 import RecyclingIncentive from "@/components/data-hub/RecyclingIncentive";
+import OutgoingWastes from "@/components/data-hub/OutgoingWastes";
+import { Truck } from "lucide-react";
 
 
 const WasteKPIsPage = () => {
@@ -110,6 +112,10 @@ const WasteKPIsPage = () => {
                 <Gauge className="h-4 w-4" />
                 KPIs
               </TabsTrigger>
+              <TabsTrigger value="outgoing" className="gap-2">
+                <Truck className="h-4 w-4" />
+                Outgoing Wastes
+              </TabsTrigger>
               <TabsTrigger value="incentives" className="gap-2">
                 <Trophy className="h-4 w-4" />
                 Yard Incentives
@@ -119,6 +125,10 @@ const WasteKPIsPage = () => {
                 Settings
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="outgoing" className="space-y-4">
+              <OutgoingWastes />
+            </TabsContent>
 
             <TabsContent value="incentives" className="space-y-4">
               <Accordion type="multiple" defaultValue={["wood", "recycling"]} className="space-y-4">
