@@ -16,7 +16,7 @@ import { parseLoadReportDate } from "@/lib/load-report-dates";
 type Row = { job_number: string; job_date: string; ewc: string | null; waste_description: string | null; customer: string | null; weight_t: number | null; product: string | null };
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const t = (n: number) => n.toLocaleString("en-GB", { maximumFractionDigits: 1 });
+const t = (n: number) => n.toLocaleString("en-GB", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 async function fetchYear(start: string, end: string, jobType: "WASTEOUT" | "IN"): Promise<Row[]> {
   let all: Row[] = [];
@@ -65,7 +65,7 @@ const OutgoingWastes = ({ externalStartDate, externalEndDate, comparisonStartDat
     const streams = new Map<string, { loads: number; t: number; prev: number }>();
     const dest = new Map<string, { loads: number; t: number; prev: number; streams: Set<string> }>();
     const prevDest = new Map<string, number>();
-    const monthly = MONTHS.map((m) => ({ month: m, [String(year)]: 0, [String(year - 1)]: 0 } as Record<string, number | string>));
+    const monthly = MONTHS.map((m) => ({ month: m, ["current"]: 0, ["previous"]: 0 } as Record<string, number | string>));
     for (const r of rows) {
       const s = outgoingStream(r.ewc, r.waste_description, r.product);
       const e = streams.get(s) ?? { loads: 0, t: 0, prev: 0 };
@@ -74,7 +74,7 @@ const OutgoingWastes = ({ externalStartDate, externalEndDate, comparisonStartDat
       const d = dest.get(name) ?? { loads: 0, t: 0, prev: 0, streams: new Set() };
       d.loads++; d.t += tonnes(r); d.streams.add(s); dest.set(name, d);
       const mi = (parseLoadReportDate(r.job_date)?.getUTCMonth() ?? 0);
-      (monthly[mi][String(year)] as number) += tonnes(r);
+      (monthly[mi]["current"] as number) += tonnes(r);
     }
     for (const r of (compare ? prev.data ?? [] : [])) {
       const s = outgoingStream(r.ewc, r.waste_description, r.product);
@@ -82,7 +82,7 @@ const OutgoingWastes = ({ externalStartDate, externalEndDate, comparisonStartDat
       e.prev += tonnes(r); streams.set(s, e);
       const pname = r.customer?.trim() || "Unknown";
       prevDest.set(pname, (prevDest.get(pname) ?? 0) + tonnes(r));
-      (monthly[(parseLoadReportDate(r.job_date)?.getUTCMonth() ?? 0)][String(year - 1)] as number) += tonnes(r);
+      (monthly[(parseLoadReportDate(r.job_date)?.getUTCMonth() ?? 0)]["previous"] as number) += tonnes(r);
     }
     const total = rows.reduce((a, r) => a + tonnes(r), 0);
     const prevTotal = ((compare ? prev.data ?? [] : [])).reduce((a, r) => a + tonnes(r), 0);
@@ -98,7 +98,7 @@ const OutgoingWastes = ({ externalStartDate, externalEndDate, comparisonStartDat
         const v = dest.get(name);
         return { name, loads: v?.loads ?? 0, t: v?.t ?? 0, prev: prevDest.get(name) ?? 0, streams: [...(v?.streams ?? [])].join(", ") };
       }).sort((a, b) => b.t - a.t),
-      monthly: monthly.map((m) => ({ ...m, [String(year)]: Math.round(m[String(year)] as number), [String(year - 1)]: Math.round(m[String(year - 1)] as number) })),
+      monthly: monthly.map((m) => ({ ...m, ["current"]: Math.round(m["current"] as number), ["previous"]: Math.round(m["previous"] as number) })),
     };
   }, [out.data, prev.data, inc.data, prevInc.data, year, compare]);
 
@@ -219,8 +219,8 @@ const OutgoingWastes = ({ externalStartDate, externalEndDate, comparisonStartDat
                 <BarChart data={data.monthly}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="month" /><YAxis /><Tooltip /><Legend />
-                  {compare && <Bar dataKey={String(year - 1)} name={previousLabel} fill="hsl(var(--muted-foreground))" />}
-                  <Bar dataKey={String(year)} name={currentLabel} fill="hsl(var(--primary))" />
+                  {compare && <Bar dataKey="previous" name={previousLabel} fill="hsl(var(--muted-foreground))" />}
+                  <Bar dataKey="current" name={currentLabel} fill="hsl(var(--primary))" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
