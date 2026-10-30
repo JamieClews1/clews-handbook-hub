@@ -45,4 +45,4 @@ Customer Setup directory pages memberships/profiles; link to its existing editor
 Outgoing stream comparisons share one classifier reading Midweigh raw Product; never infer product from destination.
 Register normaliser accepts business_name. Insights shares URL-bound periods, cached read-only projected columns and P&L scalar maths, never private finance reads or Data Uploads changes.
 Duty of Care reclassification keeps company/permit evidence; shared tipping choices exclude Broker/Haulage even from historical fallbacks, without altering jobs.
-WeighOne ticket deletion detaches Route One/Banksman links first, is refused while an invoice carries the ticket, and needs explicit acknowledgement.
+Waste products are reference-only; never rewrite tickets. WeighOne ticket deletion detaches Route One/Banksman links first, is refused while an invoice carries the ticket, and needs explicit acknowledgement.
