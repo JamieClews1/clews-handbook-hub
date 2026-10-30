@@ -357,6 +357,36 @@ const WeighOnePage = () => {
     },
   });
 
+  // Registered company name — Waste Out always leaves from our own site
+  const { data: ownCompanyName = "Clews Recycling" } = useQuery({
+    queryKey: ["weighone-own-company-name"],
+    queryFn: async () => {
+      const { data } = await supabase.from("company_profile").select("company_name").limit(1).maybeSingle();
+      return data?.company_name || "Clews Recycling";
+    },
+  });
+
+  // Waste Out products managed in Duty of Care → Waste Types
+  const { data: wasteOutProducts = [] } = useQuery({
+    queryKey: ["waste_products", "active"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("waste_products").select("id, display_name, ewc_code, status").neq("status", "retired").order("ewc_code").order("display_name");
+      if (error) throw error;
+      return (data ?? []) as { id: string; display_name: string; ewc_code: string; status: string }[];
+    },
+  });
+
+  // Hauliers saved in Duty of Care (Haulage class) with their carrier registrations
+  const { data: knownHauliers = [] } = useQuery({
+    queryKey: ["weighone-known-hauliers"],
+    queryFn: async () => {
+      const { data } = await supabase.from("verified_tipping_sites").select("site_name, operator_name, registration_number, site_class").eq("site_class", "haulage");
+      const rows = (data ?? []) as { site_name: string | null; operator_name: string | null; registration_number: string | null }[];
+      const list = rows.map(r => ({ name: (r.operator_name || r.site_name || "").trim(), registration: r.registration_number || "" })).filter(h => h.name);
+      return [{ name: OWN_CARRIER_NAME, registration: "" }, ...list];
+    },
+  });
+
   // Today's Skiptrak jobs (our own vehicles) for linking Skip tickets
   const todayIso = new Date().toISOString().slice(0, 10);
   const { data: skiptrakJobs = [] } = useQuery({
@@ -595,20 +625,42 @@ const WeighOnePage = () => {
       .limit(1)
       .maybeSingle();
 
+    // Recognise the truck (e.g. FG61SYV → Artic walking floor) from its previous tickets
+    const [{ data: hubTypes }, { data: txTypes }] = await Promise.all([
+      supabase.from("data_hub_jobs").select("container_type").eq("source", "midweigh").ilike("vehicle_registration", clean).order("job_date", { ascending: false }).limit(200),
+      supabase.from("weighbridge_transactions").select("container_type").eq("vehicle_reg", clean).order("created_at", { ascending: false }).limit(50),
+    ]);
+    const truck = recogniseContainer([...(txTypes ?? []), ...(hubTypes ?? [])].map(r => r.container_type));
+    if (truck) setFormData(p => p.container_type ? p : { ...p, container_type: truck.container, vehicle_type: truck.vehicle });
+
     const customer = lastTx?.customer || hub?.customer || "";
     if (!customer && !lastTx) return;
+    const out = formData.job_type === "waste_out";
 
     setFormData((p) => ({
       ...p,
-      customer: p.customer || customer || "",
-      site: p.site || hub?.site || "",
+      customer: out ? p.customer : (p.customer || customer || ""),
+      site: out ? p.site : (p.site || hub?.site || ""),
       driver_name: p.driver_name || lastTx?.driver_name || hub?.driver || "",
-      carrier_name: p.carrier_name || lastTx?.carrier_name || customer || "",
+      carrier_name: p.carrier_name || lastTx?.carrier_name || (out ? "" : customer) || "",
       carrier_registration: p.carrier_registration || lastTx?.carrier_registration || "",
-      rate_group_id: p.rate_group_id || lastTx?.rate_group_id || "",
+      rate_group_id: out ? p.rate_group_id : (p.rate_group_id || lastTx?.rate_group_id || ""),
     }));
 
-    if (customer) applyCustomerDefaults(customer);
+    if (customer && !out) applyCustomerDefaults(customer);
+  };
+
+  /** Haulier → carrier registration from Duty of Care hauliers, past tickets, or our own licence */
+  const applyHaulier = async (name: string) => {
+    const n = name.trim();
+    if (!n) return;
+    const known = knownHauliers.find(h => h.name.toLowerCase() === n.toLowerCase());
+    let reg = known?.registration || (/clews/i.test(n) ? ownCarrierLicence : "");
+    if (!reg) {
+      const { data } = await supabase.from("weighbridge_transactions").select("carrier_registration").ilike("carrier_name", n).not("carrier_registration", "is", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      reg = data?.carrier_registration ?? "";
+    }
+    if (reg) setFormData(p => ({ ...p, carrier_registration: reg }));
   };
 
 
