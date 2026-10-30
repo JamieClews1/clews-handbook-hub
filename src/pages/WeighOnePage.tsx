@@ -40,6 +40,20 @@ import { SignatureField } from "@/components/SignatureField";
 import { WeighOnePaymentPanel } from "@/components/weighone/WeighOnePaymentPanel";
 import { invoiceFromSource } from "@/components/finance/ReadyToInvoiceTab";
 import { WasteClassificationFields, asClassification, type WasteClassification } from "@/components/dwt/WasteClassificationFields";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
+import { planTicketDeletion, ticketDeletionUnlinks, type TicketDeletionLinks } from "@/lib/weighone-ticket-delete";
 
 type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
 
@@ -185,10 +199,14 @@ const WeighOnePage = () => {
       await document.documentElement.requestFullscreen?.().catch(() => {});
     }
   };
-  const { jobs: banksmanJobs } = useBanksmanJobs();
+  const { jobs: banksmanJobs, reload: reloadBanksmanJobs } = useBanksmanJobs();
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [secondWeighDialogOpen, setSecondWeighDialogOpen] = useState(false);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<WeighbridgeTransaction | null>(null);
+  const [deleteLinks, setDeleteLinks] = useState<TicketDeletionLinks | null>(null);
+  const [deleteLinksUnknown, setDeleteLinksUnknown] = useState(false);
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [tab, setTab] = useState(() => { const q = new URLSearchParams(window.location.search).get("tab"); return q === "alerts" || q === "banksman" ? q : "yard"; });
   const [showTareNow, setShowTareNow] = useState(false);
   const [showOtherContainer, setShowOtherContainer] = useState(false);
@@ -812,16 +830,72 @@ const WeighOnePage = () => {
     onError: (e) => toast.error("Failed: " + e.message),
   });
 
-  // Delete transaction (and its additional items)
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
+  // Ask for a double check before deleting a ticket: show what it is and what it is linked to
+  const openDeleteTicket = async (t: WeighbridgeTransaction) => {
+    setDeleteTarget(t);
+    setDeleteConfirmed(false);
+    setDeleteLinks(null);
+    setDeleteLinksUnknown(false);
+    try {
+      const [routeJob, banksmanJob, invoice, invoiceLines] = await Promise.all([
+        supabase.from("route_one_jobs").select("job_number").eq("weighbridge_transaction_id", t.id).maybeSingle(),
+        supabase.from("banksman_jobs").select("job_number").eq("weighbridge_transaction_id", t.id).maybeSingle(),
+        supabase.from("invoices").select("invoice_number").eq("source_transaction_id", t.id),
+        supabase.from("invoice_line_items").select("invoices(invoice_number)").eq("source_transaction_id", t.id),
+      ]);
+      if (routeJob.error || banksmanJob.error || invoice.error || invoiceLines.error) throw new Error("linked records could not be read");
+      const invoiceNumbers = Array.from(new Set([
+        ...(invoice.data ?? []).map((r: any) => r.invoice_number),
+        ...(invoiceLines.data ?? []).map((r: any) => r.invoices?.invoice_number),
+      ].filter(Boolean) as string[]));
+      setDeleteLinks({
+        routeOneJobNumber: (routeJob.data as any)?.job_number ?? null,
+        banksmanJobNumber: (banksmanJob.data as any)?.job_number ?? null,
+        invoiceNumbers,
+      });
+    } catch {
+      setDeleteLinks({});
+      setDeleteLinksUnknown(true);
+    }
+  };
+
+  const closeDeleteTicket = () => {
+    setDeleteTarget(null);
+    setDeleteLinks(null);
+    setDeleteConfirmed(false);
+    setDeleteLinksUnknown(false);
+  };
+
+  const deletePlan = deleteTarget ? planTicketDeletion(deleteLinks ?? {}) : null;
+
+  // Delete a ticket, detaching any Route One job / Banksman report first so neither keeps a dead link
+  const deleteTicketMutation = useMutation({
+    mutationFn: async ({ id, links }: { id: string; links: TicketDeletionLinks }) => {
+      const unlink = ticketDeletionUnlinks(links);
+      if (unlink.routeOneJob) {
+        const { error } = await supabase
+          .from("route_one_jobs")
+          .update({ weighbridge_transaction_id: null, weighbridge_ticket_number: null })
+          .eq("weighbridge_transaction_id", id);
+        if (error) throw error;
+      }
+      if (unlink.banksmanJob) {
+        const { error } = await supabase
+          .from("banksman_jobs")
+          .update({ weighbridge_transaction_id: null })
+          .eq("weighbridge_transaction_id", id);
+        if (error) throw error;
+      }
       await supabase.from("weighbridge_additional_items").delete().eq("transaction_id", id);
       const { error } = await supabase.from("weighbridge_transactions").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Transaction deleted");
+      toast.success(`Ticket ${deleteTarget?.ticket_number} deleted`);
+      closeDeleteTicket();
       queryClient.invalidateQueries({ queryKey: ["weighbridge-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["weighone-combined-tickets"] });
+      reloadBanksmanJobs();
     },
     onError: (e) => toast.error("Failed: " + e.message),
   });
@@ -1864,9 +1938,7 @@ const WeighOnePage = () => {
                                   title="Delete"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    if (confirm(`Delete ticket ${t.ticket_number}? This cannot be undone.`)) {
-                                      deleteMutation.mutate(t.id);
-                                    }
+                                    openDeleteTicket(t);
                                   }}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
@@ -2023,6 +2095,13 @@ const WeighOnePage = () => {
                   </Button>
                 </div>
               )}
+              <Button
+                variant="outline"
+                className="w-full gap-2 text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => openDeleteTicket(selectedTransaction)}
+              >
+                <Trash2 className="h-4 w-4" /> Delete ticket
+              </Button>
             </div>
           )}
         </DialogContent>
@@ -2249,6 +2328,61 @@ const WeighOnePage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete ticket — double check before it goes */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && closeDeleteTicket()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete ticket {deleteTarget?.ticket_number}?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                {deleteTarget && (
+                  <p className="font-medium text-foreground">
+                    {deleteTarget.vehicle_reg}
+                    {deleteTarget.customer ? ` · ${deleteTarget.customer}` : ""}
+                    {deleteTarget.net_weight_kg != null ? ` · ${fmtWeight(deleteTarget.net_weight_kg)} t` : ""}
+                    {deleteTarget.status === "completed" ? " · Completed" : deleteTarget.status === "voided" ? " · Voided" : " · First weigh only"}
+                  </p>
+                )}
+                {deletePlan?.blocked ? (
+                  <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-destructive">{deletePlan.blocked}</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {deletePlan?.consequences.map((c) => (
+                      <li key={c} className="flex gap-2"><span aria-hidden>•</span><span>{c}</span></li>
+                    ))}
+                  </ul>
+                )}
+                {deleteLinksUnknown && !deletePlan?.blocked && (
+                  <p className="text-xs">Linked records could not be checked — the delete may be refused if this ticket is on an invoice.</p>
+                )}
+                {!deletePlan?.blocked && (
+                  <label className="flex items-start gap-2 pt-1 text-sm text-foreground">
+                    <Checkbox
+                      className="mt-0.5"
+                      checked={deleteConfirmed}
+                      onCheckedChange={(v) => setDeleteConfirmed(v === true)}
+                    />
+                    <span>I am sure — this ticket cannot be recovered.</span>
+                  </label>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteTicketMutation.isPending}>Keep ticket</AlertDialogCancel>
+            {!deletePlan?.blocked && (
+              <AlertDialogAction
+                className={cn(buttonVariants({ variant: "destructive" }))}
+                disabled={!deleteConfirmed || deleteTicketMutation.isPending}
+                onClick={() => deleteTicketMutation.mutate({ id: deleteTarget?.id ?? "", links: deleteLinks ?? {} })}
+              >
+                {deleteTicketMutation.isPending ? "Deleting…" : `Delete ticket ${deleteTarget?.ticket_number}`}
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
