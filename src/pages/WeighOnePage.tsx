@@ -423,7 +423,7 @@ const WeighOnePage = () => {
       }
       if (names.size === 0 && customerKey.length > 1) {
         const { data } = await supabase.from("weighbridge_customers").select("drivers")
-          .ilike("name", customerKey).limit(5);
+          .ilike("customer_name", customerKey).limit(5);
         for (const r of data ?? []) add((r as { drivers?: string[] }).drivers);
       }
       return [...names.values()].sort((a, b) => a.localeCompare(b));
@@ -656,12 +656,18 @@ const WeighOnePage = () => {
       .select("rate_group_id, carrier_name, carrier_registration")
       .ilike("customer_name", customerName)
       .maybeSingle();
-    if (!data) return;
+    const { data: doc } = await supabase
+      .from("customers")
+      .select("waste_carrier_licence")
+      .ilike("customer_name", customerName)
+      .limit(1)
+      .maybeSingle();
+    if (!data && !doc) return;
     setFormData((p) => ({
       ...p,
-      rate_group_id: data.rate_group_id ?? p.rate_group_id,
-      carrier_name: data.carrier_name ?? p.carrier_name,
-      carrier_registration: data.carrier_registration ?? p.carrier_registration,
+      rate_group_id: data?.rate_group_id ?? p.rate_group_id,
+      carrier_name: data?.carrier_name || p.carrier_name,
+      carrier_registration: data?.carrier_registration || doc?.waste_carrier_licence || p.carrier_registration,
     }));
   };
 
