@@ -30,7 +30,7 @@ export function EwcRegisterSection({ isAdmin }: { isAdmin: boolean }) {
   return <section className="space-y-4">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 className="text-xl font-semibold">EWC waste code register</h2>
+        <h2 className="text-xl font-semibold">EWC Code Register</h2>
         <p className="text-sm text-muted-foreground">List of Wastes · six-digit codes grouped by chapter and sub-chapter</p>
       </div>
       <div className="flex flex-wrap gap-2">
