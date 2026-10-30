@@ -1,0 +1,1 @@
+ALTER TABLE public.verified_tipping_sites ADD COLUMN IF NOT EXISTS register_details jsonb, ADD COLUMN IF NOT EXISTS register_checked_at timestamptz;
