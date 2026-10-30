@@ -1325,7 +1325,7 @@ const WeighOnePage = () => {
             </DialogContent>
           </Dialog>
           <Dialog open={newDialogOpen} onOpenChange={(open) => { setNewDialogOpen(open); if (!open) resetForm(); }}>
-            <DialogContent onKeyDown={(e) => { const t = e.target as HTMLElement; if (e.key === "Enter" && t.tagName === "INPUT" && !t.closest("[role=listbox]") && formData.vehicle_reg && !createMutation.isPending) { e.preventDefault(); createMutation.mutate(); } }} className="weigh-in-dialog max-w-[1318px] w-[calc(100vw-48px)] h-[min(728px,calc(100dvh-40px))] rounded-2xl p-0 gap-0 flex flex-col overflow-hidden bg-background">
+            <DialogContent className="weigh-in-dialog max-w-[1318px] w-[calc(100vw-48px)] h-[min(728px,calc(100dvh-40px))] rounded-2xl p-0 gap-0 flex flex-col overflow-hidden bg-background">
               <DialogHeader className="px-4 py-3 border-b border-border shrink-0 bg-card pr-12">
                 <div className="flex flex-wrap items-center gap-3"><DialogTitle className="text-base font-semibold">{editingTicket ? `Edit Ticket ${editingTicket.ticket_number}` : "New Ticket"}</DialogTitle><Tabs value={formData.job_type} onValueChange={(val) => {
                             setFormData((p) => ({
@@ -1889,7 +1889,7 @@ const WeighOnePage = () => {
                             </Button>
                           )}
 
-                <div className="ml-auto flex items-center gap-3"><span className="hidden md:inline text-xs text-muted-foreground">Enter ↵ to save</span><Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>Cancel</Button><Button onClick={() => createMutation.mutate()} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? (editingTicket ? "Saving…" : "Recording…") : editingTicket ? "Save changes" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
+                <div className="ml-auto flex items-center gap-3"><span className="hidden md:inline text-xs text-muted-foreground">Use the button to save</span><Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>Cancel</Button><Button onClick={() => createMutation.mutate()} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? (editingTicket ? "Saving…" : "Recording…") : editingTicket ? "Save changes" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
               </div>
             </DialogContent>
           </Dialog>
