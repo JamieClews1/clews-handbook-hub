@@ -19,7 +19,7 @@ Driver day-sheet PDFs measure wrapped content and adapt type size and spacing be
 RouteOne booking site resolution uses customer account aliases and explicit site mappings; shared service-address parsing ignores tipping locations, and customer pricing remains separate from future internal business costs.
 Booking search reads the staff-only recent-site bank, maintained by RouteOne/Skiptrak row-change triggers and filtered to a rolling six-month London date window; historical tickets are not scanned on search and established setup mappings remain authoritative.
 RouteOne list and board open the same native-job editor with fixed identity/actions; exchange creation uses an allowlisted new-form copier, never operational snapshots, to protect original jobs and settlement evidence.
-Exchange creation reuses JobFormFields in a presentation-only exchange mode so inherited-site summaries and compact controls never change copying or saving rules.
+Exchange mode reuses JobFormFields for presentation only; copying and saving rules stay unchanged.
 Booking forms use shared numbered single-column sections and board palette tokens for job choices, with derived pricing in the fixed dialog footer; presentation changes never introduce automatic dispatch or persistence.
 Container choices share container-taxonomy and active pricing_skip_sizes, preserving stable size codes and historical prices; ticket ownership and rental terms persist on the job, with a server validation trigger prohibiting rentals on own containers. Printing reuses saved terms and never creates rental agreements.
 Exchange dates resolve once before opening from the booking-window Skip/RoRo day and specificity-matched postcode zone, using London today; later staff date edits never trigger automatic replacement or dispatch.
@@ -43,3 +43,4 @@ Toolbox Talk PDFs share paged saved-signature appendices and explicit list numbe
 Load report tally photo reference reuses the existing JobTicketPhotos viewer above both tally variants, with view-only thumbnails and enlargement, so reference viewing cannot change evidence or tally values.
 CEO reports use Jamie-gated history, server snapshots and shared P&L math; one-use dispatch, leased work and saved recipient delivery IDs prevent duplicates. Claude denial pauses automation; PDFs stay private.
 Customer Setup's portal directory pages memberships/profiles and links to the existing editor; browsing never changes grants or infers access from login activity.
+Outgoing stream comparisons share one classifier reading Midweigh raw Product; never infer product from destination.
