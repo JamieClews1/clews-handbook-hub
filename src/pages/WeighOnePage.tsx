@@ -219,7 +219,7 @@ const WeighOnePage = () => {
   const [ratesDialogOpen, setRatesDialogOpen] = useState(false);
   const [wtnDialogOpen, setWtnDialogOpen] = useState(false);
   const { data: wtnTemplate } = useWtnTemplate();
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingTicket, setEditingTicket] = useState<WeighbridgeTransaction | null>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<WeighbridgeTransaction | null>(null);
   const [stagedAttachments, setStagedAttachments] = useState<StagedAttachment[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -230,8 +230,6 @@ const WeighOnePage = () => {
   const [driverSignature, setDriverSignature] = useState<string | null>(null);
   /** Waste OUT on a Clews vehicle → also raise the matching Route One job */
   const [createRouteOneJob, setCreateRouteOneJob] = useState(true);
-  const [editOperatorSignature, setEditOperatorSignature] = useState<string | null>(null);
-  const [editDriverSignature, setEditDriverSignature] = useState<string | null>(null);
 
 
   const emptyForm = {
@@ -296,13 +294,7 @@ const WeighOnePage = () => {
     }));
   };
   const [classification, setClassification] = useState<WasteClassification>({});
-  const [editClassification, setEditClassification] = useState<WasteClassification>({});
 
-  // Edit form (existing transaction)
-  const [editForm, setEditForm] = useState({
-    ...emptyForm,
-    tare_weight_kg: "",
-  });
 
   // Additional items for new transaction
   const [newAdditionalItems, setNewAdditionalItems] = useState<{ description: string; cost: string; qty: string }[]>([]);
@@ -699,7 +691,8 @@ const WeighOnePage = () => {
   // Create first weigh
   const createMutation = useMutation({
     mutationFn: async () => {
-      const ticket = await generateTicket();
+      const editing = editingTicket;
+      const ticket = editing ? editing.ticket_number ?? "" : await generateTicket();
       const grossKg = parseFloat(formData.gross_weight_kg);
       const outProduct = isWasteOut ? wasteOutProducts.find(x => x.id === outProductId) : undefined;
       const wasteType = isWasteOut
@@ -725,8 +718,11 @@ const WeighOnePage = () => {
         ? chargeFor(netKg as number, rate?.price_per_tonne ?? 0, rate?.min_charge ?? 0)
         : null;
 
-      const { data: txData, error } = await supabase.from("weighbridge_transactions").insert({
-        ticket_number: ticket,
+      const nextStatus: WeighbridgeStatus = editing?.status === "voided"
+        ? "voided"
+        : (hasTare ? "completed" : "first_weigh");
+
+      const payload = {
         vehicle_reg: formData.vehicle_reg.toUpperCase(),
         customer: isWasteOut ? (ownCompanyName || null) : (formData.customer || null),
         site: formData.site || null,
@@ -738,7 +734,6 @@ const WeighOnePage = () => {
         vehicle_type: formData.vehicle_type || null,
         operator_signature: operatorSignature,
         driver_signature: driverSignature,
-        operator_id: user?.id ?? null,
         gross_weight_kg: isNaN(grossKg) ? null : grossKg,
         waste_type_id: isWasteOut ? null : (formData.waste_type_id || null),
         price_per_tonne: rate?.price_per_tonne ?? null,
@@ -754,33 +749,47 @@ const WeighOnePage = () => {
         linked_job_number: formData.linked_job_number || null,
         linked_job_source: formData.linked_job_number ? (formData.linked_job_source || "skiptrak") : null,
         linked_job_date: formData.linked_job_date || null,
-
         tare_weight_kg: hasTare ? tareKg : null,
         net_weight_kg: netKg,
         weight_charge: weightCharge,
         total_price: hasTare ? (weightCharge ?? 0) + itemsTotal : null,
-        second_weigh_at: hasTare ? new Date().toISOString() : null,
-        status: (hasTare ? "completed" : "first_weigh") as WeighbridgeStatus,
-      }).select("id").single();
-      if (error) throw error;
+        second_weigh_at: hasTare ? editing?.second_weigh_at ?? new Date().toISOString() : null,
+        status: nextStatus,
+      };
+
+      let txData: { id: string } | null = null;
+      if (editing) {
+        const { error } = await supabase.from("weighbridge_transactions").update(payload).eq("id", editing.id);
+        if (error) throw error;
+        await supabase.from("weighbridge_additional_items").delete().eq("transaction_id", editing.id);
+        txData = { id: editing.id };
+      } else {
+        const { data, error } = await supabase.from("weighbridge_transactions")
+          .insert({ ...payload, ticket_number: ticket, operator_id: user?.id ?? null })
+          .select("id").single();
+        if (error) throw error;
+        txData = data;
+      }
 
       // Insert additional items (quantity aware)
       const validItems = newAdditionalItems.filter(item => item.description && item.cost);
-      if (validItems.length > 0 && txData) {
-        const { error: itemsError } = await supabase.from("weighbridge_additional_items").insert(
-          validItems.map((item, idx) => {
-            const qty = Math.max(1, parseInt(item.qty || "1", 10) || 1);
-            return {
-              transaction_id: txData.id,
-              description: qty > 1 ? `${qty} × ${item.description}` : item.description,
-              cost: (parseFloat(item.cost) || 0) * qty,
-              display_order: idx,
-            };
-          })
-        );
-        if (itemsError) throw itemsError;
+      if (txData && (validItems.length > 0 || editing)) {
+        if (validItems.length > 0) {
+          const { error: itemsError } = await supabase.from("weighbridge_additional_items").insert(
+            validItems.map((item, idx) => {
+              const qty = Math.max(1, parseInt(item.qty || "1", 10) || 1);
+              return {
+                transaction_id: txData.id,
+                description: qty > 1 ? `${qty} × ${item.description}` : item.description,
+                cost: (parseFloat(item.cost) || 0) * qty,
+                display_order: idx,
+              };
+            })
+          );
+          if (itemsError) throw itemsError;
+        }
 
-        // Update additional items total on transaction
+        // Keep the chargeable-items total in step with what is on the form
         const additionalTotal = validItems.reduce(
           (sum, i) => sum + (parseFloat(i.cost) || 0) * Math.max(1, parseInt(i.qty || "1", 10) || 1),
           0,
@@ -808,6 +817,7 @@ const WeighOnePage = () => {
       /* Waste OUT on one of our own vehicles → raise the matching Route One job */
       if (
         txData &&
+        !editing &&
         formData.job_type === "waste_out" &&
         createRouteOneJob &&
         !arrivingJob &&
@@ -844,7 +854,10 @@ const WeighOnePage = () => {
     },
 
     onSuccess: () => {
-      toast.success(formData.tare_weight_kg.trim() ? "Transaction completed (both weights recorded)" : "First weigh recorded");
+      toast.success(editingTicket
+        ? "Ticket updated"
+        : formData.tare_weight_kg.trim() ? "Transaction completed (both weights recorded)" : "First weigh recorded");
+      queryClient.invalidateQueries({ queryKey: ["weighbridge-additional-items"] });
       setNewDialogOpen(false);
       resetForm();
     },
@@ -987,15 +1000,27 @@ const WeighOnePage = () => {
     onError: (e) => toast.error("Failed: " + e.message),
   });
 
-  // Open the edit dialog for a transaction
-  const openEdit = (t: WeighbridgeTransaction) => {
-    setSelectedTransaction(t);
-    setEditForm({
+  /** Chargeable items are stored with the quantity folded into the label ("3 × Skip hire") */
+  const splitStoredItem = (description: string, cost: number | string | null) => {
+    const m = /^(\d+)\s+×\s+(.*)$/.exec(description);
+    const qty = m ? Math.max(1, parseInt(m[1], 10)) : 1;
+    return { description: m ? m[2] : description, cost: String((Number(cost) || 0) / qty), qty: String(qty) };
+  };
+
+  /** Open the full ticket form with an existing ticket's details */
+  const openEdit = async (t: WeighbridgeTransaction) => {
+    resetForm();
+    const isOut = (t.job_type ?? "") === "waste_out";
+    const product = isOut
+      ? wasteOutProducts.find(p => (p.display_name || "").toLowerCase() === (t.waste_description || "").toLowerCase())
+        ?? wasteOutProducts.find(p => (p.ewc_code || "") === (t.ewc_code || ""))
+      : undefined;
+    setFormData({
       vehicle_reg: t.vehicle_reg ?? "",
       customer: t.customer ?? "",
       site: t.site ?? "",
       driver_name: t.driver_name ?? "",
-      waste_type_id: t.waste_type_id ?? "",
+      waste_type_id: isOut ? "" : (t.waste_type_id ?? ""),
       ewc_code: t.ewc_code ?? "",
       container_type: t.container_type ?? "",
       vehicle_type: t.vehicle_type ?? "",
@@ -1012,78 +1037,22 @@ const WeighOnePage = () => {
       linked_job_source: t.linked_job_source ?? "",
       linked_job_date: t.linked_job_date ?? "",
       tare_weight_kg: t.tare_weight_kg != null ? String(t.tare_weight_kg) : "",
-
     });
-    setEditClassification(asClassification(t.waste_classification));
-    setEditOperatorSignature(t.operator_signature ?? null);
-    setEditDriverSignature(t.driver_signature ?? null);
-    setEditDialogOpen(true);
+    setOutProductId(product?.id ?? "");
+    setClassification(asClassification(t.waste_classification));
+    setOperatorSignature(t.operator_signature ?? null);
+    setDriverSignature(t.driver_signature ?? null);
+    setShowTareNow(t.tare_weight_kg != null);
+    setEditingTicket(t);
+    setNewDialogOpen(true);
+    const { data } = await supabase
+      .from("weighbridge_additional_items")
+      .select("description, cost")
+      .eq("transaction_id", t.id)
+      .order("display_order", { ascending: true });
+    setNewAdditionalItems((data ?? []).map(i => splitStoredItem(i.description ?? "", i.cost)));
   };
 
-  // Save edits to an existing transaction
-  const editMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedTransaction) throw new Error("No transaction selected");
-      const wasteType = wasteTypes.find((wt) => wt.id === editForm.waste_type_id);
-      const rate = (editForm.job_type || selectedTransaction.job_type) !== "waste_out" && editForm.waste_type_id ? rateFor(editForm.waste_type_id, editForm.rate_group_id) : null;
-
-      const grossKg = editForm.gross_weight_kg === "" ? null : parseFloat(editForm.gross_weight_kg);
-      const tareKg = editForm.tare_weight_kg === "" ? null : parseFloat(editForm.tare_weight_kg);
-      const netKg = grossKg != null && tareKg != null ? Math.abs(grossKg - tareKg) : null;
-      const ppt = rate?.price_per_tonne ?? selectedTransaction.price_per_tonne ?? 0;
-      const weightCharge = netKg != null ? chargeFor(netKg, ppt, rate?.min_charge ?? selectedTransaction.min_charge ?? 0) : null;
-      const additionalTotal = selectedTransaction.additional_items_total ?? 0;
-
-      const { error } = await supabase
-        .from("weighbridge_transactions")
-        .update({
-          vehicle_reg: editForm.vehicle_reg.toUpperCase(),
-          customer: editForm.customer || null,
-          site: editForm.site || null,
-          driver_name: editForm.driver_name || null,
-          waste_type_id: editForm.waste_type_id || null,
-          waste_description: wasteType?.waste_type ?? selectedTransaction.waste_description,
-          ewc_code: editForm.ewc_code || wasteType?.ewc_code || null,
-          waste_classification: editClassification,
-          container_type: editForm.container_type || null,
-          vehicle_type: editForm.vehicle_type || null,
-          operator_signature: editOperatorSignature,
-          driver_signature: editDriverSignature,
-          gross_weight_kg: grossKg,
-          tare_weight_kg: tareKg,
-          net_weight_kg: netKg,
-          price_per_tonne: ppt || null,
-          min_charge: rate?.min_charge ?? selectedTransaction.min_charge,
-          rate_group_id: effectiveRateGroupId(editForm.rate_group_id),
-          weight_charge: weightCharge,
-          total_price: weightCharge != null ? weightCharge + additionalTotal : selectedTransaction.total_price,
-          operator_name: editForm.operator_name || null,
-          notes: editForm.notes || null,
-          carrier_registration: editForm.carrier_registration || null,
-          carrier_name: editForm.carrier_name || null,
-          physical_form: editForm.physical_form || null,
-          means_of_transport: editForm.means_of_transport || "Road",
-          job_type: editForm.job_type || null,
-          linked_job_number: editForm.linked_job_number || null,
-          linked_job_source: editForm.linked_job_number ? (editForm.linked_job_source || "skiptrak") : null,
-          linked_job_date: editForm.linked_job_date || null,
-
-          status: netKg != null && selectedTransaction.status !== "voided"
-            ? ("completed" as WeighbridgeStatus)
-            : selectedTransaction.status,
-          second_weigh_at: netKg != null ? selectedTransaction.second_weigh_at ?? new Date().toISOString() : selectedTransaction.second_weigh_at,
-        })
-        .eq("id", selectedTransaction.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Transaction updated");
-      setEditDialogOpen(false);
-      setSelectedTransaction(null);
-      queryClient.invalidateQueries({ queryKey: ["weighbridge-transactions"] });
-    },
-    onError: (e) => toast.error("Failed: " + e.message),
-  });
 
 
   // Add waste type
@@ -1137,8 +1106,9 @@ const WeighOnePage = () => {
     setStagedAttachments([]);
     setSkipDriver("");
     setOutProductId("");
-
     setNewAdditionalItems([]);
+    setEditingTicket(null);
+    setShowTareNow(false);
   };
 
   /** Open the new-ticket form pre-set to the chosen job type */
@@ -1357,7 +1327,7 @@ const WeighOnePage = () => {
           <Dialog open={newDialogOpen} onOpenChange={(open) => { setNewDialogOpen(open); if (!open) resetForm(); }}>
             <DialogContent onKeyDown={(e) => { const t = e.target as HTMLElement; if (e.key === "Enter" && t.tagName === "INPUT" && !t.closest("[role=listbox]") && formData.vehicle_reg && !createMutation.isPending) { e.preventDefault(); createMutation.mutate(); } }} className="weigh-in-dialog max-w-[1318px] w-[calc(100vw-48px)] h-[min(728px,calc(100dvh-40px))] rounded-2xl p-0 gap-0 flex flex-col overflow-hidden bg-background">
               <DialogHeader className="px-4 py-3 border-b border-border shrink-0 bg-card pr-12">
-                <div className="flex flex-wrap items-center gap-3"><DialogTitle className="text-base font-semibold">New Ticket</DialogTitle><Tabs value={formData.job_type} onValueChange={(val) => {
+                <div className="flex flex-wrap items-center gap-3"><DialogTitle className="text-base font-semibold">{editingTicket ? `Edit Ticket ${editingTicket.ticket_number}` : "New Ticket"}</DialogTitle><Tabs value={formData.job_type} onValueChange={(val) => {
                             setFormData((p) => ({
                               ...p,
                               job_type: val,
@@ -1919,7 +1889,7 @@ const WeighOnePage = () => {
                             </Button>
                           )}
 
-                <div className="ml-auto flex items-center gap-3"><span className="hidden md:inline text-xs text-muted-foreground">Enter ↵ to record</span><Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>Cancel</Button><Button onClick={() => createMutation.mutate()} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? "Recording…" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
+                <div className="ml-auto flex items-center gap-3"><span className="hidden md:inline text-xs text-muted-foreground">Enter ↵ to save</span><Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>Cancel</Button><Button onClick={() => createMutation.mutate()} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? (editingTicket ? "Saving…" : "Recording…") : editingTicket ? "Save changes" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
               </div>
             </DialogContent>
           </Dialog>
@@ -2430,136 +2400,6 @@ const WeighOnePage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit transaction */}
-      <Dialog open={editDialogOpen} onOpenChange={(o) => { setEditDialogOpen(o); if (!o) setSelectedTransaction(null); }}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Ticket {selectedTransaction?.ticket_number}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Vehicle Reg</Label>
-                <Input value={editForm.vehicle_reg} onChange={(e) => setEditForm((p) => ({ ...p, vehicle_reg: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Customer</Label>
-                <Input value={editForm.customer} onChange={(e) => setEditForm((p) => ({ ...p, customer: e.target.value }))} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Site</Label>
-                <Input value={editForm.site} onChange={(e) => setEditForm((p) => ({ ...p, site: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Driver</Label>
-                <Input value={editForm.driver_name} onChange={(e) => setEditForm((p) => ({ ...p, driver_name: e.target.value }))} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Waste Type</Label>
-                <Select value={editForm.waste_type_id} onValueChange={(val) => setEditForm((p) => ({ ...p, waste_type_id: val }))}>
-                  <SelectTrigger><SelectValue placeholder="Select waste type..." /></SelectTrigger>
-                  <SelectContent>
-                    {activeWasteTypes.map((wt) => (
-                      <SelectItem key={wt.id} value={wt.id}>{wt.waste_type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Rate Group</Label>
-                <Select
-                  value={editForm.rate_group_id || defaultRateGroup?.id || ""}
-                  onValueChange={(val) => setEditForm((p) => ({ ...p, rate_group_id: val }))}
-                >
-                  <SelectTrigger><SelectValue placeholder="Trade Rates" /></SelectTrigger>
-                  <SelectContent>
-                    {rateGroups.map((g) => (
-                      <SelectItem key={g.id} value={g.id}>{g.name}{g.is_default ? " (default)" : ""}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Gross Weight (kg)</Label>
-                <Input type="number" value={editForm.gross_weight_kg} onChange={(e) => setEditForm((p) => ({ ...p, gross_weight_kg: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Tare Weight (kg)</Label>
-                <Input type="number" value={editForm.tare_weight_kg} onChange={(e) => setEditForm((p) => ({ ...p, tare_weight_kg: e.target.value }))} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Carrier Name</Label>
-                <Input value={editForm.carrier_name} onChange={(e) => setEditForm((p) => ({ ...p, carrier_name: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Carrier Registration</Label>
-                <Input value={editForm.carrier_registration} onChange={(e) => setEditForm((p) => ({ ...p, carrier_registration: e.target.value }))} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Physical Form</Label>
-                <Input value={editForm.physical_form} onChange={(e) => setEditForm((p) => ({ ...p, physical_form: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Container Type</Label>
-                <datalist id="edit-container-types">{containerTypeOptions.map((c) => <option key={c} value={c} />)}</datalist>
-                <datalist id="edit-vehicle-types">{vehicleTypeOptions.map((v) => <option key={v} value={v} />)}</datalist>
-                <Input list="edit-container-types" value={editForm.container_type} onChange={(e) => setEditForm((p) => ({ ...p, container_type: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Vehicle Type</Label>
-                <Input list="edit-vehicle-types" value={editForm.vehicle_type} onChange={(e) => setEditForm((p) => ({ ...p, vehicle_type: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5">
-                <SignatureField label="Operator signature" value={editOperatorSignature} onChange={setEditOperatorSignature} />
-              </div>
-              <div className="space-y-1.5">
-                <SignatureField label="Driver signature" value={editDriverSignature} onChange={setEditDriverSignature} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Job Type</Label>
-                <Select value={editForm.job_type} onValueChange={(val) => setEditForm((p) => ({ ...p, job_type: val }))}>
-                  <SelectTrigger><SelectValue placeholder="Select job type..." /></SelectTrigger>
-                  <SelectContent>
-                    {JOB_TYPES.map((j) => (
-                      <SelectItem key={j.value} value={j.value}>{j.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Linked Skiptrak Job</Label>
-                <Input
-                  placeholder="Job number"
-                  value={editForm.linked_job_number}
-                  onChange={(e) => setEditForm((p) => ({ ...p, linked_job_number: e.target.value, linked_job_source: "skiptrak" }))}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-
-              <Label>Notes</Label>
-              <Input value={editForm.notes} onChange={(e) => setEditForm((p) => ({ ...p, notes: e.target.value }))} />
-            </div>
-            <WasteClassificationFields value={editClassification} onChange={setEditClassification} ewcCode={editForm.ewc_code || wasteTypes.find((w) => w.id === editForm.waste_type_id)?.ewc_code || ""} />
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-              <Button onClick={() => editMutation.mutate()} disabled={editMutation.isPending}>Save changes</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete ticket — double check before it goes */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && closeDeleteTicket()}>
