@@ -309,6 +309,13 @@
       "when": 1793288994975,
       "tag": "0043_data_hub_jobs_source_date_index",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1793352021125,
+      "tag": "0044_monthly_ceo_reports",
+      "breakpoints": true
     }
   ]
 }
