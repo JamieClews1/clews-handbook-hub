@@ -1,7 +1,20 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { outgoingStream, outgoingHeadlineTotals } from "./outgoing-waste-streams";
+import { outgoingStream, outgoingHeadlineTotals, outgoingPercentage, outgoingYearChange } from "./outgoing-waste-streams";
 
+
+describe("outgoing annual comparisons", () => {
+  it("shows waste out divided by waste in, without capping at 100%", () => {
+    assert.equal(outgoingPercentage(120, 100), 120);
+    assert.equal(outgoingPercentage(50, 100), 50);
+    assert.equal(outgoingPercentage(10, 0), null);
+  });
+  it("compares tonnes with the previous year", () => {
+    assert.equal(outgoingYearChange(120, 100), 20);
+    assert.equal(outgoingYearChange(80, 100), -20);
+    assert.equal(outgoingYearChange(100, 0), null);
+  });
+});
 
 describe("outgoingStream", () => {
   it("groups both paper EWC codes as Paper / Card", () => {
