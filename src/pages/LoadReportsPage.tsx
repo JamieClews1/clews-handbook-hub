@@ -12,6 +12,7 @@ import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
 import { CustomerTypeSelector, CustomerType } from "@/components/load-reports/CustomerTypeSelector";
 import { NewLoadForm } from "@/components/load-reports/NewLoadForm";
 import { TallyScreen, LineItem } from "@/components/load-reports/TallyScreen";
+import { JobTicketPhotos } from "@/components/load-reports/JobTicketPhotos";
 import { LoadReviewScreen } from "@/components/load-reports/LoadReviewScreen";
 import { LoadReportsList } from "@/components/load-reports/LoadReportsList";
 import { OfflineIndicator } from "@/components/load-reports/OfflineIndicator";
@@ -1340,6 +1341,8 @@ const LoadReportsPage = () => {
               onCustomerTypeChange={currentReportId ? handleEditReportTypeChange : undefined}
             />
           )}
+
+          {viewMode === "tally" && <JobTicketPhotos key={jobNumber} jobNumber={jobNumber} reference />}
 
           {viewMode === "tally" && selectedCustomer === "staci" && (
             <StaciTallyScreen

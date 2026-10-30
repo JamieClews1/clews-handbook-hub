@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Image as ImageIcon, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 type Photo = { id: string; url: string; label: string };
 
@@ -14,7 +15,7 @@ const prettify = (key: string) =>
  * Route One + photos parsed from the signed PDA waste transfer note) for the
  * job number entered on a load report.
  */
-export const JobTicketPhotos = ({ jobNumber }: { jobNumber: string | null | undefined }) => {
+export const JobTicketPhotos = ({ jobNumber, reference = false }: { jobNumber: string | null | undefined; reference?: boolean }) => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
@@ -102,19 +103,22 @@ export const JobTicketPhotos = ({ jobNumber }: { jobNumber: string | null | unde
   if (photos.length === 0) return null;
 
   return (
-    <div className="space-y-2">
+    <section aria-label={reference ? "Load photo reference" : "Job ticket photos"} className={reference ? "mb-4 space-y-2 border-b border-border pb-3" : "space-y-2"}>
       <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-        <ImageIcon className="h-3.5 w-3.5" /> Job Ticket Photos
+        <ImageIcon className="h-3.5 w-3.5" /> {reference ? "Load photos" : "Job Ticket Photos"}
         <Badge variant="secondary" className="text-[10px]">{photos.length}</Badge>
+        {reference && <span className="ml-auto">Reference only</span>}
       </p>
       <div className="flex gap-2 overflow-x-auto pb-1">
         {photos.map((p) => (
-          <button
+          <Button
             key={p.id}
             type="button"
+            variant="ghost"
             onClick={() => setLightbox(p.url)}
-            className="shrink-0 text-left"
+            className="h-auto shrink-0 flex-col items-start gap-0 p-0 text-left hover:bg-transparent"
             title={p.label}
+            aria-label={`View ${p.label}`}
           >
             <img
               src={p.url}
@@ -125,15 +129,16 @@ export const JobTicketPhotos = ({ jobNumber }: { jobNumber: string | null | unde
             <span className="block text-[10px] text-muted-foreground mt-0.5 w-20 truncate">
               {p.label}
             </span>
-          </button>
+          </Button>
         ))}
       </div>
 
       <Dialog open={!!lightbox} onOpenChange={(o) => !o && setLightbox(null)}>
         <DialogContent className="max-w-3xl">
-          {lightbox && <img src={lightbox} alt="Job ticket photo" className="w-full rounded" />}
+          <DialogTitle className="sr-only">Job ticket photo</DialogTitle>
+          {lightbox && <img src={lightbox} alt="Job ticket photo" className="max-h-[75vh] w-full rounded object-contain" />}
         </DialogContent>
       </Dialog>
-    </div>
+    </section>
   );
 };
