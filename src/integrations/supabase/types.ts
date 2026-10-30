@@ -10347,6 +10347,7 @@ export type Database = {
           carrier_registration: string | null
           created_at: string
           customer_name: string
+          drivers: string[]
           id: string
           is_active: boolean
           rate_group_id: string | null
@@ -10357,6 +10358,7 @@ export type Database = {
           carrier_registration?: string | null
           created_at?: string
           customer_name: string
+          drivers?: string[]
           id?: string
           is_active?: boolean
           rate_group_id?: string | null
@@ -10367,6 +10369,7 @@ export type Database = {
           carrier_registration?: string | null
           created_at?: string
           customer_name?: string
+          drivers?: string[]
           id?: string
           is_active?: boolean
           rate_group_id?: string | null
@@ -10381,6 +10384,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      weighbridge_driver_import: {
+        Row: {
+          drivers: string[] | null
+          key: string | null
+          kind: string | null
+        }
+        Insert: {
+          drivers?: string[] | null
+          key?: string | null
+          kind?: string | null
+        }
+        Update: {
+          drivers?: string[] | null
+          key?: string | null
+          kind?: string | null
+        }
+        Relationships: []
       }
       weighbridge_item_templates: {
         Row: {
@@ -10656,6 +10677,7 @@ export type Database = {
       weighbridge_vehicles: {
         Row: {
           created_at: string
+          drivers: string[]
           id: string
           is_active: boolean
           updated_at: string
@@ -10663,6 +10685,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          drivers?: string[]
           id?: string
           is_active?: boolean
           updated_at?: string
@@ -10670,6 +10693,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          drivers?: string[]
           id?: string
           is_active?: boolean
           updated_at?: string
