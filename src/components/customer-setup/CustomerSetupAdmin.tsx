@@ -36,6 +36,8 @@ import { SiteHistoryDialog } from "./SiteHistoryDialog";
 import { GdprCleanup } from "./GdprCleanup";
 import { cleanEmail } from "@/lib/email-clean";
 import { publicUrl } from "@/lib/public-url";
+import { allAccessSiteIds } from "@/lib/portal-site-access";
+
 
 
 /** Read the real error message from a failed backend function call. */
@@ -162,6 +164,8 @@ export function CustomerSetupAdmin() {
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [profilesById, setProfilesById] = useState<Record<string, ProfileLite>>({});
   const [siteAccessByMembershipId, setSiteAccessByMembershipId] = useState<Record<string, Set<string>>>({});
+  const [clearAccessConfirmId, setClearAccessConfirmId] = useState<string | null>(null);
+
 
   // dialogs
   const [createCustomerOpen, setCreateCustomerOpen] = useState(false);
@@ -1187,6 +1191,44 @@ export function CustomerSetupAdmin() {
     }
   };
 
+  /** One-click "all their jobs": tick (or clear) every active site on the account, then save. */
+  const setAllSitesForMembership = async (m: Membership, on: boolean) => {
+    const targetSiteIds = on ? allAccessSiteIds(sites, m.customer_id) : [];
+    if (on && targetSiteIds.length === 0) {
+      toast({ title: "No active sites", description: "Add sites to this account first.", variant: "destructive" });
+      return;
+    }
+    setSiteAccessByMembershipId((prev) => ({ ...prev, [m.id]: new Set(targetSiteIds) }));
+    try {
+      const { error: delError } = await supabase.from("customer_portal_site_access").delete().eq("membership_id", m.id);
+      if (delError) throw delError;
+      if (targetSiteIds.length > 0) {
+        const { error: insError } = await supabase.from("customer_portal_site_access").insert(
+          targetSiteIds.map((site_id) => ({ membership_id: m.id, site_id }))
+        );
+        if (insError) throw insError;
+      }
+      // Full-access accounts re-tick new sites on load, so clearing must drop that flag too.
+      if (!on && m.all_sites) {
+        const { error: flagError } = await supabase
+          .from("customer_portal_memberships")
+          .update({ all_sites: false } as any)
+          .eq("id", m.id);
+        if (flagError) throw flagError;
+      }
+      toast({
+        title: on ? "All sites selected" : "All sites cleared",
+        description: on
+          ? `${targetSiteIds.length} site(s) ticked for this user.`
+          : "They now only see sites they own.",
+      });
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Failed to update site access.", variant: "destructive" });
+      if (selectedCustomerId) await loadCustomerDetails(selectedCustomerId);
+    }
+  };
+
+
   const openPasswordDialog = (userId: string, email: string) => {
     setPasswordUserId(userId);
     setPasswordUserEmail(email);
@@ -1885,9 +1927,13 @@ export function CustomerSetupAdmin() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex flex-wrap gap-2">
+                                  <Button variant="outline" size="sm" onClick={() => setAllSitesForMembership(m, true)}>
+                                    Select all sites
+                                  </Button>
                                   <Button variant="outline" size="sm" onClick={() => saveSiteAccess(m.id)}>
                                     Save access
                                   </Button>
+
                                   <Button variant="outline" size="sm" className="gap-1" onClick={() => openAccessEmailDialog(m.id)}>
                                     <Mail className="h-3 w-3" />
                                     Send login email
@@ -1932,9 +1978,33 @@ export function CustomerSetupAdmin() {
                           return (
                             <Card key={`access-${m.id}`}>
                               <CardHeader className="pb-3">
-                                <CardTitle className="text-base">{profile?.email ?? m.user_id}</CardTitle>
-                                <CardDescription>Select site access for this user.</CardDescription>
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div>
+                                    <CardTitle className="text-base">{profile?.email ?? m.user_id}</CardTitle>
+                                    <CardDescription>Select site access for this user.</CardDescription>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    <Button variant="outline" size="sm" onClick={() => setAllSitesForMembership(m, true)}>
+                                      Select all sites
+                                    </Button>
+                                    <Button
+                                      variant={clearAccessConfirmId === m.id ? "destructive" : "outline"}
+                                      size="sm"
+                                      onClick={() => {
+                                        if (clearAccessConfirmId === m.id) {
+                                          setClearAccessConfirmId(null);
+                                          void setAllSitesForMembership(m, false);
+                                        } else {
+                                          setClearAccessConfirmId(m.id);
+                                        }
+                                      }}
+                                    >
+                                      {clearAccessConfirmId === m.id ? "Confirm clear all" : "Clear all"}
+                                    </Button>
+                                  </div>
+                                </div>
                               </CardHeader>
+
                               <CardContent className="space-y-3">
                                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                   {sites.map((s) => (
