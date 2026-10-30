@@ -202,6 +202,7 @@ const WeighOnePage = () => {
   };
   const { jobs: banksmanJobs, reload: reloadBanksmanJobs } = useBanksmanJobs();
   const [newDialogOpen, setNewDialogOpen] = useState(false);
+  const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [secondWeighDialogOpen, setSecondWeighDialogOpen] = useState(false);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<WeighbridgeTransaction | null>(null);
@@ -1110,6 +1111,23 @@ const WeighOnePage = () => {
     setOutProductId("");
 
     setNewAdditionalItems([]);
+  };
+
+  /** Open the new-ticket form pre-set to the chosen job type */
+  const startNewTicket = (type: "waste_in" | "waste_out" | "skip") => {
+    resetForm();
+    setFormData((p) => ({
+      ...p,
+      job_type: type,
+      ...(type === "skip"
+        ? { carrier_name: OWN_CARRIER_NAME, carrier_registration: ownCarrierLicence }
+        : {}),
+      ...(type === "waste_out"
+        ? { customer: ownCompanyName, site: "", rate_group_id: "", waste_type_id: "" }
+        : {}),
+    }));
+    setTypePickerOpen(false);
+    setNewDialogOpen(true);
   };
 
   // Filter transactions
