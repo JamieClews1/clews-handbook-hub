@@ -11,7 +11,7 @@ import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
 import { BanksmanSettings } from "@/components/banksman/BanksmanSettings";
 import { CombinedTicketList } from "@/components/weighone/CombinedTicketList";
 import { Link, useSearchParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all";
@@ -403,7 +403,7 @@ const WeighOnePage = () => {
   });
 
   // Saved driver lists from WeighOne Settings (vehicles by reg, customers by name)
-  const regKey = formData.vehicle_registration.replace(/\s+/g, "").toUpperCase();
+  const regKey = formData.vehicle_reg.replace(/\s+/g, "").toUpperCase();
   const customerKey = formData.customer.trim().toLowerCase();
   const { data: savedDrivers = [] } = useQuery({
     queryKey: ["weighone-saved-drivers", regKey, customerKey],
