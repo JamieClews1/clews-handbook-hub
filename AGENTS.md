@@ -44,3 +44,4 @@ Load report tally photo reference reuses the existing JobTicketPhotos viewer abo
 CEO reports use Jamie-gated history, server snapshots and shared P&L math; one-use dispatch, leased work and saved recipient delivery IDs prevent duplicates. Claude denial pauses automation; PDFs stay private.
 Customer Setup's portal directory pages memberships/profiles and links to the existing editor; browsing never changes grants or infers access from login activity.
 Outgoing stream comparisons share one classifier reading Midweigh raw Product; never infer product from destination.
+Register normaliser accepts business_name so carriers stay visible.
