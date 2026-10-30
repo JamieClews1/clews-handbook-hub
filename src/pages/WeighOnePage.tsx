@@ -1394,6 +1394,7 @@ const WeighOnePage = () => {
                             {containerTypeOptions.map((c) => <option key={c} value={c} />)}
                           </datalist>
                           </>}
+                          </>}
                         </div>
                       </div>
                       </div>
