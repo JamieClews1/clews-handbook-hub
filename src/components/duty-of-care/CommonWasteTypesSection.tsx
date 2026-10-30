@@ -43,6 +43,17 @@ export function CommonWasteTypesSection() {
         From the Midweigh export, {fmtDate(wasteOut.from)} – {fmtDate(wasteOut.to)}: {wasteOut.loads.toLocaleString()} Waste Out loads, {fmtT(wasteOut.tonnes)} tonnes, grouped by EWC code.
       </p>
     </div>
+    <div className="flex items-center justify-end gap-2">
+      <span className="text-sm text-muted-foreground">Sorted by</span>
+      <Select value={sortBy} onValueChange={v => setSortBy(v as SortKey)}>
+        <SelectTrigger className="w-[220px]" aria-label="Sort waste types by">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {SORT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
     <div className="overflow-x-auto border-y border-border">
       <table className="w-full text-sm">
         <thead className="bg-muted/50 text-left"><tr>
@@ -50,7 +61,7 @@ export function CommonWasteTypesSection() {
           <th className="p-3 font-semibold">Products</th><th className="p-3 font-semibold">Main destinations</th>
           <th className="p-3 font-semibold text-right">Loads</th><th className="p-3 font-semibold text-right">Tonnes</th><th className="p-3 font-semibold text-right">Share</th>
         </tr></thead>
-        <tbody className="divide-y divide-border">{rows.map(r => {
+        <tbody className="divide-y divide-border">{sorted.map(r => {
           const reg = register.get(r.ewc.replace(/[^0-9]/g, ""));
           return <tr key={r.ewc} className="align-top hover:bg-muted/30">
             <td className="p-3 font-mono font-medium whitespace-nowrap">{normaliseEwcCode(r.ewc)}</td>
