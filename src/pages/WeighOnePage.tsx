@@ -4,6 +4,7 @@ import { useBanksmanJobs } from "@/components/banksman/useBanksmanJobs";
 import { useTippingSites } from "@/hooks/useTippingSites";
 import { RouteOneArrivalPicker, type ArrivingJob } from "@/components/weighone/RouteOneArrivalPicker";
 import { CONTAINER_GROUPS, bookingContainerLabel } from "@/lib/container-taxonomy";
+import { WASTE_OUT_CONTAINERS, recogniseContainer } from "@/lib/weighone-waste-out";
 import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
 import { BanksmanSettings } from "@/components/banksman/BanksmanSettings";
 import { CombinedTicketList } from "@/components/weighone/CombinedTicketList";
@@ -258,6 +259,8 @@ const WeighOnePage = () => {
   // New transaction form
   const [formData, setFormData] = useState(emptyForm);
   const [arrivingJob, setArrivingJob] = useState<ArrivingJob | null>(null);
+  const isWasteOut = formData.job_type === "waste_out";
+  const [outProductId, setOutProductId] = useState("");
   const { data: outgoingSites = [] } = useTippingSites();
   /** Prefill the weigh-in from a RouteOne job so nothing is retyped. */
   const applyRouteOneJob = (job: ArrivingJob) => {
@@ -354,6 +357,36 @@ const WeighOnePage = () => {
         .limit(1)
         .maybeSingle();
       return data?.waste_carriers_licence_number ?? "";
+    },
+  });
+
+  // Registered company name — Waste Out always leaves from our own site
+  const { data: ownCompanyName = "Clews Recycling" } = useQuery({
+    queryKey: ["weighone-own-company-name"],
+    queryFn: async () => {
+      const { data } = await supabase.from("company_profile").select("company_name").limit(1).maybeSingle();
+      return data?.company_name || "Clews Recycling";
+    },
+  });
+
+  // Waste Out products managed in Duty of Care → Waste Types
+  const { data: wasteOutProducts = [] } = useQuery({
+    queryKey: ["waste_products", "active"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("waste_products").select("id, display_name, ewc_code, status").neq("status", "retired").order("ewc_code").order("display_name");
+      if (error) throw error;
+      return (data ?? []) as { id: string; display_name: string; ewc_code: string; status: string }[];
+    },
+  });
+
+  // Hauliers saved in Duty of Care (Haulage class) with their carrier registrations
+  const { data: knownHauliers = [] } = useQuery({
+    queryKey: ["weighone-known-hauliers"],
+    queryFn: async () => {
+      const { data } = await supabase.from("verified_tipping_sites").select("site_name, operator_name, registration_number, site_class").eq("site_class", "haulage");
+      const rows = (data ?? []) as { site_name: string | null; operator_name: string | null; registration_number: string | null }[];
+      const list = rows.map(r => ({ name: (r.operator_name || r.site_name || "").trim(), registration: r.registration_number || "" })).filter(h => h.name);
+      return [{ name: OWN_CARRIER_NAME, registration: "" }, ...list];
     },
   });
 
@@ -595,20 +628,42 @@ const WeighOnePage = () => {
       .limit(1)
       .maybeSingle();
 
+    // Recognise the truck (e.g. FG61SYV → Artic walking floor) from its previous tickets
+    const [{ data: hubTypes }, { data: txTypes }] = await Promise.all([
+      supabase.from("data_hub_jobs").select("container_type").eq("source", "midweigh").ilike("vehicle_registration", clean).order("job_date", { ascending: false }).limit(200),
+      supabase.from("weighbridge_transactions").select("container_type").eq("vehicle_reg", clean).order("created_at", { ascending: false }).limit(50),
+    ]);
+    const truck = recogniseContainer([...(txTypes ?? []), ...(hubTypes ?? [])].map(r => r.container_type));
+    if (truck) setFormData(p => p.container_type ? p : { ...p, container_type: truck.container, vehicle_type: truck.vehicle });
+
     const customer = lastTx?.customer || hub?.customer || "";
     if (!customer && !lastTx) return;
+    const out = formData.job_type === "waste_out";
 
     setFormData((p) => ({
       ...p,
-      customer: p.customer || customer || "",
-      site: p.site || hub?.site || "",
+      customer: out ? p.customer : (p.customer || customer || ""),
+      site: out ? p.site : (p.site || hub?.site || ""),
       driver_name: p.driver_name || lastTx?.driver_name || hub?.driver || "",
-      carrier_name: p.carrier_name || lastTx?.carrier_name || customer || "",
+      carrier_name: p.carrier_name || lastTx?.carrier_name || (out ? "" : customer) || "",
       carrier_registration: p.carrier_registration || lastTx?.carrier_registration || "",
-      rate_group_id: p.rate_group_id || lastTx?.rate_group_id || "",
+      rate_group_id: out ? p.rate_group_id : (p.rate_group_id || lastTx?.rate_group_id || ""),
     }));
 
-    if (customer) applyCustomerDefaults(customer);
+    if (customer && !out) applyCustomerDefaults(customer);
+  };
+
+  /** Haulier → carrier registration from Duty of Care hauliers, past tickets, or our own licence */
+  const applyHaulier = async (name: string) => {
+    const n = name.trim();
+    if (!n) return;
+    const known = knownHauliers.find(h => h.name.toLowerCase() === n.toLowerCase());
+    let reg = known?.registration || (/clews/i.test(n) ? ownCarrierLicence : "");
+    if (!reg) {
+      const { data } = await supabase.from("weighbridge_transactions").select("carrier_registration").ilike("carrier_name", n).not("carrier_registration", "is", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      reg = data?.carrier_registration ?? "";
+    }
+    if (reg) setFormData(p => ({ ...p, carrier_registration: reg }));
   };
 
 
@@ -617,11 +672,14 @@ const WeighOnePage = () => {
     mutationFn: async () => {
       const ticket = await generateTicket();
       const grossKg = parseFloat(formData.gross_weight_kg);
-      const wasteType = activeWasteTypes.find(wt => wt.id === formData.waste_type_id);
+      const outProduct = isWasteOut ? wasteOutProducts.find(x => x.id === outProductId) : undefined;
+      const wasteType = isWasteOut
+        ? (outProduct ? { waste_type: outProduct.display_name, ewc_code: formData.ewc_code || outProduct.ewc_code } : undefined)
+        : activeWasteTypes.find(wt => wt.id === formData.waste_type_id);
 
-      const tableRate = formData.waste_type_id ? rateFor(formData.waste_type_id, formData.rate_group_id) : null;
-      // A RouteOne job's booked £/t wins over the weighbridge rate table.
-      const rate = arrivingJob?.charge_per_tonne != null
+      const tableRate = !isWasteOut && formData.waste_type_id ? rateFor(formData.waste_type_id, formData.rate_group_id) : null;
+      // A RouteOne job's booked £/t wins over the weighbridge rate table. Waste Out carries no rates.
+      const rate = isWasteOut ? null : arrivingJob?.charge_per_tonne != null
         ? { price_per_tonne: Number(arrivingJob.charge_per_tonne), min_charge: tableRate?.min_charge ?? 0 }
         : tableRate;
 
@@ -641,7 +699,7 @@ const WeighOnePage = () => {
       const { data: txData, error } = await supabase.from("weighbridge_transactions").insert({
         ticket_number: ticket,
         vehicle_reg: formData.vehicle_reg.toUpperCase(),
-        customer: formData.customer || null,
+        customer: isWasteOut ? (ownCompanyName || null) : (formData.customer || null),
         site: formData.site || null,
         driver_name: formData.driver_name || null,
         waste_description: wasteType?.waste_type || null,
@@ -653,10 +711,10 @@ const WeighOnePage = () => {
         driver_signature: driverSignature,
         operator_id: user?.id ?? null,
         gross_weight_kg: isNaN(grossKg) ? null : grossKg,
-        waste_type_id: formData.waste_type_id || null,
+        waste_type_id: isWasteOut ? null : (formData.waste_type_id || null),
         price_per_tonne: rate?.price_per_tonne ?? null,
         min_charge: rate?.min_charge ?? null,
-        rate_group_id: effectiveRateGroupId(formData.rate_group_id),
+        rate_group_id: isWasteOut ? null : effectiveRateGroupId(formData.rate_group_id),
         operator_name: operatorName || formData.operator_name || null,
         notes: formData.notes || null,
         carrier_registration: formData.carrier_registration || null,
@@ -1049,6 +1107,7 @@ const WeighOnePage = () => {
     setDriverSignature(null);
     setStagedAttachments([]);
     setSkipDriver("");
+    setOutProductId("");
 
     setNewAdditionalItems([]);
   };
@@ -1230,6 +1289,8 @@ const WeighOnePage = () => {
                                 : { linked_job_number: "", linked_job_source: "", linked_job_date: "" }),
                             }));
                             if (val !== "skip") setSkipDriver("");
+                            if (val === "waste_out") setFormData(p => ({ ...p, customer: ownCompanyName, site: "", rate_group_id: "", waste_type_id: "" }));
+                            else if (formData.job_type === "waste_out") setFormData(p => ({ ...p, customer: "" }));
                           }}> <TabsList className="h-9">{JOB_TYPES.map(j => <TabsTrigger key={j.value} value={j.value} className="text-xs">{j.label === "Waste IN" ? "Waste in" : j.label === "Waste OUT" ? "Waste out" : j.label}</TabsTrigger>)}</TabsList></Tabs><div className="flex-1 min-w-64">                      <RouteOneArrivalPicker
                         compact
                         selected={arrivingJob}
@@ -1370,7 +1431,14 @@ const WeighOnePage = () => {
                           </>}
                         </div>
                         <div className="col-span-2 space-y-1.5">
-                          <Label className="text-xs">Container</Label>
+                          <Label className="text-xs">Container{isWasteOut && formData.vehicle_type ? <span className="ml-2 font-normal text-muted-foreground">Recognised: {formData.vehicle_type}</span> : null}</Label>
+                          {isWasteOut ? (
+                            <div className="space-y-1.5">{WASTE_OUT_CONTAINERS.map(g => (
+                              <div key={g.group} className="flex flex-wrap items-center gap-1.5"><span className="w-12 text-[11px] font-semibold text-muted-foreground">{g.vehicle}</span>{g.options.map(o => (
+                                <Button type="button" key={o} size="sm" variant={formData.container_type === o ? "default" : "outline"} className="h-7 rounded-full px-3 text-xs" onClick={() => setFormData(p => ({ ...p, container_type: o, vehicle_type: g.vehicle }))}>{o.split(" · ")[1]}</Button>
+                              ))}</div>
+                            ))}</div>
+                          ) : <>
                           <div className="flex flex-wrap gap-1.5">{["Skip", "RoRo", "Enclosed", "Curtain-side"].map(c => <Button type="button" key={c} size="sm" variant={formData.container_type === c ? "default" : "outline"} className="h-7 rounded-full px-3 text-xs" onClick={() => { setShowOtherContainer(false); setFormData(p => ({ ...p, container_type: c, vehicle_type: vehicleTypeForContainer(c) || p.vehicle_type })); }}>{c === "RoRo" ? "Ro Ro" : c}</Button>)}<Button type="button" size="sm" variant={showOtherContainer || (formData.container_type && !["Skip", "RoRo", "Enclosed", "Curtain-side"].includes(formData.container_type)) ? "default" : "outline"} className="h-7 rounded-full px-3 text-xs" onClick={() => setShowOtherContainer(true)}>Other…</Button></div>
                           {(showOtherContainer || (formData.container_type && !["Skip", "RoRo", "Enclosed", "Curtain-side"].includes(formData.container_type))) && <>
                           <Input
@@ -1387,6 +1455,7 @@ const WeighOnePage = () => {
                             {containerTypeOptions.map((c) => <option key={c} value={c} />)}
                           </datalist>
                           </>}
+                          </>}
                         </div>
                       </div>
                       </div>
@@ -1401,12 +1470,18 @@ const WeighOnePage = () => {
                       </div>
                       <div className="p-3 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
+                        {isWasteOut ? (
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Outgoing site</Label>
+                            <Input className="h-9 bg-muted" readOnly value={ownCompanyName} title="Waste Out always leaves from the registered company site" />
+                          </div>
+                        ) : (
                         <div className="space-y-1.5">
-                          <Label className="text-xs">{formData.job_type === "waste_out" ? "Outgoing site" : "Customer"}</Label>
+                          <Label className="text-xs">Customer</Label>
                           <div className="relative">
                             <Input
                               className="h-9"
-                              placeholder={formData.job_type === "waste_out" ? "Search outgoing sites..." : "Search customer..."}
+                              placeholder="Search customer..."
                               value={formData.customer}
                               onChange={(e) => {
                                 setFormData((p) => ({ ...p, customer: e.target.value }));
@@ -1420,7 +1495,7 @@ const WeighOnePage = () => {
                             />
                             {customerSearch && formData.customer && (
                               <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                                {(formData.job_type === "waste_out" ? outgoingSites.map(o => ({ id: o.site_name, customer_name: o.site_name })) : midweighCustomers)
+                                {midweighCustomers
                                   .filter(c => c.customer_name.toLowerCase().includes(formData.customer.toLowerCase()))
                                   .slice(0, 20)
                                   .map(c => (
@@ -1442,9 +1517,11 @@ const WeighOnePage = () => {
                             )}
                           </div>
                         </div>
+                        )}
                         <div className="space-y-1.5">
-                          <Label className="text-xs">Site</Label>
-                          <Input className="h-9" placeholder="Site name" value={formData.site} onChange={(e) => setFormData((p) => ({ ...p, site: e.target.value }))} />
+                          <Label className="text-xs">{isWasteOut ? "Destination (tipping site)" : "Site"}</Label>
+                          <Input className="h-9" list={isWasteOut ? "waste-out-destinations" : undefined} placeholder={isWasteOut ? "Search Duty of Care tipping sites..." : "Site name"} value={formData.site} onChange={(e) => setFormData((p) => ({ ...p, site: e.target.value }))} />
+                          {isWasteOut && <datalist id="waste-out-destinations">{outgoingSites.map(o => <option key={o.site_name} value={o.site_name} />)}</datalist>}
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs">Driver</Label>
@@ -1452,7 +1529,12 @@ const WeighOnePage = () => {
                         </div>
                           <div className="space-y-1.5">
                           <Label className="text-xs">Haulier</Label>
-                          <Input className="h-9" placeholder="Carrier / haulier" value={formData.carrier_name} onChange={(e) => setFormData((p) => ({ ...p, carrier_name: e.target.value }))} />
+                          <Input className="h-9" list="weighone-hauliers" placeholder="Carrier / haulier" value={formData.carrier_name} onChange={(e) => setFormData((p) => ({ ...p, carrier_name: e.target.value }))} onBlur={(e) => applyHaulier(e.target.value)} />
+                          <datalist id="weighone-hauliers">{knownHauliers.map(h => <option key={h.name} value={h.name} />)}</datalist>
+                        </div>
+                        <div className="space-y-1.5 col-span-2">
+                          <Label className="text-xs">Carrier registration</Label>
+                          <Input className="h-9 font-mono" placeholder="Filled from the haulier, e.g. CBDU203180" value={formData.carrier_registration} onChange={(e) => setFormData((p) => ({ ...p, carrier_registration: e.target.value.toUpperCase() }))} />
                         </div>
                       </div>
                       </div>
@@ -1463,6 +1545,20 @@ const WeighOnePage = () => {
                         
                       </div>
                       <div className="p-3 space-y-3">
+                      {isWasteOut ? (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between"><Label className="text-xs">Waste type (Duty of Care products)</Label><a href="/duty-of-care" target="_blank" rel="noreferrer" className="text-xs text-primary underline-offset-2 hover:underline">Manage</a></div>
+                          <Select value={outProductId} onValueChange={(val) => { setOutProductId(val); const pr = wasteOutProducts.find(x => x.id === val); if (pr) setFormData(p => ({ ...p, ewc_code: pr.ewc_code })); }}>
+                            <SelectTrigger className="h-9"><SelectValue placeholder="Select waste out product..." /></SelectTrigger>
+                            <SelectContent>
+                              {wasteOutProducts.map((pr) => (
+                                <SelectItem key={pr.id} value={pr.id}><span className="font-mono text-xs mr-2">{pr.ewc_code}</span>{pr.display_name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">No rates apply to Waste Out tickets.</p>
+                        </div>
+                      ) : (
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                           <Label className="text-xs">Waste Type</Label>
@@ -1490,11 +1586,12 @@ const WeighOnePage = () => {
                           </Select>
                         </div>
                       </div>
+                      )}
                       <details className="rounded-md bg-muted px-3 py-2 text-xs">
                         <summary className="cursor-pointer flex justify-between gap-2"><span>EWC <strong className="font-mono">{formData.ewc_code || selectedWasteType?.ewc_code || "—"}</strong></span><span className="text-primary">Override</span></summary>
                         <Input aria-label="EWC override" className="mt-2 h-9 font-mono" value={formData.ewc_code} placeholder={selectedWasteType?.ewc_code || "EWC code"} onChange={e => setFormData(p => ({ ...p, ewc_code: e.target.value }))} />
                       </details>
-                      {selectedWasteType && selectedRate && (
+                      {!isWasteOut && selectedWasteType && selectedRate && (
                         <div className="flex flex-wrap items-center gap-2 text-xs p-2 rounded bg-muted/50">
                           <PoundSterling className="h-3.5 w-3.5 text-muted-foreground" />
                           <span className="text-muted-foreground">Per tonne:</span>
@@ -1528,10 +1625,6 @@ const WeighOnePage = () => {
                       </div>
                       <div className="p-3 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Carrier Registration</Label>
-                          <Input className="h-9 font-mono" placeholder="e.g. CBDU203180" value={formData.carrier_registration} onChange={(e) => setFormData((p) => ({ ...p, carrier_registration: e.target.value.toUpperCase() }))} />
-                        </div>
                         <div className="space-y-1.5 col-span-2">
                           <Label className="text-xs">Physical Form</Label>
                           <Tabs value={formData.physical_form} onValueChange={val => setFormData(p => ({ ...p, physical_form: val }))}><TabsList className="h-auto flex flex-wrap justify-start">{PHYSICAL_FORMS.filter(f => f !== "Powder" || formData.physical_form === "Powder").map(f => <TabsTrigger value={f} key={f} className="text-xs px-2 py-1">{f}</TabsTrigger>)}</TabsList></Tabs>
