@@ -57,7 +57,7 @@ export function CommonWasteTypesSection() {
     <div className="overflow-x-auto border-y border-border">
       <table className="w-full text-sm">
         <thead className="bg-muted/50 text-left"><tr>
-          <th className="p-3 font-semibold">EWC code</th><th className="p-3 font-semibold">Register description</th>
+          <th className="p-3 font-semibold">Waste code</th><th className="p-3 font-semibold">Register description</th>
           <th className="p-3 font-semibold">Products</th><th className="p-3 font-semibold">Main destinations</th>
           <th className="p-3 font-semibold text-right">Loads</th><th className="p-3 font-semibold text-right">Tonnes</th><th className="p-3 font-semibold text-right">Share</th>
         </tr></thead>

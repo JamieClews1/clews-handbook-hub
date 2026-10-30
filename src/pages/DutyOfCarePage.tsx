@@ -13,6 +13,7 @@ import { RequirementsSettings } from "@/components/duty-of-care/RequirementsSett
 import { PublicRegisterSection } from "@/components/duty-of-care/PublicRegisterSection";
 import { EwcRegisterSection } from "@/components/duty-of-care/EwcRegisterSection";
 import { CommonWasteTypesSection } from "@/components/duty-of-care/CommonWasteTypesSection";
+import { WasteProductsSection } from "@/components/duty-of-care/WasteProductsSection";
 import { CompanyDocument, Partner, PartnerDocument, PartnerDocumentRequirement, DocumentType } from "@/components/duty-of-care/types";
 
 const DutyOfCarePage = () => {
@@ -95,7 +96,7 @@ const DutyOfCarePage = () => {
               <ShieldCheck className="h-4 w-4 hidden sm:inline" />
               Tipping Sites
             </TabsTrigger>
-            <TabsTrigger value="ewc" className="gap-2">EWC codes</TabsTrigger>
+            <TabsTrigger value="ewc" className="gap-2">Waste Types</TabsTrigger>
             {isAdmin && (
               <TabsTrigger value="settings" className="gap-2">
                 <Settings className="h-4 w-4 hidden sm:inline" />
@@ -124,6 +125,7 @@ const DutyOfCarePage = () => {
 
           <TabsContent value="ewc" className="space-y-10">
             <CommonWasteTypesSection />
+            <WasteProductsSection isAdmin={isAdmin} />
             <EwcRegisterSection isAdmin={isAdmin} />
           </TabsContent>
 
