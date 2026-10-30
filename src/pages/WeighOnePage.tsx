@@ -2,6 +2,8 @@ import { WeighOneYard } from "@/components/weighone/WeighOneYard";
 import { BanksmanTicketReport, type LinkedBanksmanJob } from "@/components/weighone/BanksmanTicketReport";
 import { useBanksmanJobs } from "@/components/banksman/useBanksmanJobs";
 import { useTippingSites } from "@/hooks/useTippingSites";
+import { useVerifiedTippingSites, type VerifiedTippingSite } from "@/hooks/useVerifiedTippingSites";
+import { TippingSiteQuickDialog } from "@/components/weighone/TippingSiteQuickDialog";
 import { RouteOneArrivalPicker, type ArrivingJob } from "@/components/weighone/RouteOneArrivalPicker";
 import { CONTAINER_GROUPS, bookingContainerLabel } from "@/lib/container-taxonomy";
 import { WASTE_OUT_CONTAINERS, recogniseContainer } from "@/lib/weighone-waste-out";
@@ -266,7 +268,11 @@ const WeighOnePage = () => {
     if (isWasteOut && formData.vehicle_type) setContainerGroupOpen(formData.vehicle_type);
   }, [isWasteOut, formData.vehicle_type]);
   const [outProductId, setOutProductId] = useState("");
+  const [wasteSearch, setWasteSearch] = useState("");
   const { data: outgoingSites = [] } = useTippingSites();
+  const { data: verifiedSites = [] } = useVerifiedTippingSites();
+  const [siteDialogOpen, setSiteDialogOpen] = useState(false);
+  const [siteDialogSite, setSiteDialogSite] = useState<VerifiedTippingSite | null>(null);
   /** Prefill the weigh-in from a RouteOne job so nothing is retyped. */
   const applyRouteOneJob = (job: ArrivingJob) => {
     setArrivingJob(job);
@@ -1595,6 +1601,25 @@ const WeighOnePage = () => {
                           <Label className="text-xs">{isWasteOut ? "Destination (tipping site)" : "Site"}</Label>
                           <Input className="h-9" list={isWasteOut ? "waste-out-destinations" : undefined} placeholder={isWasteOut ? "Search Duty of Care tipping sites..." : "Site name"} value={formData.site} onChange={(e) => setFormData((p) => ({ ...p, site: e.target.value }))} />
                           {isWasteOut && <datalist id="waste-out-destinations">{outgoingSites.map(o => <option key={o.site_name} value={o.site_name} />)}</datalist>}
+                          {isWasteOut && (() => {
+                            const sel = verifiedSites.find(v => v.site_name.trim().toLowerCase() === formData.site.trim().toLowerCase());
+                            return (
+                              <>
+                                {sel && (
+                                  <div className="rounded-md border bg-muted/40 px-2 py-1.5 text-xs">
+                                    {sel.operator_name && <div className="font-medium">{sel.operator_name}</div>}
+                                    <div className="text-muted-foreground">{[sel.address, sel.postcode].filter(Boolean).join(", ") || "No address saved"}</div>
+                                    {sel.registration_number && <div className="font-mono text-muted-foreground">Permit {sel.registration_number}</div>}
+                                  </div>
+                                )}
+                                <div className="flex gap-3">
+                                  <button type="button" className="text-xs text-primary hover:underline" onClick={() => { setSiteDialogSite(null); setSiteDialogOpen(true); }}>+ New</button>
+                                  {sel && <button type="button" className="text-xs text-primary hover:underline" onClick={() => { setSiteDialogSite(sel); setSiteDialogOpen(true); }}>Edit site</button>}
+                                </div>
+                                <TippingSiteQuickDialog open={siteDialogOpen} onOpenChange={setSiteDialogOpen} site={siteDialogSite} initialName={sel ? "" : formData.site} onSaved={(name) => setFormData(p => ({ ...p, site: name }))} />
+                              </>
+                            );
+                          })()}
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs">Driver</Label>
@@ -1621,12 +1646,18 @@ const WeighOnePage = () => {
                       {isWasteOut ? (
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between"><Label className="text-xs">Waste type (Duty of Care products)</Label><a href="/duty-of-care" target="_blank" rel="noreferrer" className="text-xs text-primary underline-offset-2 hover:underline">Manage</a></div>
+                          <Input className="h-9" placeholder="Search waste type or code..." value={wasteSearch} onChange={(e) => setWasteSearch(e.target.value)} />
                           <Select value={outProductId} onValueChange={(val) => { setOutProductId(val); const pr = wasteOutProducts.find(x => x.id === val); if (pr) setFormData(p => ({ ...p, ewc_code: pr.ewc_code })); }}>
                             <SelectTrigger className="h-9"><SelectValue placeholder="Select waste out product..." /></SelectTrigger>
                             <SelectContent>
-                              {wasteOutProducts.map((pr) => (
-                                <SelectItem key={pr.id} value={pr.id}><span className="font-mono text-xs mr-2">{pr.ewc_code}</span>{pr.display_name}</SelectItem>
-                              ))}
+                              {(() => {
+                                const q = wasteSearch.trim().toLowerCase().replace(/\s+/g, "");
+                                const list = q ? wasteOutProducts.filter(pr => pr.id === outProductId || `${pr.display_name}${pr.ewc_code ?? ""}`.toLowerCase().replace(/\s+/g, "").includes(q)) : wasteOutProducts;
+                                if (!list.length) return <div className="px-3 py-2 text-xs text-muted-foreground">No waste types match.</div>;
+                                return list.map((pr) => (
+                                  <SelectItem key={pr.id} value={pr.id}><span className="font-mono text-xs mr-2">{pr.ewc_code}</span>{pr.display_name}</SelectItem>
+                                ));
+                              })()}
                             </SelectContent>
                           </Select>
                           <p className="text-xs text-muted-foreground">No rates apply to Waste Out tickets.</p>
