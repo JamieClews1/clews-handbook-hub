@@ -47,14 +47,15 @@ const OutgoingWastes = () => {
   const data = useMemo(() => {
     const rows = out.data ?? [];
     const streams = new Map<string, { loads: number; t: number; prev: number }>();
-    const dest = new Map<string, { loads: number; t: number; streams: Set<string> }>();
+    const dest = new Map<string, { loads: number; t: number; prev: number; streams: Set<string> }>();
+    const prevDest = new Map<string, number>();
     const monthly = MONTHS.map((m) => ({ month: m, [String(year)]: 0, [String(year - 1)]: 0 } as Record<string, number | string>));
     for (const r of rows) {
       const s = outgoingStream(r.ewc, r.waste_description);
       const e = streams.get(s) ?? { loads: 0, t: 0, prev: 0 };
       e.loads++; e.t += tonnes(r); streams.set(s, e);
       const name = r.customer?.trim() || "Unknown";
-      const d = dest.get(name) ?? { loads: 0, t: 0, streams: new Set() };
+      const d = dest.get(name) ?? { loads: 0, t: 0, prev: 0, streams: new Set() };
       d.loads++; d.t += tonnes(r); d.streams.add(s); dest.set(name, d);
       const mi = new Date(r.job_date).getMonth();
       (monthly[mi][String(year)] as number) += tonnes(r);
@@ -63,6 +64,8 @@ const OutgoingWastes = () => {
       const s = outgoingStream(r.ewc, r.waste_description);
       const e = streams.get(s) ?? { loads: 0, t: 0, prev: 0 };
       e.prev += tonnes(r); streams.set(s, e);
+      const pname = r.customer?.trim() || "Unknown";
+      prevDest.set(pname, (prevDest.get(pname) ?? 0) + tonnes(r));
       (monthly[new Date(r.job_date).getMonth()][String(year - 1)] as number) += tonnes(r);
     }
     const total = rows.reduce((a, r) => a + tonnes(r), 0);
