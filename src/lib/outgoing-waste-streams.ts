@@ -1,5 +1,4 @@
-/** Groups outgoing (WASTEOUT) loads into reporting streams by EWC code, falling back to description. */
-/** Residual-family codes (19 12 12 etc.) are split by destination: landfill destinations are trommel fines, the rest are residual. */
+/** Groups outgoing loads by recorded product for residual codes, then EWC and description. */
 const RESIDUAL_CODES = new Set(["19 12 12", "20 03 01", "20 03 07"]);
 
 const EWC_STREAM: Record<string, string> = {
@@ -35,10 +34,13 @@ const EWC_STREAM: Record<string, string> = {
   "20 01 37": "Wood",
 };
 
-export function outgoingStream(ewc: string | null | undefined, description?: string | null, destination?: string | null): string {
+export function outgoingStream(ewc: string | null | undefined, description?: string | null, product?: string | null): string {
   const code = (ewc ?? "").replace(/\*/g, "").replace(/\s+/g, " ").trim();
   if (RESIDUAL_CODES.has(code)) {
-    return /landfill/i.test(destination ?? "") ? "Trommel fines (landfill)" : "Residual";
+    const recordedProduct = (product ?? "").replace(/\s+/g, " ").trim().toUpperCase();
+    if (/\bTROMMEL\b/.test(recordedProduct)) return "Trommel";
+    if (code === "19 12 12" && recordedProduct === "WASTE OUT") return "Landfill";
+    return "Residual";
   }
   if (EWC_STREAM[code]) return EWC_STREAM[code];
   const d = (description ?? "").toLowerCase();
