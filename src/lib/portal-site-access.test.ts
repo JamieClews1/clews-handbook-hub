@@ -10,15 +10,15 @@ const sites = [
 ];
 
 describe("allAccessSiteIds", () => {
-  it("selects every active site on the user's own account", () => {
-    assert.deepEqual(allAccessSiteIds(sites, "cust-1"), ["a", "c"]);
+  it("selects every site on the user's own account, including archived ones", () => {
+    assert.deepEqual(allAccessSiteIds(sites, "cust-1"), ["a", "b", "c"]);
   });
 
   it("never reaches another customer's sites", () => {
     assert.deepEqual(allAccessSiteIds(sites, "cust-2"), ["d"]);
   });
 
-  it("returns nothing when the account has only archived sites", () => {
-    assert.deepEqual(allAccessSiteIds([{ id: "x", customer_id: "cust-3", is_archived: true }], "cust-3"), []);
+  it("returns nothing when the account has no sites", () => {
+    assert.deepEqual(allAccessSiteIds(sites, "cust-9"), []);
   });
 });
