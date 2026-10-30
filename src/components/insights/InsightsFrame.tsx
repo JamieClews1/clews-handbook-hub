@@ -48,9 +48,9 @@ export function InsightsFilterBar() {
 const links = [ ["Overview", "/performance-hub"], ["Waste flows", "/performance-hub/waste-kpis"], ["Recovery & incentives", "/performance-hub/recovery"], ["Revenue & forecast", "/performance-hub/projections"], ["Data checks", "/performance-hub/reports"] ];
 export default function InsightsFrame({ title, description, children, filters = true, actions }: { title: string; description: string; children: ReactNode; filters?: boolean; actions?: ReactNode }) {
   const { isAdmin } = useAuth(); const { params } = useInsightsPeriod();
-  return <main className="mx-auto max-w-screen-2xl space-y-5 px-4 py-6 sm:px-6">
+  return <div className="mx-auto max-w-screen-2xl space-y-5 px-4 py-6 sm:px-6">
     <PageHeading title={title} description={description} actions={<><Button asChild size="sm" variant="outline" className="gap-2"><Link to="/performance-hub/reports?tab=ask-ai"><Sparkles className="h-4 w-4" />Ask AI</Link></Button>{isAdmin && <Button asChild size="icon" variant="outline" title="Insights settings" aria-label="Insights settings"><Link to="/performance-hub/insights-settings"><Settings2 className="h-4 w-4" /></Link></Button>}{actions}</>} />
     <nav aria-label="Insights pages" className="flex flex-wrap gap-1 border-b border-border pb-3">{links.map(([label, path]) => <Button asChild key={path} variant="ghost" size="sm"><Link to={`${path}?${params}`}>{label}</Link></Button>)}</nav>
     {filters && <InsightsFilterBar />}{children}
-  </main>;
+  </div>;
 }
