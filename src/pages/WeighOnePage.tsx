@@ -430,6 +430,28 @@ const WeighOnePage = () => {
     },
   });
 
+  // Licence expiry check for the entered carrier registration (from Customer Setup › Duty Of Care)
+  const regNo = formData.carrier_registration.trim().toUpperCase();
+  const { data: licenceRows = [] } = useQuery({
+    queryKey: ["weighone-licence-expiry", regNo],
+    enabled: regNo.length > 3,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data } = await supabase.from("customers")
+        .select("waste_carrier_licence_expiry").ilike("waste_carrier_licence", regNo).limit(5);
+      return data ?? [];
+    },
+  });
+  const licenceFlag = (() => {
+    if (regNo.length <= 3 || regNo === (ownCarrierLicence || "").toUpperCase()) return null;
+    const dates = licenceRows.map(r => r.waste_carrier_licence_expiry).filter(Boolean) as string[];
+    if (!dates.length) return { bad: true, text: "⚠ No licence expiry date on record — check before accepting" };
+    const latest = dates.sort().at(-1)!;
+    const today = new Date().toISOString().slice(0, 10);
+    if (latest < today) return { bad: true, text: `⚠ Licence expired on ${latest.split("-").reverse().join("/")}` };
+    return { bad: false, text: `Licence valid until ${latest.split("-").reverse().join("/")}` };
+  })();
+
   // Saved drivers first, then names seen on past tickets for this haulier
   const driverSuggestions = useMemo(() => {
     const seen = new Map<string, string>();
@@ -1666,6 +1688,9 @@ const WeighOnePage = () => {
                         <div className="space-y-1.5 col-span-2">
                           <Label className="text-xs">Carrier registration</Label>
                           <Input className="h-9 font-mono" placeholder="Filled from the haulier, e.g. CBDU203180" value={formData.carrier_registration} onChange={(e) => setFormData((p) => ({ ...p, carrier_registration: e.target.value.toUpperCase() }))} />
+                          {licenceFlag && (
+                            <p className={`text-xs font-medium ${licenceFlag.bad ? "text-destructive" : "text-muted-foreground"}`}>{licenceFlag.text}</p>
+                          )}
                         </div>
                       </div>
                       </div>
