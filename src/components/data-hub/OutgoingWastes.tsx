@@ -64,6 +64,8 @@ const OutgoingWastes = () => {
       const s = outgoingStream(r.ewc, r.waste_description);
       const e = streams.get(s) ?? { loads: 0, t: 0, prev: 0 };
       e.prev += tonnes(r); streams.set(s, e);
+      const pname = r.customer?.trim() || "Unknown";
+      prevDest.set(pname, (prevDest.get(pname) ?? 0) + tonnes(r));
       (monthly[new Date(r.job_date).getMonth()][String(year - 1)] as number) += tonnes(r);
     }
     const total = rows.reduce((a, r) => a + tonnes(r), 0);
