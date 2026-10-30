@@ -1287,12 +1287,46 @@ const WeighOnePage = () => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button className={tablet ? "h-12 gap-2" : "gap-2"} onClick={() => setTypePickerOpen(true)}>
+            <Plus className="h-4 w-4" /> New weigh-in
+          </Button>
+          <Dialog open={typePickerOpen} onOpenChange={setTypePickerOpen}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>New weigh-in — what is arriving?</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <button
+                  type="button"
+                  onClick={() => startNewTicket("waste_in")}
+                  className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-5 text-center transition-colors hover:border-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <ArrowDownUp className="h-8 w-8 text-primary" />
+                  <span className="text-sm font-semibold">Waste in</span>
+                  <span className="text-xs text-muted-foreground">Incoming load from a customer</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => startNewTicket("waste_out")}
+                  className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-5 text-center transition-colors hover:border-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Truck className="h-8 w-8 text-primary" />
+                  <span className="text-sm font-semibold">Waste out</span>
+                  <span className="text-xs text-muted-foreground">Outgoing load to a tipping site</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => startNewTicket("skip")}
+                  className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-5 text-center transition-colors hover:border-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Scale className="h-8 w-8 text-primary" />
+                  <span className="text-sm font-semibold">Skip job</span>
+                  <span className="text-xs text-muted-foreground">Clews skip, RoRo or artic job</span>
+                </button>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Dialog open={newDialogOpen} onOpenChange={(open) => { setNewDialogOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button className={tablet ? "h-12 gap-2" : "gap-2"}>
-                <Plus className="h-4 w-4" /> New weigh-in
-              </Button>
-            </DialogTrigger>
             <DialogContent onKeyDown={(e) => { const t = e.target as HTMLElement; if (e.key === "Enter" && t.tagName === "INPUT" && !t.closest("[role=listbox]") && formData.vehicle_reg && !createMutation.isPending) { e.preventDefault(); createMutation.mutate(); } }} className="weigh-in-dialog max-w-[1318px] w-[calc(100vw-48px)] h-[min(728px,calc(100dvh-40px))] rounded-2xl p-0 gap-0 flex flex-col overflow-hidden bg-background">
               <DialogHeader className="px-4 py-3 border-b border-border shrink-0 bg-card pr-12">
                 <div className="flex flex-wrap items-center gap-3"><DialogTitle className="text-base font-semibold">New weigh-in</DialogTitle><Tabs value={formData.job_type} onValueChange={(val) => {
