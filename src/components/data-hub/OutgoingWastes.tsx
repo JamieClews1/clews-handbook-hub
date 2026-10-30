@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { outgoingStream } from "@/lib/outgoing-waste-streams";
+import { outgoingStream, outgoingHeadlineTotals, midweighRowTonnes as tonnes } from "@/lib/outgoing-waste-streams";
 
 type Row = { job_number: string; job_date: string; ewc: string | null; waste_description: string | null; customer: string | null; weight_t: number | null; product: string | null };
 
@@ -33,9 +33,8 @@ async function fetchYear(year: number, jobType: "WASTEOUT" | "IN"): Promise<Row[
   return all.filter((r) => (seen.has(r.job_number) ? false : (seen.add(r.job_number), true)));
 }
 
-const tonnes = (r: Row) => (r.weight_t ?? 0) / 1000; // Midweigh stores kg
-
 const OutgoingWastes = () => {
+
   const thisYear = new Date().getFullYear();
   const [year, setYear] = useState(thisYear);
   const years = [thisYear, thisYear - 1, thisYear - 2];
@@ -71,8 +70,11 @@ const OutgoingWastes = () => {
     const total = rows.reduce((a, r) => a + tonnes(r), 0);
     const prevTotal = (prev.data ?? []).reduce((a, r) => a + tonnes(r), 0);
     const inTotal = (inc.data ?? []).reduce((a, r) => a + tonnes(r), 0);
+    const headlines = outgoingHeadlineTotals(rows);
+    const prevHeadlines = outgoingHeadlineTotals(prev.data ?? []);
     return {
-      total, prevTotal, inTotal, loads: rows.length,
+      total, prevTotal, inTotal, loads: rows.length, headlines, prevHeadlines,
+
       streams: [...streams.entries()].map(([name, v]) => ({ name, ...v })).sort((a, b) => b.t - a.t),
       dest: [...dest.entries()].map(([name, v]) => ({ name, loads: v.loads, t: v.t, streams: [...v.streams].join(", ") })).sort((a, b) => b.t - a.t),
       monthly: monthly.map((m) => ({ ...m, [String(year)]: Math.round(m[String(year)] as number), [String(year - 1)]: Math.round(m[String(year - 1)] as number) })),
@@ -101,16 +103,44 @@ const OutgoingWastes = () => {
         <Card><CardContent className="py-10 text-center text-destructive">Couldn't load outgoing loads. Please try again.</CardContent></Card>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-3">
             {[
-              ["Tonnes out", t(data.total)],
+              {
+                label: "Total tonnes out",
+                value: t(data.headlines.total),
+                note: `${data.loads.toLocaleString("en-GB")} loads · vs ${year - 1} ${change(data.headlines.total, data.prevHeadlines.total)}`,
+              },
+              {
+                label: "Zero to landfill",
+                value: t(data.headlines.zeroToLandfill),
+                note: `${data.headlines.total ? ((data.headlines.zeroToLandfill / data.headlines.total) * 100).toFixed(1) : "0"}% of tonnes out · landfill ${t(data.headlines.landfill)}t`,
+              },
+              {
+                label: "Recycling",
+                value: t(data.headlines.recycling),
+                note: `${data.headlines.total ? ((data.headlines.recycling / data.headlines.total) * 100).toFixed(1) : "0"}% of tonnes out · excludes landfill and RDF ${t(data.headlines.rdf)}t`,
+              },
+            ].map((c) => (
+              <Card key={c.label}>
+                <CardContent className="pt-5">
+                  <p className="text-sm text-muted-foreground">{c.label}</p>
+                  <p className="text-2xl font-semibold tabular-nums">{c.value}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{c.note}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
               ["Loads out", data.loads.toLocaleString("en-GB")],
-              [`vs ${year - 1}`, change(data.total, data.prevTotal)],
+              ["RDF out (tonnes)", t(data.headlines.rdf)],
               ["Tonnes in (yard)", t(data.inTotal)],
             ].map(([label, value]) => (
               <Card key={label}><CardContent className="pt-5"><p className="text-sm text-muted-foreground">{label}</p><p className="text-2xl font-semibold tabular-nums">{value}</p></CardContent></Card>
             ))}
           </div>
+
 
           <Card>
             <CardHeader><CardTitle>By waste stream</CardTitle><CardDescription>Real tonnes per stream, compared with {year - 1}.</CardDescription></CardHeader>
