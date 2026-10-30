@@ -39,7 +39,7 @@ Imported exchange pricing copies only explicit source booking charges, never der
 - Customer recovery uses the public /reset-password page and Auth recovery emails; recovery events bypass staff landing pages so links cannot skip password entry.
 - Data Uploads write only new or changed rows (rowNeedsWrite) and list orphans by id first; repeat full-file uploads must not rewrite unchanged data, which exhausted the database disk budget.
 - Duty of Care's EWC register reads the shared ewc_codes register without changing jobs or classification defaults; administrative edits stay in Code Settings to preserve a single source.
-Toolbox Talk signed PDFs share a read-only paginated signature loader and appendix renderer, preserving existing admin access and actual saved images/dates without inferring unsigned staff acknowledgements.
-Toolbox Talk PDF exporters share list-marker formatting that preserves explicit step numbers to avoid duplicating ordered-list markers without changing saved content.
+Toolbox Talk PDFs share paged saved-signature appendices and explicit list numbering; preserve admin gates and content without inferred acknowledgements.
 Load report tally photo reference reuses the existing JobTicketPhotos viewer above both tally variants, with view-only thumbnails and enlargement, so reference viewing cannot change evidence or tally values.
 CEO reports use Jamie-gated history, server snapshots and shared P&L math; one-use dispatch, leased work and saved recipient delivery IDs prevent duplicates. Claude denial pauses automation; PDFs stay private.
+Customer Setup's portal directory pages memberships/profiles and links to the existing editor; browsing never changes grants or infers access from login activity.
