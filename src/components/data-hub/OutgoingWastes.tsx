@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { outgoingStream } from "@/lib/outgoing-waste-streams";
 
-type Row = { job_number: string; job_date: string; ewc: string | null; waste_description: string | null; customer: string | null; weight_t: number | null };
+type Row = { job_number: string; job_date: string; ewc: string | null; waste_description: string | null; customer: string | null; weight_t: number | null; product: string | null };
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const t = (n: number) => n.toLocaleString("en-GB", { maximumFractionDigits: 1 });
@@ -17,14 +17,14 @@ async function fetchYear(year: number, jobType: "WASTEOUT" | "IN"): Promise<Row[
   for (let from = 0; ; from += 1000) {
     let q = supabase
       .from("data_hub_jobs")
-      .select("job_number, job_date, ewc, waste_description, customer, weight_t")
+      .select("job_number, job_date, ewc, waste_description, customer, weight_t, product:raw->>Product" as string)
       .eq("source", "midweigh")
       .gte("job_date", `${year}-01-01`)
       .lte("job_date", `${year}-12-31`)
       .order("id", { ascending: true })
       .range(from, from + 999);
     q = jobType === "WASTEOUT" ? q.eq("job_type", "WASTEOUT") : q.in("job_type", ["WASTEIN", "SKIP"]);
-    const { data, error } = await q;
+    const { data, error } = await q.returns<Row[]>();
     if (error) throw error;
     all = all.concat((data ?? []) as Row[]);
     if (!data || data.length < 1000) break;
@@ -51,7 +51,7 @@ const OutgoingWastes = () => {
     const prevDest = new Map<string, number>();
     const monthly = MONTHS.map((m) => ({ month: m, [String(year)]: 0, [String(year - 1)]: 0 } as Record<string, number | string>));
     for (const r of rows) {
-      const s = outgoingStream(r.ewc, r.waste_description, r.customer);
+      const s = outgoingStream(r.ewc, r.waste_description, r.product);
       const e = streams.get(s) ?? { loads: 0, t: 0, prev: 0 };
       e.loads++; e.t += tonnes(r); streams.set(s, e);
       const name = r.customer?.trim() || "Unknown";
@@ -61,7 +61,7 @@ const OutgoingWastes = () => {
       (monthly[mi][String(year)] as number) += tonnes(r);
     }
     for (const r of prev.data ?? []) {
-      const s = outgoingStream(r.ewc, r.waste_description, r.customer);
+      const s = outgoingStream(r.ewc, r.waste_description, r.product);
       const e = streams.get(s) ?? { loads: 0, t: 0, prev: 0 };
       e.prev += tonnes(r); streams.set(s, e);
       const pname = r.customer?.trim() || "Unknown";

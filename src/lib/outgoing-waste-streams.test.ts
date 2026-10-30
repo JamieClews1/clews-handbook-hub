@@ -11,10 +11,20 @@ describe("outgoingStream", () => {
     assert.equal(outgoingStream("", "paper and cardboard"), "Paper / Card");
     assert.equal(outgoingStream(null, "mystery"), "Other");
   });
-  it("splits 19 12 12 into Residual vs Trommel fines (landfill) by destination", () => {
-    assert.equal(outgoingStream("19 12 12", null, "Crown Waste Management"), "Residual");
-    assert.equal(outgoingStream("19 12 12", null, "Sappahire Cotesbach Landfill"), "Trommel fines (landfill)");
+  it("reports the Trommel product separately under EWC 19 12 12", () => {
+    assert.equal(outgoingStream("19 12 12", null, "TROMMEL"), "Trommel");
+    assert.equal(outgoingStream("19 12 12", null, " trommel "), "Trommel");
+  });
+  it("reports Waste Out product under EWC 19 12 12 as Landfill", () => {
+    assert.equal(outgoingStream("19 12 12", null, "WASTE OUT"), "Landfill");
+    assert.equal(outgoingStream("19 12 12", null, " waste   out "), "Landfill");
+  });
+  it("keeps RDF-bound residual separate from Landfill and Trommel", () => {
+    assert.equal(outgoingStream("19 12 12", null, "WASTE OUT (FOR RDF)"), "Residual");
+  });
+  it("does not infer landfill or trommel from destinations or a missing product", () => {
+    assert.equal(outgoingStream("19 12 12", null, "Sappahire Cotesbach Landfill"), "Residual");
     assert.equal(outgoingStream("19 12 12"), "Residual");
-    assert.equal(outgoingStream("20 03 01", null, "Some Landfill Site"), "Trommel fines (landfill)");
+    assert.equal(outgoingStream("20 03 01", null, "Some Landfill Site"), "Residual");
   });
 });
