@@ -17,14 +17,14 @@ async function fetchYear(year: number, jobType: "WASTEOUT" | "IN"): Promise<Row[
   for (let from = 0; ; from += 1000) {
     let q = supabase
       .from("data_hub_jobs")
-      .select("job_number, job_date, ewc, waste_description, customer, weight_t, product:raw->>Product")
+      .select("job_number, job_date, ewc, waste_description, customer, weight_t, product:raw->>Product" as string)
       .eq("source", "midweigh")
       .gte("job_date", `${year}-01-01`)
       .lte("job_date", `${year}-12-31`)
       .order("id", { ascending: true })
       .range(from, from + 999);
     q = jobType === "WASTEOUT" ? q.eq("job_type", "WASTEOUT") : q.in("job_type", ["WASTEIN", "SKIP"]);
-    const { data, error } = await q;
+    const { data, error } = await q.returns<Row[]>();
     if (error) throw error;
     all = all.concat((data ?? []) as Row[]);
     if (!data || data.length < 1000) break;
