@@ -84,7 +84,7 @@ const SourceToggle = ({
   </ToggleGroup>
 );
 
-const DataHubAnalytics = () => {
+const DataHubAnalytics = ({ externalStartDate, externalEndDate }: { externalStartDate?: Date; externalEndDate?: Date } = {}) => {
   const [loading, setLoading] = useState(true);
   const [jobs, setJobs] = useState<RawJob[]>([]);
 
@@ -127,7 +127,8 @@ const DataHubAnalytics = () => {
     const fetchJobs = async () => {
       setLoading(true);
       try {
-        const fromDate = `${currentYear - (lookbackYears - 1)}-01-01`;
+        const fromDate = externalStartDate ? format(externalStartDate, "yyyy-MM-dd") : `${currentYear - (lookbackYears - 1)}-01-01`;
+        const toDate = format(externalEndDate ?? new Date(), "yyyy-MM-dd");
         let allJobs: RawJob[] = [];
         let offset = 0;
         const limit = 1000;
@@ -138,6 +139,7 @@ const DataHubAnalytics = () => {
             .from("data_hub_jobs")
             .select("id, job_date, customer, movement_type, source, raw")
             .gte("job_date", fromDate)
+            .lte("job_date", toDate)
             .order("job_date", { ascending: true })
             .range(offset, offset + limit - 1);
 
@@ -160,7 +162,7 @@ const DataHubAnalytics = () => {
     };
 
     fetchJobs();
-  }, [lookbackYears, currentYear]);
+  }, [lookbackYears, currentYear, externalStartDate?.getTime(), externalEndDate?.getTime()]);
 
   // 1. Annual Revenue by Month - Year on Year Comparison
   const annualRevenueData = useMemo(() => {

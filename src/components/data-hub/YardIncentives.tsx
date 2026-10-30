@@ -36,9 +36,10 @@ interface MonthRow {
 
 interface YardIncentivesProps {
   hideHeader?: boolean;
+  hideSettings?: boolean;
 }
 
-const YardIncentives = ({ hideHeader }: YardIncentivesProps) => {
+const YardIncentives = ({ hideHeader, hideSettings = false }: YardIncentivesProps) => {
   const { streams, rates } = useWasteValueSettings();
   const { settings, saveSetting } = useYardIncentiveSettings();
   const [draft, setDraft] = useState<Record<string, string>>({});
@@ -178,7 +179,7 @@ const YardIncentives = ({ hideHeader }: YardIncentivesProps) => {
           onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
           onBlur={async (e) => {
             const v = Number(e.target.value);
-            if (!Number.isNaN(v) && v !== settings[key]) await saveSetting(key, v);
+            if (!hideSettings && !Number.isNaN(v) && v !== settings[key]) await saveSetting(key, v);
             setDraft((d) => { const n = { ...d }; delete n[key]; return n; });
           }}
         />
@@ -196,8 +197,8 @@ const YardIncentives = ({ hideHeader }: YardIncentivesProps) => {
       {!hideHeader && (
         <CardHeader className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
-              <Trophy className="h-5 w-5 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Trophy className="h-5 w-5 text-primary" />
             </div>
             <div>
               <CardTitle className="text-lg">Yard Team Incentives</CardTitle>
@@ -228,14 +229,15 @@ const YardIncentives = ({ hideHeader }: YardIncentivesProps) => {
           </div>
         ) : (
           <>
+            {hideSettings && <Badge variant="outline">Fixed: {current.label} · modelled bonus pool</Badge>}
             {/* Headline */}
-            <div className="rounded-lg border-2 border-emerald-600/60 p-4 space-y-4">
+            <div className="rounded-lg border-2 border-primary/30 p-4 space-y-4">
               <p className="text-lg leading-relaxed text-foreground">
                 In <span className="font-semibold">{current.label}</span> the yard recovered{" "}
-                <span className="font-bold text-emerald-600">{fmt(monthStats.recovered)}t</span> of wood
+                <span className="font-bold text-primary">{fmt(monthStats.recovered)}t</span> of wood
                 ({monthStats.actualRate.toFixed(1)}% of {fmt(current.mixed)}t mixed waste) against a baseline of{" "}
                 <span className="font-semibold">{baselineRate.toFixed(1)}%</span> — earning a bonus pool of{" "}
-                <span className="font-bold text-emerald-600">{money(monthStats.bonus)}</span>.
+                <span className="font-bold text-primary">{money(monthStats.bonus)}</span>.
               </p>
               <div className="grid gap-3 sm:grid-cols-4">
                 <div className="rounded-md bg-muted/40 p-3">
@@ -245,7 +247,7 @@ const YardIncentives = ({ hideHeader }: YardIncentivesProps) => {
                 </div>
                 <div className="rounded-md bg-muted/40 p-3">
                   <p className="text-xs text-muted-foreground">Tonnes above baseline</p>
-                  <p className={`text-2xl font-bold ${monthStats.incrementalTonnes >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                  <p className={`text-2xl font-bold ${monthStats.incrementalTonnes >= 0 ? "text-primary" : "text-destructive"}`}>
                     {monthStats.incrementalTonnes >= 0 ? "+" : ""}{fmt(monthStats.incrementalTonnes)}t
                   </p>
                   <p className="text-[11px] text-muted-foreground">
@@ -257,11 +259,11 @@ const YardIncentives = ({ hideHeader }: YardIncentivesProps) => {
                   <p className="text-2xl font-bold">{money(Math.max(0, monthStats.incrementalSaving))}</p>
                   <p className="text-[11px] text-muted-foreground">at {money(monthStats.blendedNet)}/t net</p>
                 </div>
-                <div className="rounded-md border border-emerald-600/60 p-3">
+                <div className="rounded-md border border-primary/30 p-3">
                   <p className="text-xs text-muted-foreground">Bonus pool ({settings.bonus_share_pct}%)</p>
-                  <p className="text-2xl font-bold text-emerald-600">{money(monthStats.bonus)}</p>
+                  <p className="text-2xl font-bold text-primary">{money(monthStats.bonus)}</p>
                   <p className="text-[11px] text-muted-foreground">
-                    {teamSize > 0 ? `${money(monthStats.bonus / teamSize)} per person (${teamSize})` : "Set team size below for per-head split"}
+                    {teamSize > 0 ? `${money(monthStats.bonus / teamSize)} per person (${teamSize})` : "Team size not configured"}
                     {monthStats.capped ? " · capped" : ""}
                   </p>
                 </div>
@@ -279,7 +281,7 @@ const YardIncentives = ({ hideHeader }: YardIncentivesProps) => {
               </div>
               <div className="h-3 w-full rounded-full bg-muted overflow-hidden">
                 <div
-                  className="h-full bg-emerald-600"
+                  className="h-full bg-primary"
                   style={{ width: `${targetRate > 0 ? Math.min(100, (monthStats.actualRate / targetRate) * 100) : 0}%` }}
                 />
               </div>
@@ -291,7 +293,7 @@ const YardIncentives = ({ hideHeader }: YardIncentivesProps) => {
             </div>
 
             {/* Settings */}
-            <div className="rounded-lg border p-4 space-y-4">
+            {!hideSettings && <div className="rounded-lg border p-4 space-y-4">
               <div className="flex items-center gap-2">
                 <PiggyBank className="h-4 w-4 text-muted-foreground" />
                 <p className="text-sm font-medium">Bonus scheme settings</p>
@@ -303,7 +305,7 @@ const YardIncentives = ({ hideHeader }: YardIncentivesProps) => {
                 {numberField("team_size", "Yard team size", "Used to show the per-person share.", "")}
                 {numberField("monthly_bonus_cap", "Monthly bonus cap", "0 = no cap.", "£")}
               </div>
-            </div>
+            </div>}
 
             {/* Monthly table */}
             <div className="space-y-2">
@@ -336,7 +338,7 @@ const YardIncentives = ({ hideHeader }: YardIncentivesProps) => {
                           <TableCell className="text-right">{fmt(rec)}</TableCell>
                           <TableCell className="text-right">{rateFor(m).toFixed(1)}%</TableCell>
                           <TableCell className="text-right">{money(savingFor(m))}</TableCell>
-                          <TableCell className={`text-right ${incT >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                          <TableCell className={`text-right ${incT >= 0 ? "text-primary" : "text-destructive"}`}>
                             {incT >= 0 ? "+" : ""}{fmt(incT)}
                           </TableCell>
                           <TableCell className="text-right font-semibold">{money(bonus)}</TableCell>

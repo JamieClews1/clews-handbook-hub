@@ -113,7 +113,7 @@ function computeTotals(midweighJobs: any[], skiptrakJobs: any[], excludeBP: bool
 
 const TotalWasteHandled = ({ externalStartDate, externalEndDate, comparisonRanges = [] }: TotalWasteHandledProps) => {
   const hasComparison = comparisonRanges.length > 0;
-  const [granularity, setGranularity] = useState<Granularity>("weekly");
+  const [granularity, setGranularity] = useState<Granularity>("monthly");
   const effectiveGranularity = hasComparison ? "monthly" : granularity;
   const [excludeBP, setExcludeBP] = useState(false);
   const [showMethodology, setShowMethodology] = useState(false);
@@ -121,15 +121,15 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate, comparisonRange
 
   const weekStart = startOfWeek(externalStartDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(externalEndDate, { weekStartsOn: 1 });
-  const startStr = format(weekStart, "yyyy-MM-dd");
-  const endStr = format(weekEnd, "yyyy-MM-dd");
+  const startStr = format(externalStartDate, "yyyy-MM-dd");
+  const endStr = format(externalEndDate, "yyyy-MM-dd");
 
   const { data: midweighYardIntake, isLoading: loadingMidweigh } = useQuery({
     queryKey: ["twh-midweigh-yard", startStr, endStr],
     queryFn: async () => fetchAllPaged(
       supabase.from("data_hub_jobs").select("id, job_date, weight_t, site, job_type")
         .eq("source", "midweigh").in("job_type", ["WASTEIN", "SKIP"])
-        .gte("job_date", startStr).lte("job_date", endStr)
+        .gte("job_date", startStr).lte("job_date", endStr).gt("weight_t", 0)
         .order("id", { ascending: true })
     ),
   });
@@ -138,13 +138,13 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate, comparisonRange
     queryKey: ["twh-skiptrak-nonyard", startStr, endStr],
     queryFn: async () => fetchAllPaged(
       supabase.from("data_hub_jobs").select("id, job_date, weight_t, site, tipping_location")
-        .eq("source", "skiptrak").gte("job_date", startStr).lte("job_date", endStr)
+        .eq("source", "skiptrak").gte("job_date", startStr).lte("job_date", endStr).gt("weight_t", 0)
         .order("id", { ascending: true })
     ),
   });
 
   // Fetch comparison year data in a single query to avoid hooks-in-loop
-  const compRangeKey = comparisonRanges.map(r => `${r.year}`).join(",");
+  const compRangeKey = comparisonRanges.map(r => `${format(r.start, "yyyy-MM-dd")}:${format(r.end, "yyyy-MM-dd")}`).join(",");
   const { data: compData, isLoading: compLoading } = useQuery({
     queryKey: ["twh-comparison", compRangeKey],
     queryFn: async () => {
@@ -156,12 +156,12 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate, comparisonRange
           fetchAllPaged(
             supabase.from("data_hub_jobs").select("id, job_date, weight_t, site, job_type")
               .eq("source", "midweigh").in("job_type", ["WASTEIN", "SKIP"])
-              .gte("job_date", cStartStr).lte("job_date", cEndStr)
+              .gte("job_date", cStartStr).lte("job_date", cEndStr).gt("weight_t", 0)
               .order("id", { ascending: true })
           ),
           fetchAllPaged(
             supabase.from("data_hub_jobs").select("id, job_date, weight_t, site, tipping_location")
-              .eq("source", "skiptrak").gte("job_date", cStartStr).lte("job_date", cEndStr)
+              .eq("source", "skiptrak").gte("job_date", cStartStr).lte("job_date", cEndStr).gt("weight_t", 0)
               .order("id", { ascending: true })
           ),
         ]);
@@ -410,11 +410,11 @@ const TotalWasteHandled = ({ externalStartDate, externalEndDate, comparisonRange
                   {hasComparison && <Legend />}
                   <Bar dataKey="midweighIn" stackId="waste" fill={chartConfig.midweighIn.color} name="Yard Intake (Midweigh)" radius={[0, 0, 0, 0]} />
                   <Bar dataKey="skiptrakNonYard" stackId="waste" fill={chartConfig.skiptrakNonYard.color} name="Skip (Non-Yard)" radius={[2, 2, 0, 0]} />
-                  <Line type="monotone" dataKey="total" stroke={chartConfig.total.color} strokeWidth={2} dot={false} name={`Total ${hasComparison ? currentYear : "Handled"}`} />
+                  <Line type="linear" dataKey="total" stroke={chartConfig.total.color} strokeWidth={2} dot={false} name={`Total ${hasComparison ? currentYear : "Handled"}`} />
                   {comparisonRanges.map((range, i) => (
                     <Line
                       key={range.year}
-                      type="monotone"
+                      type="linear"
                       dataKey={`total_${range.year}`}
                       stroke={COMPARISON_COLORS[i % COMPARISON_COLORS.length]}
                       strokeWidth={2}

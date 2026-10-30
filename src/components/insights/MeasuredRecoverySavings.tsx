@@ -1,0 +1,17 @@
+import { useInsightsData } from "@/hooks/useInsightsData";
+import { useWasteValueSettings, streamCostPerTonne } from "@/hooks/useWasteValueSettings";
+import { measuredRecoveryRows } from "@/lib/insights-recovery";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Table, TableHeader, TableHead, TableBody, TableCell, TableRow } from "@/components/ui/table";
+const money = (value: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 0 }).format(value);
+export default function MeasuredRecoverySavings({ start, end }: { start: string; end: string }) {
+  const query = useInsightsData(start, end); const settings = useWasteValueSettings();
+  if (query.isLoading || settings.loading) return <Skeleton className="h-64 w-full" />;
+  if (query.isError) return <div role="alert">Midweigh outgoing records could not be loaded. <Button variant="outline" onClick={() => void query.refetch()}>Try again</Button></div>;
+  const baseline = settings.rates.landfill_gate_rate + settings.rates.landfill_haulage_rate;
+  const rows = measuredRecoveryRows((query.data ?? []).filter(row => row.source === "midweigh" && row.job_type === "WASTEOUT"), settings.streams.map(stream => ({ stream: stream.stream, costPerTonne: streamCostPerTonne(stream) })), baseline);
+  const complete = rows.every(row => row.saving !== null);
+  return <section className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">Recovery savings · measured outgoing streams</h2><Badge variant="outline">Actual tonnes · modelled costs</Badge></div><p className="text-sm text-muted-foreground">Midweigh WASTEOUT tonnes by recorded product/EWC, not fixed waste shares. Estimated savings compare configured stream costs with landfill at {money(baseline)}/t; they are not invoiced savings.</p><div className="border-l-4 border-primary py-2 pl-4"><p className="text-sm text-muted-foreground">Estimated saving vs landfill</p><p className="text-2xl font-semibold tabular-nums">{complete ? money(rows.reduce((sum, row) => sum + (row.saving ?? 0), 0)) : "Incomplete: rates need matching"}</p></div><Table><TableHeader><TableRow><TableHead>Stream</TableHead><TableHead>Source</TableHead><TableHead className="text-right">Tonnes</TableHead><TableHead className="text-right">Cost £/t</TableHead><TableHead className="text-right">Estimated saving</TableHead></TableRow></TableHeader><TableBody>{rows.map(row => <TableRow key={row.stream}><TableCell className="font-medium">{row.stream}</TableCell><TableCell><Badge variant="outline" className="text-primary">Actual</Badge></TableCell><TableCell className="text-right tabular-nums">{row.tonnes.toLocaleString("en-GB", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} t</TableCell><TableCell className="text-right">{row.cost === null ? "Needs rate match" : money(row.cost)}</TableCell><TableCell className="text-right">{row.saving === null ? "Unknown" : money(row.saving)}</TableCell></TableRow>)}</TableBody></Table>{!rows.length && <p className="text-sm text-muted-foreground">No weighed outgoing loads in this period.</p>}</section>;
+}

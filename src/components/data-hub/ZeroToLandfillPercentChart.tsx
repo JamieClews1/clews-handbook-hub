@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { Percent } from "lucide-react";
 
 const GROUP_COLORS = {
@@ -61,8 +61,8 @@ const ZeroToLandfillPercentChart = ({ chartData, isLoading, viewMode = "week" }:
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : (
-          <div className="w-full overflow-x-auto">
-            <div style={{ minWidth: "1400px" }}>
+          <div className="w-full">
+            <div className="min-w-0">
               <ChartContainer config={chartConfig} className="h-[300px] w-full">
                 <LineChart data={pctData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
@@ -80,9 +80,9 @@ const ZeroToLandfillPercentChart = ({ chartData, isLoading, viewMode = "week" }:
                     tickFormatter={(v) => `${v}%`}
                     label={{ value: "% of Outward", angle: -90, position: "insideLeft", style: { fontSize: 12 } }}
                   />
-                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartTooltip content={<ChartTooltipContent />} /><Legend />
                   <Line
-                    type="monotone"
+                    type="linear"
                     dataKey="landfillPct"
                     stroke={GROUP_COLORS.landfill}
                     strokeWidth={2}
@@ -90,7 +90,7 @@ const ZeroToLandfillPercentChart = ({ chartData, isLoading, viewMode = "week" }:
                     name="Landfill %"
                   />
                   <Line
-                    type="monotone"
+                    type="linear"
                     dataKey="rdfPct"
                     stroke={GROUP_COLORS.rdf}
                     strokeWidth={2}
@@ -98,7 +98,7 @@ const ZeroToLandfillPercentChart = ({ chartData, isLoading, viewMode = "week" }:
                     name="RDF %"
                   />
                   <Line
-                    type="monotone"
+                    type="linear"
                     dataKey="recycledPct"
                     stroke={GROUP_COLORS.recycled}
                     strokeWidth={2}

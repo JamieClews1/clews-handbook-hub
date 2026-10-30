@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
 import { Settings2, Leaf, CalendarIcon, ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
@@ -69,13 +69,14 @@ function saveGroupMap(map: Record<string, WasteGroup>) {
 interface ZeroToLandfillChartProps {
   externalStartDate?: Date;
   externalEndDate?: Date;
+  hideSettings?: boolean;
 }
 
-const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandfillChartProps = {}) => {
+const ZeroToLandfillChart = ({ externalStartDate, externalEndDate, hideSettings = false }: ZeroToLandfillChartProps = {}) => {
   const [groupMap, setGroupMap] = useState<Record<string, WasteGroup>>(loadGroupMap);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [filterGroup, setFilterGroup] = useState<WasteGroup | "all">("all");
-  const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [showTable, setShowTable] = useState(false);
 
   const now = new Date();
@@ -325,7 +326,7 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
             </Badge>
           </div>
 
-          <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+          {!hideSettings && <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2">
                 <Settings2 className="h-4 w-4" />
@@ -380,7 +381,7 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
                 </div>
               </ScrollArea>
             </DialogContent>
-          </Dialog>
+          </Dialog>}
         </div>
       </CardHeader>
 
@@ -390,8 +391,8 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : (
-          <div className="w-full overflow-x-auto">
-            <div style={{ minWidth: "1400px" }}>
+          <div className="w-full">
+            <div className="min-w-0">
               <ChartContainer config={chartConfig} className="h-[350px] w-full">
                 <LineChart data={chartData} margin={{ top: 5, right: 60, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
@@ -416,9 +417,9 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
                     tickFormatter={(v) => `${v}%`}
                     label={{ value: "Landfill %", angle: 90, position: "insideRight", style: { fontSize: 12 } }}
                   />
-                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartTooltip content={<ChartTooltipContent />} /><Legend />
                   <Line
-                    type="monotone"
+                    type="linear"
                     dataKey="totalIn"
                     yAxisId="left"
                     stroke="hsl(210, 70%, 50%)"
@@ -427,7 +428,7 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
                     name="Total Waste In"
                   />
                   <Line
-                    type="monotone"
+                    type="linear"
                     dataKey="landfill"
                     yAxisId="left"
                     stroke={GROUP_COLORS.landfill}
@@ -436,7 +437,7 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
                     name="Landfill"
                   />
                   <Line
-                    type="monotone"
+                    type="linear"
                     dataKey="rdf"
                     yAxisId="left"
                     stroke={GROUP_COLORS.rdf}
@@ -445,7 +446,7 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
                     name="RDF & Waste To RDF"
                   />
                   <Line
-                    type="monotone"
+                    type="linear"
                     dataKey="recycled"
                     yAxisId="left"
                     stroke={GROUP_COLORS.recycled}
@@ -454,7 +455,7 @@ const ZeroToLandfillChart = ({ externalStartDate, externalEndDate }: ZeroToLandf
                     name="All Recycled"
                   />
                   <Line
-                    type="monotone"
+                    type="linear"
                     dataKey="landfillPct"
                     yAxisId="right"
                     stroke="hsl(0, 70%, 35%)"

@@ -3,6 +3,12 @@ import assert from "node:assert/strict";
 import { QUICK_LINKS, STAFF_NAV_GROUPS, navigationAllowed, navigationActive } from "./staff-navigation";
 const all = STAFF_NAV_GROUPS.flatMap(g => g.items);
 const staff = { isAdmin: false, canAccessFinance: false, canAccessPl: false };
+it("Insights retains the existing admin-only Data Uploads destination in its original first position", () => {
+  const insights = STAFF_NAV_GROUPS.find(group => group.key === "nav-insights-data");
+  assert.equal(insights?.items[0]?.path, "/performance-hub/data");
+  assert.equal(insights?.items[0]?.access, "admin");
+  assert.equal(all.filter(item => item.path === "/performance-hub/data").length, 1);
+});
 it("moving admin pages does not expose them to ordinary staff", () => {
   for (const path of ["/admin/customers", "/admin/questionnaires", "/performance-hub/data", "/admin/users", "/admin/apps", "/admin/settings"]) {
     const item = all.find(i => i.path === path);
