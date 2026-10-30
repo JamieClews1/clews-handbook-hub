@@ -1771,7 +1771,17 @@ const WeighOnePage = () => {
                               </>
                             )}
                             {extras > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Additional items</span><span className="tabular-nums">£{extras.toFixed(2)}</span></div>}
-                            {(weightCharge !== null || extras > 0) && <div className="flex justify-between border-t pt-1.5 font-semibold"><span>Estimated total (ex VAT)</span><span className="tabular-nums">£{((weightCharge ?? 0) + extras).toFixed(2)}</span></div>}
+                            {(weightCharge !== null || extras > 0) && (() => {
+                              const exVat = (weightCharge ?? 0) + extras;
+                              const vatAmount = Math.round(exVat * 20) / 100;
+                              return (
+                                <>
+                                  <div className="flex justify-between border-t pt-1.5 font-semibold"><span>Estimated total (ex VAT)</span><span className="tabular-nums">£{exVat.toFixed(2)}</span></div>
+                                  <div className="flex justify-between"><span className="text-muted-foreground">VAT @ 20%</span><span className="tabular-nums">£{vatAmount.toFixed(2)}</span></div>
+                                  <div className="flex justify-between border-t pt-1.5 font-semibold"><span>Total including VAT</span><span className="tabular-nums">£{(exVat + vatAmount).toFixed(2)}</span></div>
+                                </>
+                              );
+                            })()}
                           </div>
                         );
                       })()}
