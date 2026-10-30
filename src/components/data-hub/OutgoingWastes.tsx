@@ -70,8 +70,11 @@ const OutgoingWastes = () => {
     const total = rows.reduce((a, r) => a + tonnes(r), 0);
     const prevTotal = (prev.data ?? []).reduce((a, r) => a + tonnes(r), 0);
     const inTotal = (inc.data ?? []).reduce((a, r) => a + tonnes(r), 0);
+    const headlines = outgoingHeadlineTotals(rows);
+    const prevHeadlines = outgoingHeadlineTotals(prev.data ?? []);
     return {
-      total, prevTotal, inTotal, loads: rows.length,
+      total, prevTotal, inTotal, loads: rows.length, headlines, prevHeadlines,
+
       streams: [...streams.entries()].map(([name, v]) => ({ name, ...v })).sort((a, b) => b.t - a.t),
       dest: [...dest.entries()].map(([name, v]) => ({ name, loads: v.loads, t: v.t, streams: [...v.streams].join(", ") })).sort((a, b) => b.t - a.t),
       monthly: monthly.map((m) => ({ ...m, [String(year)]: Math.round(m[String(year)] as number), [String(year - 1)]: Math.round(m[String(year - 1)] as number) })),
