@@ -46,6 +46,8 @@ import PdaUploadsPage from "./pages/PdaUploadsPage";
 import PodsPage from "./pages/PodsPage";
 import PerformanceHubReportsPage from "./pages/PerformanceHubReportsPage";
 import WasteKPIsPage from "./pages/WasteKPIsPage";
+import InsightsRecoveryPage from "./pages/InsightsRecoveryPage";
+import InsightsSettingsPage from "./pages/InsightsSettingsPage";
 import LiveJobsPage from "./pages/LiveJobsPage";
 import RentalsPage from "./pages/RentalsPage";
 import PermitsPage from "./pages/PermitsPage";
@@ -167,6 +169,8 @@ const App = () => (
             <Route path="/performance-hub" element={<Staff><PerformanceHubPage /></Staff>} />
             <Route path="/performance-hub/reports" element={<Staff><PerformanceHubReportsPage /></Staff>} />
             <Route path="/performance-hub/waste-kpis" element={<Staff><WasteKPIsPage /></Staff>} />
+            <Route path="/performance-hub/recovery" element={<Staff><InsightsRecoveryPage /></Staff>} />
+            <Route path="/performance-hub/insights-settings" element={<Staff><InsightsSettingsPage /></Staff>} />
             <Route path="/performance-hub/data" element={<Staff><DataUploadsPage /></Staff>} />
             <Route path="/performance-hub/pda-uploads" element={<Staff><PdaUploadsPage /></Staff>} />
             <Route path="/pods" element={<Staff><PodsPage /></Staff>} />

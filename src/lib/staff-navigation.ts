@@ -43,9 +43,12 @@ export const STAFF_NAV_GROUPS: StaffNavGroup[] = [
   ] },
   { title: "Insights & Data", icon: BarChart3, key: "nav-insights-data", items: [
     { label: "Data Uploads", path: "/performance-hub/data", icon: Upload, key: "performance-data", access: "admin" },
-    { label: "Reports", path: "/performance-hub/reports", icon: BarChart3, key: "performance-reports" },
-    { label: "Waste KPIs", path: "/performance-hub/waste-kpis", icon: Gauge, key: "performance-waste-kpis" },
-    { label: "Projections", path: "/performance-hub/projections", icon: TrendingUp, key: "performance-projections" },
+    { label: "Overview", path: "/performance-hub", icon: Gauge, key: "performance-reports" },
+    { label: "Waste flows", path: "/performance-hub/waste-kpis", icon: BarChart3, key: "performance-waste-kpis" },
+    { label: "Recovery & incentives", path: "/performance-hub/recovery", icon: Gauge, key: "performance-waste-kpis" },
+    { label: "Revenue & forecast", path: "/performance-hub/projections", icon: TrendingUp, key: "performance-projections" },
+    { label: "Data checks", path: "/performance-hub/reports", icon: BarChart3, key: "performance-reports" },
+    { label: "Insights settings", path: "/performance-hub/insights-settings", icon: Settings, access: "admin" },
   ] },
   { title: "Operations", icon: ClipboardList, key: "nav-site-operations", items: [
     QUICK_LINKS[3],
