@@ -16,6 +16,7 @@ interface WeighbridgeCustomer {
   customer_name: string;
   is_active: boolean;
   created_at: string;
+  drivers?: string[] | null;
 }
 
 interface WeighbridgeVehicle {
@@ -23,6 +24,7 @@ interface WeighbridgeVehicle {
   vehicle_reg: string;
   is_active: boolean;
   created_at: string;
+  drivers?: string[] | null;
 }
 
 export const WeighOneCMS = () => {
@@ -294,6 +296,7 @@ export const WeighOneCMS = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Customer Name</TableHead>
+                        <TableHead>Drivers</TableHead>
                         <TableHead className="w-24 text-center">Status</TableHead>
                         <TableHead className="w-24 text-right">Actions</TableHead>
                       </TableRow>
@@ -302,6 +305,7 @@ export const WeighOneCMS = () => {
                       {filteredCustomers.map((c) => (
                         <TableRow key={c.id} className={!c.is_active ? "opacity-50" : ""}>
                           <TableCell className="font-medium">{c.customer_name}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{(c.drivers ?? []).join(", ") || "—"}</TableCell>
                           <TableCell className="text-center">
                             <Badge variant="outline" className={c.is_active ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/40" : "bg-muted text-muted-foreground"}>
                               {c.is_active ? "Active" : "Inactive"}
@@ -363,6 +367,7 @@ export const WeighOneCMS = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Vehicle Reg</TableHead>
+                        <TableHead>Drivers</TableHead>
                         <TableHead className="w-24 text-center">Status</TableHead>
                         <TableHead className="w-24 text-right">Actions</TableHead>
                       </TableRow>
@@ -371,6 +376,7 @@ export const WeighOneCMS = () => {
                       {filteredVehicles.map((v) => (
                         <TableRow key={v.id} className={!v.is_active ? "opacity-50" : ""}>
                           <TableCell className="font-mono font-medium">{v.vehicle_reg}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{(v.drivers ?? []).join(", ") || "—"}</TableCell>
                           <TableCell className="text-center">
                             <Badge variant="outline" className={v.is_active ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/40" : "bg-muted text-muted-foreground"}>
                               {v.is_active ? "Active" : "Inactive"}
