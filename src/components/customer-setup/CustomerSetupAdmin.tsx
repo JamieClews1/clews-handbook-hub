@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import CustomerDutyOfCare from "@/components/customer-setup/CustomerDutyOfCare";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -1553,12 +1554,17 @@ export function CustomerSetupAdmin() {
                   )}
                    <TabsTrigger value="contacts">Contacts</TabsTrigger>
                    <TabsTrigger value="finance">Finance Details</TabsTrigger>
+                   <TabsTrigger value="duty-of-care">Duty Of Care</TabsTrigger>
                    <TabsTrigger value="portal">Portal access</TabsTrigger>
 
                    {selectedCustomer.custom_reporting_periods_enabled && (
                      <TabsTrigger value="reporting-periods">Reporting Periods</TabsTrigger>
                    )}
                 </TabsList>
+
+                <TabsContent value="duty-of-care" className="mt-4">
+                  <CustomerDutyOfCare customerId={selectedCustomer.id} />
+                </TabsContent>
 
                 <TabsContent value="sites" className="mt-4 space-y-4">
                   <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
