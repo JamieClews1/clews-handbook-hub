@@ -1,0 +1,764 @@
+{
+ "source": "Midweigh export",
+ "to": "2026-10-29",
+ "loads": 1298,
+ "tonnes": 20014.8,
+ "rows": [
+  {
+   "ewc": "19 12 12",
+   "description": "other wastes (including mixtures of materials) from mechanical treatment of wastes other than those mentioned in 19 12 11",
+   "loads": 314,
+   "tonnes": 5801.48,
+   "products": [
+    {
+     "name": "Qualifying Trommel Fines",
+     "loads": 106,
+     "tonnes": 2717.32
+    },
+    {
+     "name": "Transfer Station Waste. Landfill",
+     "loads": 155,
+     "tonnes": 2206.14
+    },
+    {
+     "name": "Waste Transfer Station. RDF",
+     "loads": 43,
+     "tonnes": 741.24
+    },
+    {
+     "name": "Transfer Station Waste",
+     "loads": 10,
+     "tonnes": 136.78
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Crown Waste Management",
+     "loads": 99,
+     "tonnes": 2625.6
+    },
+    {
+     "name": "Sappahire Cotesbach Landfill",
+     "loads": 104,
+     "tonnes": 1473.74
+    },
+    {
+     "name": "Veolia ES UK Ltd",
+     "loads": 39,
+     "tonnes": 542.06
+    }
+   ]
+  },
+  {
+   "ewc": "19 12 07",
+   "description": "wood other than that mentioned in 19 12 06",
+   "loads": 191,
+   "tonnes": 2711.1,
+   "products": [
+    {
+     "name": "Wood C grade Outgoing",
+     "loads": 153,
+     "tonnes": 2283.22
+    },
+    {
+     "name": "Wood A grade outgoing",
+     "loads": 38,
+     "tonnes": 427.88
+    }
+   ],
+   "destinations": [
+    {
+     "name": "R.Plevin & Sons Ltd",
+     "loads": 73,
+     "tonnes": 1080.72
+    },
+    {
+     "name": "Welland Waste Managment",
+     "loads": 54,
+     "tonnes": 811.36
+    },
+    {
+     "name": "Clews Recycling",
+     "loads": 30,
+     "tonnes": 400.96
+    }
+   ]
+  },
+  {
+   "ewc": "19 12 01",
+   "description": "paper and cardboard",
+   "loads": 155,
+   "tonnes": 2787.37,
+   "products": [
+    {
+     "name": "Paper and Card",
+     "loads": 93,
+     "tonnes": 2262.85
+    },
+    {
+     "name": "Mixed Papers",
+     "loads": 62,
+     "tonnes": 524.52
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Waste Paper Trade C. V.",
+     "loads": 69,
+     "tonnes": 1737.76
+    },
+    {
+     "name": "Williams Recycling Centre Ltd",
+     "loads": 66,
+     "tonnes": 535.37
+    },
+    {
+     "name": "PEUTE UK Limited",
+     "loads": 14,
+     "tonnes": 356.7
+    }
+   ]
+  },
+  {
+   "ewc": "19 12 10",
+   "description": "combustible waste (refuse derived fuel)",
+   "loads": 110,
+   "tonnes": 2712.95,
+   "products": [
+    {
+     "name": "(Waste to Energy) RDF",
+     "loads": 110,
+     "tonnes": 2712.95
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Geminor UK Limited",
+     "loads": 83,
+     "tonnes": 2207.89
+    },
+    {
+     "name": "Inerto Limited",
+     "loads": 20,
+     "tonnes": 317.58
+    },
+    {
+     "name": "GemiUK Ltd",
+     "loads": 7,
+     "tonnes": 187.48
+    }
+   ]
+  },
+  {
+   "ewc": "19 12 02",
+   "description": "ferrous metal",
+   "loads": 75,
+   "tonnes": 491.28,
+   "products": [
+    {
+     "name": "Ferrous Metals",
+     "loads": 75,
+     "tonnes": 491.28
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Whites of Coventry Ltd",
+     "loads": 74,
+     "tonnes": 491.04
+    },
+    {
+     "name": "EMR Group Limited",
+     "loads": 1,
+     "tonnes": 0.24
+    }
+   ]
+  },
+  {
+   "ewc": "17 02 01",
+   "description": "wood",
+   "loads": 65,
+   "tonnes": 971.82,
+   "products": [
+    {
+     "name": "Low Grade Wood (Grade C)",
+     "loads": 65,
+     "tonnes": 971.82
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Silva Recycling Ltd",
+     "loads": 29,
+     "tonnes": 448.14
+    },
+    {
+     "name": "Clews Recycling",
+     "loads": 23,
+     "tonnes": 324.8
+    },
+    {
+     "name": "Baxters",
+     "loads": 7,
+     "tonnes": 106.06
+    }
+   ]
+  },
+  {
+   "ewc": "17 08 02",
+   "description": "gypsum-based construction materials other than those mentioned in 17 08 01",
+   "loads": 60,
+   "tonnes": 1497.6,
+   "products": [
+    {
+     "name": "Plasterboard",
+     "loads": 60,
+     "tonnes": 1497.6
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Evergreen Recycling Solutions Ltd",
+     "loads": 52,
+     "tonnes": 1300.04
+    },
+    {
+     "name": "Go Green Limited",
+     "loads": 8,
+     "tonnes": 197.56
+    }
+   ]
+  },
+  {
+   "ewc": "19 12 09",
+   "description": "minerals (for example sand stones)",
+   "loads": 58,
+   "tonnes": 758.32,
+   "products": [
+    {
+     "name": "Hardcore Mechanically processed",
+     "loads": 58,
+     "tonnes": 758.32
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Brinklow Quarry",
+     "loads": 27,
+     "tonnes": 341.43
+    },
+    {
+     "name": "Veolia ES UK Ltd",
+     "loads": 23,
+     "tonnes": 312.27
+    },
+    {
+     "name": "Clews Recycling",
+     "loads": 4,
+     "tonnes": 56.98
+    }
+   ]
+  },
+  {
+   "ewc": "15 01 03",
+   "description": "wooden packaging",
+   "loads": 57,
+   "tonnes": 627.58,
+   "products": [
+    {
+     "name": "Clean Wood (Grade A)",
+     "loads": 57,
+     "tonnes": 627.58
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Silva Recycling Ltd",
+     "loads": 33,
+     "tonnes": 373.1
+    },
+    {
+     "name": "Clews Recycling",
+     "loads": 19,
+     "tonnes": 206.84
+    },
+    {
+     "name": "Coltman Brothers Limted",
+     "loads": 4,
+     "tonnes": 39.02
+    }
+   ]
+  },
+  {
+   "ewc": "17 01 07",
+   "description": "mixtures of concrete bricks tiles and ceramics other than those mentioned in 17 01 06",
+   "loads": 34,
+   "tonnes": 446.63,
+   "products": [
+    {
+     "name": "Hardcore/Bricks/Rubble/Tiles/Ceramics",
+     "loads": 34,
+     "tonnes": 446.63
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Brinklow Quarry",
+     "loads": 24,
+     "tonnes": 323.28
+    },
+    {
+     "name": "Clews Recycling",
+     "loads": 5,
+     "tonnes": 66.63
+    },
+    {
+     "name": "B. O. Reilly & Sons Limited",
+     "loads": 3,
+     "tonnes": 34.16
+    }
+   ]
+  },
+  {
+   "ewc": "19 12 03",
+   "description": "non-ferrous metal",
+   "loads": 34,
+   "tonnes": 29.36,
+   "products": [
+    {
+     "name": "Non Ferrous Metals (Ali,copper,brass,lead,cable)",
+     "loads": 34,
+     "tonnes": 29.36
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Whites of Coventry Ltd",
+     "loads": 21,
+     "tonnes": 14.33
+    },
+    {
+     "name": "EMR Group Limited",
+     "loads": 4,
+     "tonnes": 9.68
+    },
+    {
+     "name": "Clews Recycling",
+     "loads": 6,
+     "tonnes": 3.19
+    }
+   ]
+  },
+  {
+   "ewc": "19 12 04",
+   "description": "plastic and rubber",
+   "loads": 31,
+   "tonnes": 353.6,
+   "products": [
+    {
+     "name": "Plastics Outgoing",
+     "loads": 31,
+     "tonnes": 353.6
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Veka Recycling Ltd",
+     "loads": 27,
+     "tonnes": 301.5
+    },
+    {
+     "name": "DCE Trading Limited",
+     "loads": 2,
+     "tonnes": 26.3
+    },
+    {
+     "name": "Leinster Environmentals (UK) Ltd",
+     "loads": 2,
+     "tonnes": 25.8
+    }
+   ]
+  },
+  {
+   "ewc": "15 01 02",
+   "description": "plastic packaging",
+   "loads": 23,
+   "tonnes": 366.64,
+   "products": [
+    {
+     "name": "Plastic Packaging Out",
+     "loads": 9,
+     "tonnes": 129.06
+    }
+   ],
+   "destinations": [
+    {
+     "name": "DCE Trading Limited",
+     "loads": 15,
+     "tonnes": 244.62
+    },
+    {
+     "name": "Nevis Resources Limited",
+     "loads": 6,
+     "tonnes": 88.84
+    },
+    {
+     "name": "Leinster Environmentals (UK) Ltd",
+     "loads": 2,
+     "tonnes": 33.18
+    }
+   ]
+  },
+  {
+   "ewc": "20 01 35",
+   "description": "discarded electrical and electronic equipment other than those mentioned in 20 01 21 and 20 01 23 containing hazardous components7 M",
+   "loads": 20,
+   "tonnes": 61.02,
+   "products": [
+    {
+     "name": "Domestic Fridges",
+     "loads": 12,
+     "tonnes": 38.04
+    },
+    {
+     "name": "WEEE",
+     "loads": 8,
+     "tonnes": 22.98
+    }
+   ],
+   "destinations": [
+    {
+     "name": "(EMR) EUROPEAN METAL RECYCLING",
+     "loads": 5,
+     "tonnes": 24.22
+    },
+    {
+     "name": "Enva E-Waste England Limited",
+     "loads": 6,
+     "tonnes": 13.28
+    },
+    {
+     "name": "SAR Metals",
+     "loads": 5,
+     "tonnes": 12.7
+    }
+   ]
+  },
+  {
+   "ewc": "20 02 01",
+   "description": "biodegradable waste",
+   "loads": 20,
+   "tonnes": 116.07,
+   "products": [
+    {
+     "name": "Green Waste/Biodegradable Waste",
+     "loads": 20,
+     "tonnes": 116.07
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Brinklow Quarry",
+     "loads": 13,
+     "tonnes": 73.53
+    },
+    {
+     "name": "Clews Recycling",
+     "loads": 6,
+     "tonnes": 35.84
+    },
+    {
+     "name": "Rofelo Forestry Limited",
+     "loads": 1,
+     "tonnes": 6.7
+    }
+   ]
+  },
+  {
+   "ewc": "20 01 40",
+   "description": "metals",
+   "loads": 17,
+   "tonnes": 80.5,
+   "products": [
+    {
+     "name": "Ferrous Metals (Shearing/Light Iorn/Cast/Frag)",
+     "loads": 17,
+     "tonnes": 80.5
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Whites of Coventry Ltd",
+     "loads": 13,
+     "tonnes": 63.32
+    },
+    {
+     "name": "Clews Recycling",
+     "loads": 2,
+     "tonnes": 10.94
+    },
+    {
+     "name": "EMR Group Limited",
+     "loads": 2,
+     "tonnes": 6.24
+    }
+   ]
+  },
+  {
+   "ewc": "20 03 07",
+   "description": "other wastes (including mixtures of materials) from mechanical treatment of wastes other than those mentioned in 19 12 11",
+   "loads": 11,
+   "tonnes": 59.9,
+   "products": [
+    {
+     "name": "POPS Per tonne",
+     "loads": 9,
+     "tonnes": 32.6
+    },
+    {
+     "name": "Bulky Household waste (furniture, large items)",
+     "loads": 2,
+     "tonnes": 27.3
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Textek",
+     "loads": 9,
+     "tonnes": 32.6
+    },
+    {
+     "name": "Sappahire Cotesbach Landfill",
+     "loads": 2,
+     "tonnes": 27.3
+    }
+   ]
+  },
+  {
+   "ewc": "16 01 03",
+   "description": "end-of-life tyres",
+   "loads": 6,
+   "tonnes": 6.0,
+   "products": [
+    {
+     "name": "Car Tyres",
+     "loads": 6,
+     "tonnes": 6.0
+    }
+   ],
+   "destinations": [
+    {
+     "name": "World Rubber",
+     "loads": 6,
+     "tonnes": 6.0
+    }
+   ]
+  },
+  {
+   "ewc": "17 04 07",
+   "description": "mixed metals",
+   "loads": 3,
+   "tonnes": 9.7,
+   "products": [
+    {
+     "name": "Mixed Metals ferrous and Non",
+     "loads": 3,
+     "tonnes": 9.7
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Whites of Coventry Ltd",
+     "loads": 2,
+     "tonnes": 7.88
+    },
+    {
+     "name": "(EMR) EUROPEAN METAL RECYCLING",
+     "loads": 1,
+     "tonnes": 1.82
+    }
+   ]
+  },
+  {
+   "ewc": "20 01 37",
+   "description": "wood containing dangerous substances M",
+   "loads": 3,
+   "tonnes": 6.42,
+   "products": [
+    {
+     "name": "Hazardous Wood",
+     "loads": 3,
+     "tonnes": 6.42
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Twinwoods  Heath & Power Limited",
+     "loads": 3,
+     "tonnes": 6.42
+    }
+   ]
+  },
+  {
+   "ewc": "20 03 01",
+   "description": "Mixed Municipal Waste",
+   "loads": 3,
+   "tonnes": 31.1,
+   "products": [
+    {
+     "name": "Mixed Municipal/ General Waste",
+     "loads": 3,
+     "tonnes": 31.1
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Sappahire Cotesbach Landfill",
+     "loads": 1,
+     "tonnes": 13.62
+    },
+    {
+     "name": "Veolia Enviromental",
+     "loads": 1,
+     "tonnes": 12.88
+    },
+    {
+     "name": "Veolia ES UK Ltd",
+     "loads": 1,
+     "tonnes": 4.6
+    }
+   ]
+  },
+  {
+   "ewc": "15 01 01",
+   "description": "paper and cardboard packaging",
+   "loads": 2,
+   "tonnes": 33.38,
+   "products": [
+    {
+     "name": "Cardboard",
+     "loads": 1,
+     "tonnes": 25.34
+    },
+    {
+     "name": "Paper",
+     "loads": 1,
+     "tonnes": 8.04
+    }
+   ],
+   "destinations": [
+    {
+     "name": "PEUTE UK Limited",
+     "loads": 1,
+     "tonnes": 25.34
+    },
+    {
+     "name": "Williams Recycling Centre Ltd",
+     "loads": 1,
+     "tonnes": 8.04
+    }
+   ]
+  },
+  {
+   "ewc": "20 01 39",
+   "description": "plastics",
+   "loads": 2,
+   "tonnes": 24.06,
+   "products": [
+    {
+     "name": "Plastics",
+     "loads": 2,
+     "tonnes": 24.06
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Veka Recycling Ltd",
+     "loads": 2,
+     "tonnes": 24.06
+    }
+   ]
+  },
+  {
+   "ewc": "15 01 04",
+   "description": "metallic packaging",
+   "loads": 1,
+   "tonnes": 2.0,
+   "products": [
+    {
+     "name": "Aluminium Cans",
+     "loads": 1,
+     "tonnes": 2.0
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Clews Recycling",
+     "loads": 1,
+     "tonnes": 2.0
+    }
+   ]
+  },
+  {
+   "ewc": "15 01 06",
+   "description": "mixed packaging",
+   "loads": 1,
+   "tonnes": 0.46,
+   "products": [
+    {
+     "name": "Mixed Packaging/ Co Mingled waste",
+     "loads": 1,
+     "tonnes": 0.46
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Alutrade Ltd",
+     "loads": 1,
+     "tonnes": 0.46
+    }
+   ]
+  },
+  {
+   "ewc": "17 05 04",
+   "description": "soil and stones other than those mentioned in 17 05 03",
+   "loads": 1,
+   "tonnes": 4.46,
+   "products": [
+    {
+     "name": "Inert (Soil and Stones)",
+     "loads": 1,
+     "tonnes": 4.46
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Brinklow Quarry",
+     "loads": 1,
+     "tonnes": 4.46
+    }
+   ]
+  },
+  {
+   "ewc": "17 09 04",
+   "description": "mixed construction and demolition wastes other than those mentioned in 17 09 01 17 09 02 and 17 09 03",
+   "loads": 1,
+   "tonnes": 24.0,
+   "products": [
+    {
+     "name": "Mixed Construction Demolition /Builders Waste",
+     "loads": 1,
+     "tonnes": 24.0
+    }
+   ],
+   "destinations": [
+    {
+     "name": "Creative Waste Solutions ltd",
+     "loads": 1,
+     "tonnes": 24.0
+    }
+   ]
+  }
+ ],
+ "from": "2025-10-01"
+}
