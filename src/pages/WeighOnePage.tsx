@@ -1025,7 +1025,7 @@ const WeighOnePage = () => {
     mutationFn: async () => {
       if (!selectedTransaction) throw new Error("No transaction selected");
       const wasteType = wasteTypes.find((wt) => wt.id === editForm.waste_type_id);
-      const rate = editForm.waste_type_id ? rateFor(editForm.waste_type_id, editForm.rate_group_id) : null;
+      const rate = (editForm.job_type || selectedTransaction.job_type) !== "waste_out" && editForm.waste_type_id ? rateFor(editForm.waste_type_id, editForm.rate_group_id) : null;
 
       const grossKg = editForm.gross_weight_kg === "" ? null : parseFloat(editForm.gross_weight_kg);
       const tareKg = editForm.tare_weight_kg === "" ? null : parseFloat(editForm.tare_weight_kg);
@@ -2009,7 +2009,7 @@ const WeighOnePage = () => {
 
       {/* Transaction Log */}
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsContent value="yard" className="mt-4"><WeighOneYard todayTickets={todayTickets} tickets={transactions} jobs={banksmanJobs as LinkedBanksmanJob[]} onTicket={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setTicketDialogOpen(true); } }} onWeighOut={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setSecondWeighDialogOpen(true); } }} /></TabsContent>
+        <TabsContent value="yard" className="mt-4"><WeighOneYard todayTickets={todayTickets} tickets={transactions} jobs={banksmanJobs as LinkedBanksmanJob[]} onTicket={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setTicketDialogOpen(true); } }} onWeighOut={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setSecondWeighDialogOpen(true); } }} onEdit={id => { const ticket = transactions.find(t => t.id === id); if (ticket) openEdit(ticket); }} /></TabsContent>
         <TabsContent value="tickets" className="mt-4"><CombinedTicketList tablet={tablet} banksmanJobs={banksmanJobs as LinkedBanksmanJob[]} /></TabsContent>
         <TabsContent value="alerts" className="mt-4"><BanksmanAlertsPanel /></TabsContent>
         <TabsContent value="log" className="mt-4">
@@ -2304,7 +2304,14 @@ const WeighOnePage = () => {
               </div>
               {selectedTransaction.notes && <div className="text-sm"><span className="text-muted-foreground">Notes:</span> {selectedTransaction.notes}</div>}
               <WeighbridgeAttachments transactionId={selectedTransaction.id} />
-              {selectedTransaction.status === "first_weigh" && <Button className="w-full" onClick={() => { setTicketDialogOpen(false); setSecondWeighDialogOpen(true); }}>Weigh out</Button>}
+              {selectedTransaction.status === "first_weigh" && (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button className="w-full" onClick={() => { setTicketDialogOpen(false); setSecondWeighDialogOpen(true); }}>Weigh out</Button>
+                  <Button className="w-full gap-2" variant="outline" onClick={() => { setTicketDialogOpen(false); openEdit(selectedTransaction); }}>
+                    <Pencil className="h-4 w-4" /> Edit ticket details
+                  </Button>
+                </div>
+              )}
               {selectedTransaction.status === "completed" && selectedTransaction.job_type === "waste_out" && (
                 <Button className="w-full gap-2" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems, false)}>
                   <Printer className="h-4 w-4" /> Print double ticket (customer + office copy)
