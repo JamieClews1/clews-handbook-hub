@@ -1191,11 +1191,11 @@ export function CustomerSetupAdmin() {
     }
   };
 
-  /** One-click "all their jobs": tick (or clear) every active site on the account, then save. */
+  /** One-click "all their jobs": tick (or clear) every site on the account, archived included, then save. */
   const setAllSitesForMembership = async (m: Membership, on: boolean) => {
     const targetSiteIds = on ? allAccessSiteIds(sites, m.customer_id) : [];
     if (on && targetSiteIds.length === 0) {
-      toast({ title: "No active sites", description: "Add sites to this account first.", variant: "destructive" });
+      toast({ title: "No sites", description: "Add sites to this account first.", variant: "destructive" });
       return;
     }
     setSiteAccessByMembershipId((prev) => ({ ...prev, [m.id]: new Set(targetSiteIds) }));
