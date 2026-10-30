@@ -1753,19 +1753,28 @@ const WeighOnePage = () => {
                         <summary className="cursor-pointer flex justify-between gap-2"><span>EWC <strong className="font-mono">{formData.ewc_code || selectedWasteType?.ewc_code || "—"}</strong></span><span className="text-primary">Override</span></summary>
                         <Input aria-label="EWC override" className="mt-2 h-9 font-mono" value={formData.ewc_code} placeholder={selectedWasteType?.ewc_code || "EWC code"} onChange={e => setFormData(p => ({ ...p, ewc_code: e.target.value }))} />
                       </details>
-                      {!isWasteOut && selectedWasteType && selectedRate && (
-                        <div className="flex flex-wrap items-center gap-2 text-xs p-2 rounded bg-muted/50">
-                          <PoundSterling className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-muted-foreground">Per tonne:</span>
-                          <span className="font-bold text-sm">£{selectedRate.price_per_tonne.toFixed(2)}</span>
-                          {selectedRate.min_charge > 0 && (
-                            <span className="text-muted-foreground">· Min £{selectedRate.min_charge.toFixed(2)}</span>
-                          )}
-                          {selectedWasteType.ewc_code && (
-                            <span className="text-muted-foreground ml-auto">EWC: {selectedWasteType.ewc_code}</span>
-                          )}
-                        </div>
-                      )}
+                      {!isWasteOut && (() => {
+                        const extras = newAdditionalItems.reduce((s, i) => s + (parseFloat(i.cost) || 0) * Math.max(1, parseInt(i.qty || "1", 10) || 1), 0);
+                        const weightCharge = selectedRate && netPreviewKg !== null ? chargeFor(netPreviewKg, selectedRate.price_per_tonne, selectedRate.min_charge) : null;
+                        return (
+                          <div className="rounded-md border p-3 space-y-1.5 text-xs">
+                            <div className="flex items-center gap-2 font-semibold text-sm"><PoundSterling className="h-4 w-4 text-primary" /> Customer pricing</div>
+                            {!selectedWasteType ? (
+                              <p className="text-muted-foreground">Pick a waste type to see the customer's rate.</p>
+                            ) : !selectedRate ? (
+                              <p className="text-destructive">No rate set for this waste type in this rate group — add it in Prices &amp; Rates.</p>
+                            ) : (
+                              <>
+                                <div className="flex justify-between"><span className="text-muted-foreground">Per tonne</span><span className="font-bold tabular-nums">£{selectedRate.price_per_tonne.toFixed(2)}</span></div>
+                                {selectedRate.min_charge > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Minimum charge</span><span className="tabular-nums">£{selectedRate.min_charge.toFixed(2)}</span></div>}
+                                <div className="flex justify-between"><span className="text-muted-foreground">Weight charge</span><span className="tabular-nums">{weightCharge !== null ? `£${weightCharge.toFixed(2)}` : "Worked out on weigh out"}</span></div>
+                              </>
+                            )}
+                            {extras > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Additional items</span><span className="tabular-nums">£{extras.toFixed(2)}</span></div>}
+                            {(weightCharge !== null || extras > 0) && <div className="flex justify-between border-t pt-1.5 font-semibold"><span>Estimated total (ex VAT)</span><span className="tabular-nums">£{((weightCharge ?? 0) + extras).toFixed(2)}</span></div>}
+                          </div>
+                        );
+                      })()}
                       </div>
                     </div>
 
