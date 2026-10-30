@@ -3,16 +3,13 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, FileCheck, Building2, Settings, ShieldCheck } from "lucide-react";
+import { ArrowLeft, FileCheck, Settings, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeading } from "@/components/PageHeading";
 import { DashboardOverview } from "@/components/duty-of-care/DashboardOverview";
 import { CompanyDocumentsSection } from "@/components/duty-of-care/CompanyDocumentsSection";
 import { CompanyProfile } from "@/components/duty-of-care/CompanyProfile";
-import { PartnersList } from "@/components/duty-of-care/PartnersList";
 import { RequirementsSettings } from "@/components/duty-of-care/RequirementsSettings";
-import { PartnerQuestionnairesList } from "@/components/duty-of-care/PartnerQuestionnairesList";
-import { PartnerQuestionnaireForm } from "@/components/duty-of-care/PartnerQuestionnaireForm";
 import { PublicRegisterSection } from "@/components/duty-of-care/PublicRegisterSection";
 import { EwcRegisterSection } from "@/components/duty-of-care/EwcRegisterSection";
 import { CommonWasteTypesSection } from "@/components/duty-of-care/CommonWasteTypesSection";
@@ -22,7 +19,6 @@ const DutyOfCarePage = () => {
   const navigate = useNavigate();
   const { user, loading, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
-  const [selectedQuestionnaireId, setSelectedQuestionnaireId] = useState<string | null>(null);
   
   const [companyDocuments, setCompanyDocuments] = useState<CompanyDocument[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
@@ -95,20 +91,9 @@ const DutyOfCarePage = () => {
               <FileCheck className="h-4 w-4 hidden sm:inline" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="company" className="gap-2">
-              <FileCheck className="h-4 w-4 hidden sm:inline" />
-              Company
-            </TabsTrigger>
-            <TabsTrigger value="partners" className="gap-2">
-              <Building2 className="h-4 w-4 hidden sm:inline" />
-              Partners
-            </TabsTrigger>
-            <TabsTrigger value="questionnaires" className="gap-2">
-              Onboarding
-            </TabsTrigger>
             <TabsTrigger value="register" className="gap-2">
               <ShieldCheck className="h-4 w-4 hidden sm:inline" />
-              Register
+              Tipping Sites
             </TabsTrigger>
             <TabsTrigger value="ewc" className="gap-2">EWC codes</TabsTrigger>
             {isAdmin && (
@@ -133,47 +118,6 @@ const DutyOfCarePage = () => {
             />
           </TabsContent>
 
-          <TabsContent value="company" className="space-y-6">
-            <CompanyProfile isAdmin={isAdmin} />
-            <CompanyDocumentsSection
-              documents={companyDocuments}
-              documentTypes={documentTypes}
-              isAdmin={isAdmin}
-              onRefresh={fetchData}
-            />
-          </TabsContent>
-
-          <TabsContent value="partners">
-            <PartnersList
-              partners={partners}
-              partnerDocuments={partnerDocuments}
-              requirements={requirements}
-              isAdmin={isAdmin}
-              onRefresh={fetchData}
-            />
-          </TabsContent>
-
-          <TabsContent value="questionnaires">
-            {selectedQuestionnaireId ? (
-              <PartnerQuestionnaireForm
-                questionnaireId={selectedQuestionnaireId}
-                isAdmin={isAdmin}
-                onBack={() => setSelectedQuestionnaireId(null)}
-                onSaved={() => {
-                  fetchData();
-                  setSelectedQuestionnaireId(null);
-                }}
-              />
-            ) : (
-              <PartnerQuestionnairesList
-                questionnaires={questionnaires}
-                isAdmin={isAdmin}
-                onRefresh={fetchData}
-                onView={(id) => setSelectedQuestionnaireId(id)}
-              />
-            )}
-          </TabsContent>
-
           <TabsContent value="register">
             <PublicRegisterSection />
           </TabsContent>
@@ -184,7 +128,8 @@ const DutyOfCarePage = () => {
           </TabsContent>
 
           {isAdmin && (
-            <TabsContent value="settings">
+            <TabsContent value="settings" className="space-y-6">
+              <CompanyProfile isAdmin={isAdmin} />
               <RequirementsSettings
                 requirements={requirements}
                 documentTypes={documentTypes}
