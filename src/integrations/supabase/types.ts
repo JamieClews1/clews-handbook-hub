@@ -2344,6 +2344,27 @@ export type Database = {
           },
         ]
       }
+      customer_doc_import: {
+        Row: {
+          e: string | null
+          id: string
+          l: string | null
+          s: string | null
+        }
+        Insert: {
+          e?: string | null
+          id: string
+          l?: string | null
+          s?: string | null
+        }
+        Update: {
+          e?: string | null
+          id?: string
+          l?: string | null
+          s?: string | null
+        }
+        Relationships: []
+      }
       customer_finance_details: {
         Row: {
           accounting_customer_ref: string | null
@@ -2903,7 +2924,10 @@ export type Database = {
           po_notification_email: string | null
           po_spans_periods: boolean
           pod_email: string | null
+          sic_code: string | null
           updated_at: string
+          waste_carrier_licence: string | null
+          waste_carrier_licence_expiry: string | null
         }
         Insert: {
           all_data_hub_sites?: boolean
@@ -2922,7 +2946,10 @@ export type Database = {
           po_notification_email?: string | null
           po_spans_periods?: boolean
           pod_email?: string | null
+          sic_code?: string | null
           updated_at?: string
+          waste_carrier_licence?: string | null
+          waste_carrier_licence_expiry?: string | null
         }
         Update: {
           all_data_hub_sites?: boolean
@@ -2941,7 +2968,10 @@ export type Database = {
           po_notification_email?: string | null
           po_spans_periods?: boolean
           pod_email?: string | null
+          sic_code?: string | null
           updated_at?: string
+          waste_carrier_licence?: string | null
+          waste_carrier_licence_expiry?: string | null
         }
         Relationships: [
           {
