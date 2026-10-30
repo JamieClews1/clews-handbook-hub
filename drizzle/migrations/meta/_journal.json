@@ -330,6 +330,13 @@
       "when": 1793375232918,
       "tag": "0046_saved_site_classification",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1793377493914,
+      "tag": "0047_waste_products_catalogue",
+      "breakpoints": true
     }
   ]
 }

@@ -10133,6 +10133,39 @@ export type Database = {
         }
         Relationships: []
       }
+      waste_products: {
+        Row: {
+          display_name: string
+          ewc_code: string
+          id: string
+          notes: string | null
+          recorded_name: string
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          display_name: string
+          ewc_code: string
+          id?: string
+          notes?: string | null
+          recorded_name: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          display_name?: string
+          ewc_code?: string
+          id?: string
+          notes?: string | null
+          recorded_name?: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       waste_stream_values: {
         Row: {
           additional_processing: number
