@@ -2185,7 +2185,8 @@ const WeighOnePage = () => {
                 </div>
               </div>
 
-              {/* Pricing */}
+              {/* Pricing (not used on Waste Out tickets) */}
+              {selectedTransaction.job_type !== "waste_out" && (<>
               <div className="p-3 rounded-lg border border-border space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Price per tonne</span>
@@ -2213,11 +2214,14 @@ const WeighOnePage = () => {
                   <span>{fmtPrice(selectedTransaction.total_price)}</span>
                 </div>
               </div>
+              </>)}
+              {selectedTransaction.job_type !== "waste_out" && (
               <WeighOnePaymentPanel
                 transaction={selectedTransaction as any}
                 onSaved={(patch) => setSelectedTransaction({ ...selectedTransaction, ...patch } as WeighbridgeTransaction)}
               />
-              {selectedTransaction.status === "completed" && !(selectedTransaction as any).payment_paid && (
+              )}
+              {selectedTransaction.job_type !== "waste_out" && selectedTransaction.status === "completed" && !(selectedTransaction as any).payment_paid && (
                 <Button variant="secondary" className="w-full gap-2" onClick={() => invoiceFromSource({ transactionId: selectedTransaction.id })}>
                   <PoundSterling className="h-4 w-4" /> Create invoice (account customer)
                 </Button>
@@ -2230,7 +2234,12 @@ const WeighOnePage = () => {
               {selectedTransaction.notes && <div className="text-sm"><span className="text-muted-foreground">Notes:</span> {selectedTransaction.notes}</div>}
               <WeighbridgeAttachments transactionId={selectedTransaction.id} />
               {selectedTransaction.status === "first_weigh" && <Button className="w-full" onClick={() => { setTicketDialogOpen(false); setSecondWeighDialogOpen(true); }}>Weigh out</Button>}
-              {selectedTransaction.status === "completed" && (
+              {selectedTransaction.status === "completed" && selectedTransaction.job_type === "waste_out" && (
+                <Button className="w-full gap-2" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems, false)}>
+                  <Printer className="h-4 w-4" /> Print double ticket (customer + office copy)
+                </Button>
+              )}
+              {selectedTransaction.status === "completed" && selectedTransaction.job_type !== "waste_out" && (
                 <div className="grid gap-2 sm:grid-cols-2">
                   <Button className="w-full gap-2" variant="outline" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems, false)}>
                     <Printer className="h-4 w-4" /> Without prices
