@@ -51,3 +51,42 @@ export function outgoingStream(ewc: string | null | undefined, description?: str
   if (/rdf|refuse derived/.test(d)) return "Waste RDF";
   return "Other";
 }
+
+/** Midweigh weighbridge weights are stored in kilograms. */
+export const midweighRowTonnes = (row: { weight_t?: number | null }) => (row.weight_t ?? 0) / 1000;
+
+export const LANDFILL_STREAM = "Landfill";
+export const RDF_STREAM = "Waste RDF";
+
+export type OutgoingStreamRow = {
+  ewc?: string | null;
+  waste_description?: string | null;
+  product?: string | null;
+  weight_t?: number | null;
+};
+
+/**
+ * Headline outgoing totals.
+ * zeroToLandfill = everything except landfill-bound loads.
+ * recycling = everything except landfill-bound loads and RDF.
+ */
+export function outgoingHeadlineTotals(rows: OutgoingStreamRow[]) {
+  let total = 0;
+  let landfill = 0;
+  let rdf = 0;
+  for (const row of rows) {
+    const tonnes = midweighRowTonnes(row);
+    const stream = outgoingStream(row.ewc, row.waste_description, row.product);
+    total += tonnes;
+    if (stream === LANDFILL_STREAM) landfill += tonnes;
+    else if (stream === RDF_STREAM) rdf += tonnes;
+  }
+  return {
+    total,
+    landfill,
+    rdf,
+    zeroToLandfill: total - landfill,
+    recycling: total - landfill - rdf,
+  };
+}
+

@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { outgoingStream } from "./outgoing-waste-streams";
+import { outgoingStream, outgoingHeadlineTotals } from "./outgoing-waste-streams";
+
 
 describe("outgoingStream", () => {
   it("groups both paper EWC codes as Paper / Card", () => {
