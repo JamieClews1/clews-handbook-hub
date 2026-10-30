@@ -114,15 +114,16 @@ interface BucketData {
   extractedC: number;
 }
 
-const WasteKPIGradeCWood = () => {
+const WasteKPIGradeCWood = ({ externalStartDate, externalEndDate }: { externalStartDate?: Date; externalEndDate?: Date } = {}) => {
   const [period, setPeriod] = useState<PeriodKey>("last-month");
   const { streams, rates } = useWasteValueSettings();
 
   // Always fetch a rolling 13-month window once; every period is computed from it.
-  const fetchFrom = format(startOfMonth(subMonths(new Date(), 12)), "yyyy-MM-dd");
+  const fetchFrom = format(externalStartDate ?? startOfMonth(subMonths(new Date(), 12)), "yyyy-MM-dd");
+  const fetchTo = format(externalEndDate ?? new Date(), "yyyy-MM-dd");
 
   const { data: rows, isLoading } = useQuery({
-    queryKey: ["waste-kpi-wood-rows", fetchFrom],
+    queryKey: ["waste-kpi-wood-rows", fetchFrom, fetchTo],
     queryFn: async () => {
       const all: any[] = [];
       let from = 0;
@@ -134,6 +135,7 @@ const WasteKPIGradeCWood = () => {
           .eq("source", "midweigh")
           .in("movement_type", ["INWARD", "OUTWARD"])
           .gte("job_date", fetchFrom)
+          .lte("job_date", fetchTo)
           .range(from, from + pageSize - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;
@@ -151,7 +153,7 @@ const WasteKPIGradeCWood = () => {
     },
   });
 
-  const window_ = useMemo(() => periodWindow(period), [period]);
+  const window_ = useMemo(() => externalStartDate && externalEndDate ? { start: externalStartDate, end: externalEndDate, bucket: "month" as Bucket } : periodWindow(period), [period, externalStartDate, externalEndDate]);
 
   const chartData = useMemo<BucketData[]>(() => {
     if (!rows) return [];
@@ -224,12 +226,12 @@ const WasteKPIGradeCWood = () => {
     };
   }, [chartData]);
 
-  const COLOR_A = "hsl(260, 70%, 55%)";
-  const COLOR_C = "hsl(200, 80%, 50%)";
-  const COLOR_RATE = "hsl(142, 70%, 40%)";
+  const COLOR_A = "hsl(var(--info))";
+  const COLOR_C = "hsl(var(--primary))";
+  const COLOR_RATE = "hsl(var(--success))";
 
   const chartConfig = {
-    directIn: { label: "Wood received as wood", color: "hsl(35, 85%, 55%)" },
+    directIn: { label: "Wood received as wood", color: "hsl(var(--warning))" },
     extractedA: { label: "Grade A recovered from mixed", color: COLOR_A },
     extractedC: { label: "Grade C recovered from mixed", color: COLOR_C },
     recoveryRate: { label: "Recovery rate (% of mixed)", color: COLOR_RATE },
@@ -273,15 +275,15 @@ const WasteKPIGradeCWood = () => {
   const avoidedLandfill = totalRecovery * landfillCostPerTonne;
   const actualCost = totals.extA * woodACost + totals.extC * woodCCost;
 
-  const periodLabel = PERIODS.find((p) => p.value === period)?.label ?? "";
+  const periodLabel = externalStartDate ? "Selected period" : PERIODS.find((p) => p.value === period)?.label ?? "";
   const rangeLabel = `${format(window_.start, "dd MMM")} – ${format(window_.end, "dd MMM yyyy")}`;
 
   return (
     <Card>
       <CardHeader className="space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center">
-            <TreePine className="h-5 w-5 text-primary-foreground" />
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <TreePine className="h-5 w-5 text-primary" />
           </div>
           <div>
             <CardTitle className="text-lg">Wood Recovery</CardTitle>
@@ -291,7 +293,7 @@ const WasteKPIGradeCWood = () => {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {PERIODS.map((p) => (
+          {!externalStartDate && PERIODS.map((p) => (
             <Button
               key={p.value}
               size="sm"
@@ -429,7 +431,7 @@ const WasteKPIGradeCWood = () => {
                   />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Legend />
-                  <Bar yAxisId="t" dataKey="directIn" name="Arrived as wood" fill="hsl(35, 85%, 55%)" stackId="w" />
+                  <Bar yAxisId="t" dataKey="directIn" name="Arrived as wood" fill="hsl(var(--warning))" stackId="w" />
                   <Bar yAxisId="t" dataKey="extractedA" name="Grade A recovered" fill={COLOR_A} stackId="w" />
                   <Bar yAxisId="t" dataKey="extractedC" name="Grade C recovered" fill={COLOR_C} stackId="w" radius={[2, 2, 0, 0]} />
                   <Line
@@ -439,7 +441,7 @@ const WasteKPIGradeCWood = () => {
                     stroke={COLOR_RATE}
                     strokeWidth={2}
                     dot={{ r: 3 }}
-                    type="monotone"
+                    type="linear"
                   />
                 </ComposedChart>
               </ChartContainer>

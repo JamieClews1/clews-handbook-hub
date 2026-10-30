@@ -43,9 +43,10 @@ const monthsBack = 13;
 
 interface RecyclingIncentiveProps {
   hideHeader?: boolean;
+  hideSettings?: boolean;
 }
 
-const RecyclingIncentive = ({ hideHeader }: RecyclingIncentiveProps) => {
+const RecyclingIncentive = ({ hideHeader, hideSettings = false }: RecyclingIncentiveProps) => {
   const groupMap = useMemo(() => loadGroupMap(), []);
   const { streams, rates } = useWasteValueSettings();
   const { settings, saveSetting } = useYardIncentiveSettings();
@@ -188,7 +189,7 @@ const RecyclingIncentive = ({ hideHeader }: RecyclingIncentiveProps) => {
           onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
           onBlur={async (e) => {
             const v = Number(e.target.value);
-            if (!Number.isNaN(v) && v !== settings[key]) await saveSetting(key, v);
+            if (!hideSettings && !Number.isNaN(v) && v !== settings[key]) await saveSetting(key, v);
             setDraft((d) => {
               const n = { ...d };
               delete n[key];
@@ -207,8 +208,8 @@ const RecyclingIncentive = ({ hideHeader }: RecyclingIncentiveProps) => {
       {!hideHeader && (
         <CardHeader className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-sky-500 to-sky-700 flex items-center justify-center">
-              <Recycle className="h-5 w-5 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center">
+              <Recycle className="h-5 w-5 text-primary" />
             </div>
             <div>
               <CardTitle className="text-lg">Recycling Incentive</CardTitle>
@@ -241,14 +242,15 @@ const RecyclingIncentive = ({ hideHeader }: RecyclingIncentiveProps) => {
           </div>
         ) : (
           <>
+            {hideSettings && <Badge variant="outline">Fixed: {current.label} · modelled bonus pool</Badge>}
             {/* Headline */}
-            <div className="rounded-lg border-2 border-sky-600/60 p-4 space-y-4">
+            <div className="rounded-lg border-2 border-info/30 p-4 space-y-4">
               <p className="text-lg leading-relaxed text-foreground">
                 In <span className="font-semibold">{current.label}</span>{" "}
-                <span className="font-bold text-sky-600">{stats.actualRate.toFixed(1)}%</span> of the{" "}
+                <span className="font-bold text-info">{stats.actualRate.toFixed(1)}%</span> of the{" "}
                 {fmt(stats.out)}t sent out was recycled (not landfill or RDF), against a baseline of{" "}
                 <span className="font-semibold">{baselineRate.toFixed(1)}%</span> — earning a bonus pool of{" "}
-                <span className="font-bold text-sky-600">{money(stats.bonus)}</span>.
+                <span className="font-bold text-info">{money(stats.bonus)}</span>.
               </p>
               <div className="grid gap-3 sm:grid-cols-4">
                 <div className="rounded-md bg-muted/40 p-3">
@@ -266,7 +268,7 @@ const RecyclingIncentive = ({ hideHeader }: RecyclingIncentiveProps) => {
                 <div className="rounded-md bg-muted/40 p-3">
                   <p className="text-xs text-muted-foreground">Tonnes above baseline</p>
                   <p
-                    className={`text-2xl font-bold ${stats.incrementalTonnes >= 0 ? "text-sky-600" : "text-destructive"}`}
+                    className={`text-2xl font-bold ${stats.incrementalTonnes >= 0 ? "text-info" : "text-destructive"}`}
                   >
                     {stats.incrementalTonnes >= 0 ? "+" : ""}
                     {fmt(stats.incrementalTonnes)}t
@@ -275,15 +277,15 @@ const RecyclingIncentive = ({ hideHeader }: RecyclingIncentiveProps) => {
                     worth {money(stats.incrementalValue)} at {money(valuePerTonne)}/t
                   </p>
                 </div>
-                <div className="rounded-md border border-sky-600/60 p-3">
+                <div className="rounded-md border border-info/30 p-3">
                   <p className="text-xs text-muted-foreground">
                     Bonus pool ({settings.recycling_bonus_share_pct}%)
                   </p>
-                  <p className="text-2xl font-bold text-sky-600">{money(stats.bonus)}</p>
+                  <p className="text-2xl font-bold text-info">{money(stats.bonus)}</p>
                   <p className="text-[11px] text-muted-foreground">
                     {teamSize > 0
                       ? `${money(stats.bonus / teamSize)} per person (${teamSize})`
-                      : "Set team size below for per-head split"}
+                      : "Team size not configured"}
                     {stats.capped ? " · capped" : ""}
                   </p>
                 </div>
@@ -301,7 +303,7 @@ const RecyclingIncentive = ({ hideHeader }: RecyclingIncentiveProps) => {
               </div>
               <div className="h-3 w-full rounded-full bg-muted overflow-hidden">
                 <div
-                  className="h-full bg-sky-600"
+                  className="h-full bg-info"
                   style={{
                     width: `${targetRate > 0 ? Math.min(100, (stats.actualRate / targetRate) * 100) : 0}%`,
                   }}
@@ -315,7 +317,7 @@ const RecyclingIncentive = ({ hideHeader }: RecyclingIncentiveProps) => {
             </div>
 
             {/* Settings */}
-            <div className="rounded-lg border p-4 space-y-4">
+            {!hideSettings && <div className="rounded-lg border p-4 space-y-4">
               <div className="flex items-center gap-2">
                 <PiggyBank className="h-4 w-4 text-muted-foreground" />
                 <p className="text-sm font-medium">Recycling bonus settings</p>
@@ -333,7 +335,7 @@ const RecyclingIncentive = ({ hideHeader }: RecyclingIncentiveProps) => {
                   "£",
                 )}
               </div>
-            </div>
+            </div>}
 
             {/* Monthly table */}
             <div className="space-y-2">
@@ -363,7 +365,7 @@ const RecyclingIncentive = ({ hideHeader }: RecyclingIncentiveProps) => {
                           <TableCell className="text-right">{fmt(m.landfill)}</TableCell>
                           <TableCell className="text-right">{fmt(m.rdf)}</TableCell>
                           <TableCell className="text-right">{rateFor(m).toFixed(1)}%</TableCell>
-                          <TableCell className={`text-right ${incT >= 0 ? "text-sky-600" : "text-destructive"}`}>
+                          <TableCell className={`text-right ${incT >= 0 ? "text-info" : "text-destructive"}`}>
                             {incT >= 0 ? "+" : ""}
                             {fmt(incT)}
                           </TableCell>
