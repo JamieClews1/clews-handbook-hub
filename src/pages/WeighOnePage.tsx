@@ -4,6 +4,7 @@ import { useBanksmanJobs } from "@/components/banksman/useBanksmanJobs";
 import { useTippingSites } from "@/hooks/useTippingSites";
 import { RouteOneArrivalPicker, type ArrivingJob } from "@/components/weighone/RouteOneArrivalPicker";
 import { CONTAINER_GROUPS, bookingContainerLabel } from "@/lib/container-taxonomy";
+import { WASTE_OUT_CONTAINERS, recogniseContainer } from "@/lib/weighone-waste-out";
 import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
 import { BanksmanSettings } from "@/components/banksman/BanksmanSettings";
 import { CombinedTicketList } from "@/components/weighone/CombinedTicketList";
@@ -258,6 +259,8 @@ const WeighOnePage = () => {
   // New transaction form
   const [formData, setFormData] = useState(emptyForm);
   const [arrivingJob, setArrivingJob] = useState<ArrivingJob | null>(null);
+  const isWasteOut = formData.job_type === "waste_out";
+  const [outProductId, setOutProductId] = useState("");
   const { data: outgoingSites = [] } = useTippingSites();
   /** Prefill the weigh-in from a RouteOne job so nothing is retyped. */
   const applyRouteOneJob = (job: ArrivingJob) => {
@@ -1104,6 +1107,7 @@ const WeighOnePage = () => {
     setDriverSignature(null);
     setStagedAttachments([]);
     setSkipDriver("");
+    setOutProductId("");
 
     setNewAdditionalItems([]);
   };
@@ -1285,6 +1289,8 @@ const WeighOnePage = () => {
                                 : { linked_job_number: "", linked_job_source: "", linked_job_date: "" }),
                             }));
                             if (val !== "skip") setSkipDriver("");
+                            if (val === "waste_out") setFormData(p => ({ ...p, customer: ownCompanyName, site: "", rate_group_id: "", waste_type_id: "" }));
+                            else if (formData.job_type === "waste_out") setFormData(p => ({ ...p, customer: "" }));
                           }}> <TabsList className="h-9">{JOB_TYPES.map(j => <TabsTrigger key={j.value} value={j.value} className="text-xs">{j.label === "Waste IN" ? "Waste in" : j.label === "Waste OUT" ? "Waste out" : j.label}</TabsTrigger>)}</TabsList></Tabs><div className="flex-1 min-w-64">                      <RouteOneArrivalPicker
                         compact
                         selected={arrivingJob}
