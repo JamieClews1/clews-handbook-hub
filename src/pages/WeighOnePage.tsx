@@ -401,6 +401,44 @@ const WeighOnePage = () => {
       return [...seen.values()].sort((a, b) => a.localeCompare(b));
     },
   });
+
+  // Saved driver lists from WeighOne Settings (vehicles by reg, customers by name)
+  const regKey = formData.vehicle_registration.replace(/\s+/g, "").toUpperCase();
+  const customerKey = formData.customer.trim().toLowerCase();
+  const { data: savedDrivers = [] } = useQuery({
+    queryKey: ["weighone-saved-drivers", regKey, customerKey],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const names = new Map<string, string>();
+      const add = (list: unknown) => {
+        for (const n of Array.isArray(list) ? list : []) {
+          const s = String(n).trim();
+          if (s && !names.has(s.toLowerCase())) names.set(s.toLowerCase(), s);
+        }
+      };
+      if (regKey.length > 3) {
+        const { data } = await supabase.from("weighbridge_vehicles").select("drivers")
+          .or(`registration.ilike.%${regKey}%`).limit(5);
+        for (const r of data ?? []) add((r as { drivers?: string[] }).drivers);
+      }
+      if (names.size === 0 && customerKey.length > 1) {
+        const { data } = await supabase.from("weighbridge_customers").select("drivers")
+          .ilike("name", customerKey).limit(5);
+        for (const r of data ?? []) add((r as { drivers?: string[] }).drivers);
+      }
+      return [...names.values()].sort((a, b) => a.localeCompare(b));
+    },
+  });
+
+  // Saved drivers first, then names seen on past tickets for this haulier
+  const driverSuggestions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const d of [...savedDrivers, ...haulierDrivers]) {
+      if (!seen.has(d.toLowerCase())) seen.set(d.toLowerCase(), d);
+    }
+    return [...seen.values()];
+  }, [savedDrivers, haulierDrivers]);
+
   const { data: knownHauliers = [] } = useQuery({
     queryKey: ["weighone-known-hauliers"],
     queryFn: async () => {
