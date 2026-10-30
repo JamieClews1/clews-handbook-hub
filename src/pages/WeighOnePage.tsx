@@ -391,6 +391,24 @@ const WeighOnePage = () => {
   });
 
   // Hauliers saved in Duty of Care (Haulage class) with their carrier registrations
+  const haulierKey = formData.carrier_name.trim();
+  const { data: haulierDrivers = [] } = useQuery({
+    queryKey: ["weighone-haulier-drivers", haulierKey.toLowerCase()],
+    enabled: haulierKey.length > 1,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("weighbridge_transactions")
+        .select("driver_name").ilike("carrier_name", haulierKey)
+        .not("driver_name", "is", null).order("created_at", { ascending: false }).limit(500);
+      if (error) throw error;
+      const seen = new Map<string, string>();
+      for (const r of data ?? []) {
+        const n = String(r.driver_name ?? "").trim();
+        if (n && !seen.has(n.toLowerCase())) seen.set(n.toLowerCase(), n);
+      }
+      return [...seen.values()].sort((a, b) => a.localeCompare(b));
+    },
+  });
   const { data: knownHauliers = [] } = useQuery({
     queryKey: ["weighone-known-hauliers"],
     queryFn: async () => {
@@ -1622,13 +1640,14 @@ const WeighOnePage = () => {
                           })()}
                         </div>
                         <div className="space-y-1.5">
-                          <Label className="text-xs">Driver</Label>
-                          <Input className="h-9" placeholder="Driver name" value={formData.driver_name} onChange={(e) => setFormData((p) => ({ ...p, driver_name: e.target.value }))} />
-                        </div>
-                          <div className="space-y-1.5">
                           <Label className="text-xs">Haulier</Label>
                           <Input className="h-9" list="weighone-hauliers" placeholder="Carrier / haulier" value={formData.carrier_name} onChange={(e) => setFormData((p) => ({ ...p, carrier_name: e.target.value }))} onBlur={(e) => applyHaulier(e.target.value)} />
                           <datalist id="weighone-hauliers">{knownHauliers.map(h => <option key={h.name} value={h.name} />)}</datalist>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Driver</Label>
+                          <Input className="h-9" list="weighone-haulier-drivers" placeholder={haulierDrivers.length ? `${haulierDrivers.length} saved for this haulier` : "Driver name"} value={formData.driver_name} onChange={(e) => setFormData((p) => ({ ...p, driver_name: e.target.value }))} />
+                          <datalist id="weighone-haulier-drivers">{haulierDrivers.map(d => <option key={d} value={d} />)}</datalist>
                         </div>
                         <div className="space-y-1.5 col-span-2">
                           <Label className="text-xs">Carrier registration</Label>
