@@ -2,7 +2,7 @@ import wasteOut from "@/data/midweigh-waste-out-types.json";
 import { productKey } from "@/lib/waste-products";
 
 /** How many of the most common products are pulled to the top of the picker. */
-export const WASTE_OUT_TOP_N = 5;
+export const WASTE_OUT_TOP_N = 10;
 
 type Part = { name?: string | null; loads?: number | null };
 type Row = { products?: Part[] | null };

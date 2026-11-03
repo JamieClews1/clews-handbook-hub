@@ -32,8 +32,8 @@ describe("waste out product picker order", () => {
   });
 
   it("puts the five most common products first, busiest first", () => {
-    assert.equal(WASTE_OUT_TOP_N, 5);
-    assert.deepEqual(names(rankWasteOutProducts(products)).slice(0, 5), [
+    assert.equal(WASTE_OUT_TOP_N, 10);
+    assert.deepEqual(names(rankWasteOutProducts(products, 5)).slice(0, 5), [
       "Waste out – landfill",
       "Wood grade C",
       "RDF (waste to energy)",
@@ -43,7 +43,7 @@ describe("waste out product picker order", () => {
   });
 
   it("lists everything after the top five alphabetically", () => {
-    assert.deepEqual(names(rankWasteOutProducts(products)).slice(5), [
+    assert.deepEqual(names(rankWasteOutProducts(products, 5)).slice(5), [
       "Aluminium cans",
       "Cardboard",
       "Ferrous metal",
@@ -53,7 +53,7 @@ describe("waste out product picker order", () => {
 
   it("never promotes a product the analysis has not seen", () => {
     const withNew = [...products, P("Aardvark waste", "Brand New Product", "99 99 99")];
-    const ranked = rankWasteOutProducts(withNew);
+    const ranked = rankWasteOutProducts(withNew, 5);
     assert.equal(ranked[0].display_name, "Waste out – landfill");
     assert.deepEqual(names(ranked).slice(5), [
       "Aardvark waste",
@@ -65,7 +65,7 @@ describe("waste out product picker order", () => {
   });
 
   it("keeps the ranked order while searching", () => {
-    const ranked = rankWasteOutProducts(products);
+    const ranked = rankWasteOutProducts(products, 5);
     assert.deepEqual(names(searchWasteOutProducts(ranked, "wood")), ["Wood grade C"]);
     assert.deepEqual(names(searchWasteOutProducts(ranked, "191212")), ["Waste out – landfill", "Trommel fines"]);
     assert.deepEqual(searchWasteOutProducts(ranked, "nothing matches"), []);
