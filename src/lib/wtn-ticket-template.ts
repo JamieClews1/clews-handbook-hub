@@ -217,8 +217,9 @@ export function renderWtnSheet(
   const printVars = includePrices
     ? vars
     : { ...vars, price_per_tonne: "", total_price: "", vat_amount: "", total_inc_vat: "", additional_items: "", payment: "" };
-  const top = renderWtnHalf(preparedTemplate, { ...printVars, copy_label: "CUSTOMER COPY" });
-  const bottom = renderWtnHalf(preparedTemplate, { ...printVars, copy_label: "CLEWS RECYCLING — OFFICE COPY" });
+  const top = withTestMarker(renderWtnHalf(preparedTemplate, { ...printVars, copy_label: "CUSTOMER COPY" }), testMode);
+  const bottom = withTestMarker(renderWtnHalf(preparedTemplate, { ...printVars, copy_label: "CLEWS RECYCLING — OFFICE COPY" }), testMode);
+
   return `<!doctype html><html><head><meta charset="utf-8" /><title>${title}</title>
 <style>${WTN_PRINT_STYLES}
   ${includePrices ? "" : "[data-wtn-pricing] { display: none !important; }"}
