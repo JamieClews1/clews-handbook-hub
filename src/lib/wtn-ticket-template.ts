@@ -84,7 +84,10 @@ export const WTN_PRINT_STYLES = `
   .wtn-sign .k { font-size: 6.5pt; text-transform: uppercase; color: #444; }
   .wtn-sign .name { font-size: 8pt; border-top: 1px solid #999; margin-top: 7mm; padding-top: .8mm; overflow-wrap: anywhere; }
   .wtn-sign img.sig { display: block; height: 9mm; max-width: 100%; object-fit: contain; margin: .5mm 0 -9.5mm; }
+  .wtn-test { position: absolute; top: 0; right: 0; left: 0; z-index: 2; background: #d00; color: #fff; text-align: center; font-size: 9pt; font-weight: bold; letter-spacing: .12em; padding: 1.2mm 0; }
+  .wtn-copy--test { padding-top: 8mm !important; }
 `;
+
 
 /** Default design for one half of the sheet. */
 export const DEFAULT_WTN_TEMPLATE = `<div class="wtn-copy">
@@ -173,14 +176,27 @@ export function renderWtnHalf(template: string, vars: WtnVars): string {
   return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, key: string) => vars[key] ?? "");
 }
 
+const TEST_MARKER = `<div class="wtn-test" data-wtn-test>TEST TICKET — NOT A REAL WASTE TRANSFER NOTE</div>`;
+
+/** Stamp a test ticket so a printed or downloaded copy can never be mistaken for a real WTN. */
+export function withTestMarker(half: string, testMode: boolean): string {
+  if (!testMode) return half;
+  const marked = half.replace(/(<div[^>]*class="[^"]*wtn-copy[^"]*"[^>]*>)/i, `$1${TEST_MARKER}`);
+  if (marked !== half) return marked.replace(/class="([^"]*wtn-copy[^"]*)"/i, 'class="$1 wtn-copy--test"');
+  return `${TEST_MARKER}${half}`;
+}
+
+
 /** Build the full A4 sheet: top = customer copy, bottom = Clews retained copy. */
 export function renderWtnSheet(
   template: string,
   vars: WtnVars,
   title = "Waste Transfer Note",
-  options: { includePrices?: boolean } = {},
+  options: { includePrices?: boolean; testMode?: boolean } = {},
 ): string {
   const includePrices = options.includePrices ?? true;
+  const testMode = options.testMode === true;
+
   const logo = getBrandLogoUrl();
   const logoImg = logo
     ? `<img src="${logo}" alt="{{company_name}}" style="display:block;max-height:13mm;max-width:60mm;margin-bottom:1mm;" />`
@@ -212,8 +228,9 @@ export function renderWtnSheet(
   const printVars = includePrices
     ? vars
     : { ...vars, price_per_tonne: "", total_price: "", vat_amount: "", total_inc_vat: "", additional_items: "", payment: "" };
-  const top = renderWtnHalf(preparedTemplate, { ...printVars, copy_label: "CUSTOMER COPY" });
-  const bottom = renderWtnHalf(preparedTemplate, { ...printVars, copy_label: "CLEWS RECYCLING — OFFICE COPY" });
+  const top = withTestMarker(renderWtnHalf(preparedTemplate, { ...printVars, copy_label: "CUSTOMER COPY" }), testMode);
+  const bottom = withTestMarker(renderWtnHalf(preparedTemplate, { ...printVars, copy_label: "CLEWS RECYCLING — OFFICE COPY" }), testMode);
+
   return `<!doctype html><html><head><meta charset="utf-8" /><title>${title}</title>
 <style>${WTN_PRINT_STYLES}
   ${includePrices ? "" : "[data-wtn-pricing] { display: none !important; }"}

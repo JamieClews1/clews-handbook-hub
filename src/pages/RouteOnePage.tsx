@@ -89,7 +89,7 @@ import { usePostcodeCoords } from "@/hooks/usePostcodeCoords";
 import { usePostcodeZoneLookup } from "@/hooks/usePostcodeZoneLookup";
 import { Search } from "lucide-react";
 import { Columns3 } from "lucide-react";
-import { useTestModeActive, TestModeSettingsCard } from "@/lib/test-mode";
+import { useTestModeActive, TestModeSettingsCard, TestBadge, TestModeBanner, isTestRecord } from "@/lib/test-mode";
 
 // Columns available in the List view. Each column knows how to read its value
 // from a native RouteOne job and from a Skiptrak (data hub) job.
@@ -971,10 +971,12 @@ const RouteOnePage = () => {
             </DialogTrigger>
             <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
               <DialogHeader className="px-5 py-4 border-b border-border pr-12 shrink-0">
-                <DialogTitle>{jobForm.job_type === "exchange" ? "New exchange" : jobForm.job_type === "waste_out_skip" ? "New Waste Out load" : "New job"}</DialogTitle>
+                <DialogTitle className="flex flex-wrap items-center gap-2">{jobForm.job_type === "exchange" ? "New exchange" : jobForm.job_type === "waste_out_skip" ? "New Waste Out load" : "New job"}{testMode && <TestBadge />}</DialogTitle>
                 <p className="text-sm text-muted-foreground break-words">{[jobForm.customer_name, jobForm.site_name].filter(Boolean).join(" · ") || "New booking"}</p>
               </DialogHeader>
+              {testMode && <div className="shrink-0 px-5 pt-3"><TestModeBanner label="Test job" /></div>}
               <div className="overflow-y-auto flex-1 min-h-0 px-5 py-3"><JobFormFields form={jobForm} setForm={setJobForm} drivers={drivers} exchangeMode={jobForm.job_type === "exchange"} allowPrevious={jobForm.job_type !== "exchange"} /></div>
+
               <DialogFooter className="flex-row flex-wrap items-center gap-2 sm:gap-2 p-4 border-t border-border shrink-0 bg-background">
                 <div className="mr-auto">{jobForm.job_type !== "waste_out_skip" && <JobPriceSummary form={jobForm} />}</div>
                 <Button variant="ghost" onClick={closeNewJob}><X className="h-4 w-4 mr-2" />Cancel</Button>
@@ -1085,10 +1087,12 @@ const RouteOnePage = () => {
       <Dialog open={!!editingJob} onOpenChange={open => { if (!open) closeEditor(); }}>
         <DialogContent className="max-w-6xl w-[95vw] h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
           <DialogHeader className="px-5 py-4 border-b border-border pr-12 shrink-0">
-            <DialogTitle className="flex flex-wrap items-center gap-2">Job #{editingJob?.job_number}<Badge variant="secondary">{editingJob?.status?.replace(/_/g, " ")}</Badge><Badge variant="outline">{editingJob?.is_live ? "Sent" : "Draft"}</Badge></DialogTitle>
+            <DialogTitle className="flex flex-wrap items-center gap-2">Job #{editingJob?.job_number}<Badge variant="secondary">{editingJob?.status?.replace(/_/g, " ")}</Badge><Badge variant="outline">{editingJob?.is_live ? "Sent" : "Draft"}</Badge>{editingJob && isTestRecord(editingJob) && <TestBadge />}</DialogTitle>
             <p className="text-sm font-medium break-words">{[editForm.customer_name, editForm.site_name].filter(Boolean).join(" · ")}</p>
           </DialogHeader>
+          {editingJob && isTestRecord(editingJob) && <div className="shrink-0 px-5 pt-3"><TestModeBanner label="Test job" /></div>}
           <Tabs value={workspaceTab} onValueChange={setWorkspaceTab} className="flex-1 min-h-0 flex flex-col">
+
             <TabsList className="mx-5 mt-3 self-start shrink-0"><TabsTrigger value="booking">Job booking</TabsTrigger><TabsTrigger value="paperwork">Photos & paperwork</TabsTrigger></TabsList>
             <div className="overflow-y-auto flex-1 min-h-0 px-5 py-3">
               <TabsContent value="booking" className="mt-0"><JobFormFields form={editForm} setForm={setEditForm} drivers={drivers} allowPrevious={false} /></TabsContent>

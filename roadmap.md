@@ -99,3 +99,5 @@
 - [ ] Database resize Tiny→Mini offered (cost trade-off shown); approval card cancelled when user sent new message — re-offer when user is ready.
 
 - [x] Container load photos save one-by-one with retries; warn before deleting loads with photos
+
+- [x] Make test-mode tickets obvious: TEST mark on the WeighOne yard list, ticket popup, transaction log and ticket editor, RouteOne job cards and job dialogs, and on printed/downloaded tickets; verified on WB000002.

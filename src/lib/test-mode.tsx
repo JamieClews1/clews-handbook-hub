@@ -93,3 +93,29 @@ export function TestModeSettingsCard() {
     </Card>
   );
 }
+
+/** Small red pill shown next to any record that was created in test mode. */
+export function TestBadge({ className = "" }: { className?: string }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded border border-destructive bg-destructive-subtle px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wide text-destructive ${className}`}
+      title="Created in test mode — not a real job and never sent to DWT"
+    >
+      <FlaskConical className="h-2.5 w-2.5" />
+      Test
+    </span>
+  );
+}
+
+/** Red strip for the top of a ticket/job screen so the person entering it knows it is a test. */
+export function TestModeBanner({ label = "Test ticket" }: { label?: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-md border border-destructive bg-destructive-subtle px-3 py-2 text-xs font-medium text-destructive">
+      <FlaskConical className="h-3.5 w-3.5 shrink-0" />
+      <span>
+        {label} — not a real job. It is marked as test, stays out of DWT and must not be given to a customer.
+      </span>
+    </div>
+  );
+}
+
