@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,9 @@ const toneClass = {
 export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWeighOut, onEdit }: { tickets: YardTicket[]; todayTickets?: YardTicket[]; jobs: LinkedBanksmanJob[]; onTicket: (id: string) => void; onWeighOut: (id: string) => void; onEdit?: (id: string) => void }) {
   const [filter, setFilter] = useState<"all" | "alert" | "awaiting">("all");
   const [report, setReport] = useState<LinkedBanksmanJob | null>(null);
+  const rowTimer = useRef<number | null>(null);
+  const clearRowTimer = () => { if (rowTimer.current !== null) { window.clearTimeout(rowTimer.current); rowTimer.current = null; } };
+
   const onsite = tickets.filter(t => t.status === "first_weigh");
   const match = (id: string) => jobs.find(j => j.weighbridge_transaction_id === id);
   const alerts = jobs.filter(j => j.alert_status === "urgent" || (j.has_contamination && j.status !== "completed"));
@@ -64,7 +67,7 @@ export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWei
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-baseline gap-2"><h2 className="text-base font-semibold">Today’s tickets</h2><span className="text-xs text-muted-foreground">{todayTickets.length} native tickets</span></div>
+          <div className="flex items-baseline gap-2"><h2 className="text-base font-semibold">Today’s tickets</h2><span className="text-xs text-muted-foreground">{todayTickets.length} native tickets{onEdit ? " · double-click to edit" : ""}</span></div>
           <div className="flex gap-1.5">{([["all", "All"], ["alert", "Has alert"], ["awaiting", "Awaiting 2nd weigh"]] as const).map(([v, l]) => <Button key={v} size="sm" variant={filter === v ? "default" : "outline"} className="h-7 rounded-full px-3 text-xs" onClick={() => setFilter(v)}>{l}</Button>)}</div>
         </div>
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
@@ -72,7 +75,7 @@ export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWei
             <thead><tr className="border-b border-border text-left text-xs text-muted-foreground"><th className="px-3 py-2 font-medium">Ticket</th><th className="px-3 py-2 font-medium">Customer / Site</th><th className="px-3 py-2 font-medium">Vehicle</th><th className="px-3 py-2 font-medium">Waste</th><th className="px-3 py-2 font-medium">Banksman</th><th className="px-3 py-2 font-medium text-right">Net (t)</th><th className="px-3 py-2 font-medium">Status</th></tr></thead>
             <tbody>{rows.map(ticket => {
               const job = match(ticket.id); const t = tone(job);
-              return <tr key={ticket.id} onClick={() => onTicket(ticket.id)} className={`cursor-pointer border-b border-border last:border-0 hover:bg-muted/50 ${t === "urgent" ? "shadow-[inset_3px_0_0_hsl(var(--destructive))]" : t === "contamination" ? "shadow-[inset_3px_0_0_hsl(var(--warning))]" : ""}`}>
+              return <tr key={ticket.id} title={onEdit ? "Double-click to edit" : undefined} onClick={() => { clearRowTimer(); rowTimer.current = window.setTimeout(() => onTicket(ticket.id), 250); }} onDoubleClick={e => { e.stopPropagation(); clearRowTimer(); if (onEdit) onEdit(ticket.id); }} className={`cursor-pointer border-b border-border last:border-0 hover:bg-muted/50 ${t === "urgent" ? "shadow-[inset_3px_0_0_hsl(var(--destructive))]" : t === "contamination" ? "shadow-[inset_3px_0_0_hsl(var(--warning))]" : ""}`}>
                 <td className="px-3 py-2 font-mono font-semibold">
                   <span className="inline-flex items-center gap-1.5">
                     {ticket.ticket_number}

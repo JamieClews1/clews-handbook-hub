@@ -16,7 +16,7 @@ import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
 import { BanksmanSettings } from "@/components/banksman/BanksmanSettings";
 import { CombinedTicketList } from "@/components/weighone/CombinedTicketList";
 import { Link, useSearchParams } from "react-router-dom";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all";
@@ -230,6 +230,8 @@ const WeighOnePage = () => {
   const [wtnDialogOpen, setWtnDialogOpen] = useState(false);
   const { data: wtnTemplate } = useWtnTemplate();
   const [editingTicket, setEditingTicket] = useState<WeighbridgeTransaction | null>(null);
+  const logRowTimer = useRef<number | null>(null);
+
   const [selectedTransaction, setSelectedTransaction] = useState<WeighbridgeTransaction | null>(null);
   const [stagedAttachments, setStagedAttachments] = useState<StagedAttachment[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -2067,7 +2069,7 @@ const WeighOnePage = () => {
 
       {/* Transaction Log */}
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsContent value="yard" className="mt-4"><WeighOneYard todayTickets={todayTickets} tickets={transactions} jobs={banksmanJobs as LinkedBanksmanJob[]} onTicket={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setTicketDialogOpen(true); } }} onWeighOut={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setSecondWeighDialogOpen(true); } }} onEdit={id => { const ticket = transactions.find(t => t.id === id); if (ticket) openEdit(ticket); }} /></TabsContent>
+        <TabsContent value="yard" className="mt-4"><WeighOneYard todayTickets={todayTickets} tickets={transactions} jobs={banksmanJobs as LinkedBanksmanJob[]} onTicket={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setTicketDialogOpen(true); } }} onWeighOut={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setSecondWeighDialogOpen(true); } }} onEdit={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setTicketDialogOpen(false); openEdit(ticket); } }} /></TabsContent>
         <TabsContent value="tickets" className="mt-4"><CombinedTicketList tablet={tablet} banksmanJobs={banksmanJobs as LinkedBanksmanJob[]} /></TabsContent>
         <TabsContent value="alerts" className="mt-4"><BanksmanAlertsPanel /></TabsContent>
         <TabsContent value="log" className="mt-4">
@@ -2121,7 +2123,7 @@ const WeighOnePage = () => {
                       {filtered.map((t) => {
                         const cfg = STATUS_CONFIG[t.status];
                         return (
-                          <TableRow key={t.id} className="cursor-pointer select-none hover:bg-muted/40" onClick={() => { setSelectedTransaction(t); setTicketDialogOpen(true); }}>
+                          <TableRow key={t.id} title="Double-click to edit" className="cursor-pointer select-none hover:bg-muted/40" onClick={() => { if (logRowTimer.current) window.clearTimeout(logRowTimer.current); logRowTimer.current = window.setTimeout(() => { setSelectedTransaction(t); setTicketDialogOpen(true); }, 250); }} onDoubleClick={() => { if (logRowTimer.current) { window.clearTimeout(logRowTimer.current); logRowTimer.current = null; } setTicketDialogOpen(false); openEdit(t); }}>
                             <TableCell className="whitespace-nowrap font-mono font-medium">
                               <span className="inline-flex items-center gap-1.5">
                                 {t.ticket_number}
