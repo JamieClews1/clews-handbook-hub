@@ -28,9 +28,9 @@ test("Linked Route One and Banksman records are listed as detached, not deleted"
 });
 
 test("Only linked records are detached during deletion", () => {
-  assert.deepEqual(ticketDeletionUnlinks({ routeOneJobNumber: "RO-88" }), { routeOneJob: true, banksmanJob: false });
-  assert.deepEqual(ticketDeletionUnlinks({ banksmanJobNumber: "BM-12" }), { routeOneJob: false, banksmanJob: true });
-  assert.deepEqual(ticketDeletionUnlinks({}), { routeOneJob: false, banksmanJob: false });
+  assert.deepEqual(ticketDeletionUnlinks({ routeOneJobNumber: "RO-88" }), { routeOneJob: true, deleteRouteOneJob: false, banksmanJob: false });
+  assert.deepEqual(ticketDeletionUnlinks({ banksmanJobNumber: "BM-12" }), { routeOneJob: false, deleteRouteOneJob: false, banksmanJob: true });
+  assert.deepEqual(ticketDeletionUnlinks({}), { routeOneJob: false, deleteRouteOneJob: false, banksmanJob: false });
 });
 
 test("deletes the Route One job raised from a Waste Out ticket", () => {
