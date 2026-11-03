@@ -176,6 +176,17 @@ export function renderWtnHalf(template: string, vars: WtnVars): string {
   return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, key: string) => vars[key] ?? "");
 }
 
+const TEST_MARKER = `<div class="wtn-test" data-wtn-test>TEST TICKET — NOT A REAL WASTE TRANSFER NOTE</div>`;
+
+/** Stamp a test ticket so a printed or downloaded copy can never be mistaken for a real WTN. */
+export function withTestMarker(half: string, testMode: boolean): string {
+  if (!testMode) return half;
+  const marked = half.replace(/(<div[^>]*class="[^"]*wtn-copy[^"]*"[^>]*>)/i, `$1${TEST_MARKER}`);
+  if (marked !== half) return marked.replace(/class="([^"]*wtn-copy[^"]*)"/i, 'class="$1 wtn-copy--test"');
+  return `${TEST_MARKER}${half}`;
+}
+
+
 /** Build the full A4 sheet: top = customer copy, bottom = Clews retained copy. */
 export function renderWtnSheet(
   template: string,
