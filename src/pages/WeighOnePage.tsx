@@ -16,7 +16,7 @@ import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
 import { BanksmanSettings } from "@/components/banksman/BanksmanSettings";
 import { CombinedTicketList } from "@/components/weighone/CombinedTicketList";
 import { Link, useSearchParams } from "react-router-dom";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/fetch-all";
@@ -2121,7 +2121,7 @@ const WeighOnePage = () => {
                       {filtered.map((t) => {
                         const cfg = STATUS_CONFIG[t.status];
                         return (
-                          <TableRow key={t.id} title="Double-click to edit" className="cursor-pointer select-none hover:bg-muted/40" onClick={() => { setSelectedTransaction(t); setTicketDialogOpen(true); }} onDoubleClick={() => { setTicketDialogOpen(false); openEdit(t); }}>
+                          <TableRow key={t.id} title="Double-click to edit" className="cursor-pointer select-none hover:bg-muted/40" onClick={() => { if (logRowTimer.current) window.clearTimeout(logRowTimer.current); logRowTimer.current = window.setTimeout(() => { setSelectedTransaction(t); setTicketDialogOpen(true); }, 250); }} onDoubleClick={() => { if (logRowTimer.current) { window.clearTimeout(logRowTimer.current); logRowTimer.current = null; } setTicketDialogOpen(false); openEdit(t); }}>
                             <TableCell className="whitespace-nowrap font-mono font-medium">
                               <span className="inline-flex items-center gap-1.5">
                                 {t.ticket_number}

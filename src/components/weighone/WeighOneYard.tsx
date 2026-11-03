@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,9 @@ const toneClass = {
 export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWeighOut, onEdit }: { tickets: YardTicket[]; todayTickets?: YardTicket[]; jobs: LinkedBanksmanJob[]; onTicket: (id: string) => void; onWeighOut: (id: string) => void; onEdit?: (id: string) => void }) {
   const [filter, setFilter] = useState<"all" | "alert" | "awaiting">("all");
   const [report, setReport] = useState<LinkedBanksmanJob | null>(null);
+  const rowTimer = useRef<number | null>(null);
+  const clearRowTimer = () => { if (rowTimer.current !== null) { window.clearTimeout(rowTimer.current); rowTimer.current = null; } };
+
   const onsite = tickets.filter(t => t.status === "first_weigh");
   const match = (id: string) => jobs.find(j => j.weighbridge_transaction_id === id);
   const alerts = jobs.filter(j => j.alert_status === "urgent" || (j.has_contamination && j.status !== "completed"));
