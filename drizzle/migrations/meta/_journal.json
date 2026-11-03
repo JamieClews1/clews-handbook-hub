@@ -379,6 +379,13 @@
       "when": 1793727867383,
       "tag": "0053_ticket_sic_and_broker",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1793728923149,
+      "tag": "0054_customer_account_type",
+      "breakpoints": true
     }
   ]
 }
