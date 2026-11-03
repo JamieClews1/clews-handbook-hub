@@ -1231,6 +1231,36 @@ const WeighOnePage = () => {
   const fmtPrice = (val: number | null) => val != null ? `£${val.toFixed(2)}` : "-";
 
   /** Print the A4 waste transfer note (customer copy top, Clews copy bottom). */
+  // Producer on the left, receiving site on the right. Waste In / Skip always deliver to Clews;
+  // Waste Out is produced by Clews and received at the chosen destination.
+  const ticketParties = (t: WeighbridgeTransaction) => {
+    const clewsName = WTN_COMPANY_DETAILS.company_name;
+    const clewsAddress = WTN_COMPANY_DETAILS.company_address;
+    if (t.job_type === "waste_out") {
+      const label = (t.site ?? "").trim();
+      const norm = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      const match = label
+        ? verifiedSites.find((v) => {
+            const names = [v.site_name, v.operator_name ? `${v.operator_name} ${v.site_name}` : ""].filter(Boolean).map(norm);
+            return names.includes(norm(label));
+          }) ?? verifiedSites.find((v) => norm(label).includes(norm(v.site_name)))
+        : undefined;
+      const address = match ? [match.address, match.postcode && !(match.address ?? "").includes(match.postcode) ? match.postcode : ""].filter(Boolean).join(", ") : "";
+      return {
+        producer_name: clewsName,
+        producer_address: clewsAddress,
+        receiving_name: match ? (match.operator_name ? `${match.operator_name} – ${match.site_name}` : match.site_name) : label,
+        receiving_address: address,
+      };
+    }
+    return {
+      producer_name: t.customer ?? "",
+      producer_address: t.site ?? "",
+      receiving_name: clewsName,
+      receiving_address: clewsAddress,
+    };
+  };
+
   const buildTicketHtml = (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
     const kg = (v: number | null) => (v != null ? Math.round(v).toLocaleString() : "");
     const when = t.first_weigh_at ? new Date(t.first_weigh_at) : null;
@@ -1272,6 +1302,7 @@ const WeighOnePage = () => {
       driver_signature: t.driver_signature ? `<img class="sig" src="${t.driver_signature}" alt="Driver signature" />` : "",
       notes: t.notes ?? "",
       ...WTN_COMPANY_DETAILS,
+      ...ticketParties(t),
     };
     return renderWtnSheet(wtnTemplate?.html || DEFAULT_WTN_TEMPLATE, vars, `WTN ${t.ticket_number}`, { includePrices });
   };
