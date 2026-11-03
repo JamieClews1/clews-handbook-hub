@@ -76,16 +76,8 @@ export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWei
             <tbody>{rows.map(ticket => {
               const job = match(ticket.id); const t = tone(job);
               return <tr key={ticket.id} title={onEdit ? "Double-click to edit" : undefined} onClick={() => { clearRowTimer(); rowTimer.current = window.setTimeout(() => onTicket(ticket.id), 250); }} onDoubleClick={e => { e.stopPropagation(); clearRowTimer(); if (onEdit) onEdit(ticket.id); }} className={`cursor-pointer border-b border-border last:border-0 hover:bg-muted/50 ${t === "urgent" ? "shadow-[inset_3px_0_0_hsl(var(--destructive))]" : t === "contamination" ? "shadow-[inset_3px_0_0_hsl(var(--warning))]" : ""}`}>
-                <td className="px-3 py-2 font-mono font-semibold">
-                  <span className="inline-flex items-center gap-1.5">
-                    {ticket.ticket_number}
-                    {ticketTypeCode(ticket.job_type) && (
-                      <span className={`inline-flex items-center rounded-md border px-1.5 py-0 text-[10px] font-bold leading-4 tracking-wide ${ticketTypeCode(ticket.job_type)!.className}`}>
-                        {ticketTypeCode(ticket.job_type)!.code}
-                      </span>
-                    )}
-                  </span>
-                </td>
+                <td className="px-3 py-2 font-mono font-semibold">{ticket.ticket_number}</td>
+                <td className="px-3 py-2">{ticketTypeCode(ticket.job_type) ? <span className={`inline-flex items-center rounded-md border px-1.5 py-0 text-[10px] font-bold leading-4 tracking-wide ${ticketTypeCode(ticket.job_type)!.className}`}>{ticketTypeCode(ticket.job_type)!.code}</span> : <span className="text-xs text-muted-foreground">—</span>}</td>
 
                 <td className="px-3 py-2">{ticket.customer || "—"}</td>
                 <td className="px-3 py-2"><span className="rounded bg-warning-subtle px-1.5 py-0.5 font-mono text-xs font-bold">{ticket.vehicle_reg}</span></td>
