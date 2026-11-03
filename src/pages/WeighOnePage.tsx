@@ -9,6 +9,7 @@ import { CONTAINER_GROUPS, bookingContainerLabel } from "@/lib/container-taxonom
 import { WASTE_OUT_CONTAINERS, recogniseContainer } from "@/lib/weighone-waste-out";
 import { INBOUND_CONTAINER_GROUPS, isPickedContainer } from "@/lib/weighone-container-groups";
 import { ContainerAccordion } from "@/components/weighone/ContainerAccordion";
+import { WasteOutProductPicker, type WasteOutProductOption } from "@/components/weighone/WasteOutProductPicker";
 import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
 import { BanksmanSettings } from "@/components/banksman/BanksmanSettings";
 import { CombinedTicketList } from "@/components/weighone/CombinedTicketList";
@@ -268,7 +269,6 @@ const WeighOnePage = () => {
     if (formData.vehicle_type) setContainerGroupOpen(formData.vehicle_type);
   }, [formData.vehicle_type]);
   const [outProductId, setOutProductId] = useState("");
-  const [wasteSearch, setWasteSearch] = useState("");
   const { data: outgoingSites = [] } = useTippingSites();
   const { data: verifiedSites = [] } = useVerifiedTippingSites();
   const [siteDialogOpen, setSiteDialogOpen] = useState(false);
@@ -378,9 +378,9 @@ const WeighOnePage = () => {
   const { data: wasteOutProducts = [] } = useQuery({
     queryKey: ["waste_products", "active"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("waste_products").select("id, display_name, ewc_code, status").neq("status", "retired").order("ewc_code").order("display_name");
+      const { data, error } = await supabase.from("waste_products").select("id, recorded_name, display_name, ewc_code, status").neq("status", "retired").order("ewc_code").order("display_name");
       if (error) throw error;
-      return (data ?? []) as { id: string; display_name: string; ewc_code: string; status: string }[];
+      return (data ?? []) as WasteOutProductOption[];
     },
   });
 
@@ -1692,20 +1692,11 @@ const WeighOnePage = () => {
                       {isWasteOut ? (
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between"><Label className="text-xs">Waste type (Duty of Care products)</Label><a href="/duty-of-care" target="_blank" rel="noreferrer" className="text-xs text-primary underline-offset-2 hover:underline">Manage</a></div>
-                          <Input className="h-9" placeholder="Search waste type or code..." value={wasteSearch} onChange={(e) => setWasteSearch(e.target.value)} />
-                          <Select value={outProductId} onValueChange={(val) => { setOutProductId(val); const pr = wasteOutProducts.find(x => x.id === val); if (pr) setFormData(p => ({ ...p, ewc_code: pr.ewc_code })); }}>
-                            <SelectTrigger className="h-9"><SelectValue placeholder="Select waste out product..." /></SelectTrigger>
-                            <SelectContent>
-                              {(() => {
-                                const q = wasteSearch.trim().toLowerCase().replace(/\s+/g, "");
-                                const list = q ? wasteOutProducts.filter(pr => pr.id === outProductId || `${pr.display_name}${pr.ewc_code ?? ""}`.toLowerCase().replace(/\s+/g, "").includes(q)) : wasteOutProducts;
-                                if (!list.length) return <div className="px-3 py-2 text-xs text-muted-foreground">No waste types match.</div>;
-                                return list.map((pr) => (
-                                  <SelectItem key={pr.id} value={pr.id}><span className="font-mono text-xs mr-2">{pr.ewc_code}</span>{pr.display_name}</SelectItem>
-                                ));
-                              })()}
-                            </SelectContent>
-                          </Select>
+                          <WasteOutProductPicker
+                            products={wasteOutProducts}
+                            value={outProductId}
+                            onChange={(id, pr) => { setOutProductId(id); setFormData(p => ({ ...p, ewc_code: pr.ewc_code })); }}
+                          />
                           <p className="text-xs text-muted-foreground">No rates apply to Waste Out tickets.</p>
                         </div>
                       ) : (
