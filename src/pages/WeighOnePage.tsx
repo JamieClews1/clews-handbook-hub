@@ -61,7 +61,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
-import { useTestModeActive, TestModeSettingsCard } from "@/lib/test-mode";
+import { useTestModeActive, TestModeSettingsCard, TestBadge, TestModeBanner, isTestRecord } from "@/lib/test-mode";
 import { planTicketDeletion, ticketDeletionUnlinks, type TicketDeletionLinks } from "@/lib/weighone-ticket-delete";
 
 type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
@@ -124,6 +124,8 @@ interface WeighbridgeTransaction {
   linked_job_number: string | null;
   linked_job_source: string | null;
   linked_job_date: string | null;
+  is_test: boolean | null;
+
 
 
   created_at: string;
@@ -1306,7 +1308,7 @@ const WeighOnePage = () => {
       ...WTN_COMPANY_DETAILS,
       ...ticketParties(t),
     };
-    return renderWtnSheet(wtnTemplate?.html || DEFAULT_WTN_TEMPLATE, vars, `WTN ${t.ticket_number}`, { includePrices });
+    return renderWtnSheet(wtnTemplate?.html || DEFAULT_WTN_TEMPLATE, vars, `WTN ${t.ticket_number}`, { includePrices, testMode: t.is_test === true });
   };
 
   const printTicket = (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
@@ -2159,7 +2161,9 @@ const WeighOnePage = () => {
                           <TableRow key={t.id} title="Double-click to edit" className="cursor-pointer select-none hover:bg-muted/40" onClick={() => { if (logRowTimer.current) window.clearTimeout(logRowTimer.current); logRowTimer.current = window.setTimeout(() => { setSelectedTransaction(t); setTicketDialogOpen(true); }, 250); }} onDoubleClick={() => { if (logRowTimer.current) { window.clearTimeout(logRowTimer.current); logRowTimer.current = null; } setTicketDialogOpen(false); openEdit(t); }}>
                             <TableCell className="whitespace-nowrap font-mono font-medium">
                               {t.ticket_number}
+                              {isTestRecord(t) && <span className="ml-1 inline-flex align-middle"><TestBadge /></span>}
                             </TableCell>
+
 
                             <TableCell className="font-mono">{t.vehicle_reg}</TableCell>
                             <TableCell>{t.customer ?? "-"}</TableCell>
@@ -2312,10 +2316,12 @@ const WeighOnePage = () => {
       <Dialog open={ticketDialogOpen} onOpenChange={setTicketDialogOpen}>
         <DialogContent className="max-w-[540px] w-[min(540px,100vw)] h-dvh max-h-dvh inset-y-0 left-auto right-0 translate-x-0 translate-y-0 rounded-none overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Ticket {selectedTransaction?.ticket_number}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">Ticket {selectedTransaction?.ticket_number}{selectedTransaction && isTestRecord(selectedTransaction) && <TestBadge />}</DialogTitle>
           </DialogHeader>
           {selectedTransaction && (
             <div className="space-y-4">
+              {isTestRecord(selectedTransaction) && <TestModeBanner label="Test ticket" />}
+
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><span className="text-muted-foreground">Vehicle:</span> <span className="font-mono font-bold">{selectedTransaction.vehicle_reg}</span></div>
                 <div><span className="text-muted-foreground">Status:</span> <Badge variant="outline" className={STATUS_CONFIG[selectedTransaction.status].color}>{STATUS_CONFIG[selectedTransaction.status].label}</Badge></div>
