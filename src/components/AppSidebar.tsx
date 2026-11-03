@@ -73,11 +73,11 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
   const { isAdmin, user } = useAuth();
-  const { hidden } = usePortalSectionVisibility();
+  const { hidden, restrictedAllows } = usePortalSectionVisibility();
   const isSuperAdmin = isSuperAdminEmail(user?.email);
   const { canAccess: canAccessFinance } = useFinanceAccess();
   const { canAccessPl } = useCompanyPlAccess();
-  const access = { isAdmin, canAccessFinance, canAccessPl };
+  const access = { isAdmin, canAccessFinance, canAccessPl, restrictedAllows };
   const groups = STAFF_NAV_GROUPS.map(group => ({ ...group, items: group.items.filter(item => navigationAllowed(item, access)) }));
   return (
     <Sidebar collapsible="icon" className="border-r-0">

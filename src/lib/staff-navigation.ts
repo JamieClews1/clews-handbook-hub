@@ -1,7 +1,7 @@
 import { Inbox, Route, Scale, Box, Radio, FileCheck, PoundSterling, Container, Users, AlertTriangle, CalendarCheck, CalendarDays, FileText, Package, Building2, FileSpreadsheet, Fuel, Upload, BarChart3, Gauge, TrendingUp, ClipboardList, Gem, ShieldCheck, HardHat, MessageSquare, Flame, BookOpen, ScrollText, Smartphone, Settings, Truck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-export type NavigationAccess = { isAdmin: boolean; canAccessFinance: boolean; canAccessPl: boolean };
+export type NavigationAccess = { isAdmin: boolean; canAccessFinance: boolean; canAccessPl: boolean; restrictedAllows?: (key: string) => boolean | null };
 export type StaffNavItem = { label: string; path: string; icon: LucideIcon; key?: string; access?: "admin" | "finance" | "pl" };
 export type StaffNavGroup = { title: string; icon: LucideIcon; key: string; items: StaffNavItem[] };
 export const QUICK_LINKS: StaffNavItem[] = [
@@ -76,6 +76,9 @@ export const STAFF_NAV_GROUPS: StaffNavGroup[] = [
 ];
 
 export function navigationAllowed(item: StaffNavItem, access: NavigationAccess) {
+  // A named-people list in Section Visibility overrides the role gate (server enforces the same rule).
+  const named = item.key && item.access !== "pl" ? access.restrictedAllows?.(item.key) ?? null : null;
+  if (named !== null) return named;
   if (item.access === "admin") return access.isAdmin;
   if (item.access === "finance") return access.canAccessFinance;
   if (item.access === "pl") return access.canAccessPl;
