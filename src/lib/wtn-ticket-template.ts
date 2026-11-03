@@ -84,7 +84,10 @@ export const WTN_PRINT_STYLES = `
   .wtn-sign .k { font-size: 6.5pt; text-transform: uppercase; color: #444; }
   .wtn-sign .name { font-size: 8pt; border-top: 1px solid #999; margin-top: 7mm; padding-top: .8mm; overflow-wrap: anywhere; }
   .wtn-sign img.sig { display: block; height: 9mm; max-width: 100%; object-fit: contain; margin: .5mm 0 -9.5mm; }
+  .wtn-test { position: absolute; top: 0; right: 0; left: 0; z-index: 2; background: #d00; color: #fff; text-align: center; font-size: 9pt; font-weight: bold; letter-spacing: .12em; padding: 1.2mm 0; }
+  .wtn-copy--test { padding-top: 8mm !important; }
 `;
+
 
 /** Default design for one half of the sheet. */
 export const DEFAULT_WTN_TEMPLATE = `<div class="wtn-copy">
