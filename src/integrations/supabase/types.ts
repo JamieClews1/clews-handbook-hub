@@ -10147,6 +10147,7 @@ export type Database = {
           register_checked_at: string | null
           register_details: Json | null
           registration_number: string | null
+          sic_code: string | null
           site_class: string
           site_name: string
           status: string | null
@@ -10164,6 +10165,7 @@ export type Database = {
           register_checked_at?: string | null
           register_details?: Json | null
           registration_number?: string | null
+          sic_code?: string | null
           site_class?: string
           site_name: string
           status?: string | null
@@ -10181,6 +10183,7 @@ export type Database = {
           register_checked_at?: string | null
           register_details?: Json | null
           registration_number?: string | null
+          sic_code?: string | null
           site_class?: string
           site_name?: string
           status?: string | null
@@ -10541,6 +10544,9 @@ export type Database = {
       weighbridge_transactions: {
         Row: {
           additional_items_total: number | null
+          broker_address: string | null
+          broker_name: string | null
+          broker_sic: string | null
           carrier_name: string | null
           carrier_registration: string | null
           container_type: string | null
@@ -10570,7 +10576,9 @@ export type Database = {
           payment_reference: string | null
           physical_form: string | null
           price_per_tonne: number | null
+          producer_sic: string | null
           rate_group_id: string | null
+          receiving_sic: string | null
           second_weigh_at: string | null
           site: string | null
           status: Database["public"]["Enums"]["weighbridge_status"]
@@ -10587,6 +10595,9 @@ export type Database = {
         }
         Insert: {
           additional_items_total?: number | null
+          broker_address?: string | null
+          broker_name?: string | null
+          broker_sic?: string | null
           carrier_name?: string | null
           carrier_registration?: string | null
           container_type?: string | null
@@ -10616,7 +10627,9 @@ export type Database = {
           payment_reference?: string | null
           physical_form?: string | null
           price_per_tonne?: number | null
+          producer_sic?: string | null
           rate_group_id?: string | null
+          receiving_sic?: string | null
           second_weigh_at?: string | null
           site?: string | null
           status?: Database["public"]["Enums"]["weighbridge_status"]
@@ -10633,6 +10646,9 @@ export type Database = {
         }
         Update: {
           additional_items_total?: number | null
+          broker_address?: string | null
+          broker_name?: string | null
+          broker_sic?: string | null
           carrier_name?: string | null
           carrier_registration?: string | null
           container_type?: string | null
@@ -10662,7 +10678,9 @@ export type Database = {
           payment_reference?: string | null
           physical_form?: string | null
           price_per_tonne?: number | null
+          producer_sic?: string | null
           rate_group_id?: string | null
+          receiving_sic?: string | null
           second_weigh_at?: string | null
           site?: string | null
           status?: Database["public"]["Enums"]["weighbridge_status"]
