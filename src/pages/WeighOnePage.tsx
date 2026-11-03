@@ -1051,7 +1051,7 @@ const WeighOnePage = () => {
     setDeleteLinksUnknown(false);
     try {
       const [routeJob, banksmanJob, invoice, invoiceLines] = await Promise.all([
-        supabase.from("route_one_jobs").select("job_number").eq("weighbridge_transaction_id", t.id).maybeSingle(),
+        supabase.from("route_one_jobs").select("job_number, job_type").eq("weighbridge_transaction_id", t.id).maybeSingle(),
         supabase.from("banksman_jobs").select("job_number").eq("weighbridge_transaction_id", t.id).maybeSingle(),
         supabase.from("invoices").select("invoice_number").eq("source_transaction_id", t.id),
         supabase.from("invoice_line_items").select("invoices(invoice_number)").eq("source_transaction_id", t.id),
@@ -1063,6 +1063,7 @@ const WeighOnePage = () => {
       ].filter(Boolean) as string[]));
       setDeleteLinks({
         routeOneJobNumber: (routeJob.data as any)?.job_number ?? null,
+        routeOneJobFromTicket: t.job_type === "waste_out" && (routeJob.data as any)?.job_type === "waste_out_skip",
         banksmanJobNumber: (banksmanJob.data as any)?.job_number ?? null,
         invoiceNumbers,
       });
@@ -1085,7 +1086,10 @@ const WeighOnePage = () => {
   const deleteTicketMutation = useMutation({
     mutationFn: async ({ id, links }: { id: string; links: TicketDeletionLinks }) => {
       const unlink = ticketDeletionUnlinks(links);
-      if (unlink.routeOneJob) {
+      if (unlink.deleteRouteOneJob) {
+        const { error } = await supabase.from("route_one_jobs").delete().eq("weighbridge_transaction_id", id).eq("job_type", "waste_out_skip");
+        if (error) throw error;
+      } else if (unlink.routeOneJob) {
         const { error } = await supabase
           .from("route_one_jobs")
           .update({ weighbridge_transaction_id: null, weighbridge_ticket_number: null })
@@ -1108,6 +1112,7 @@ const WeighOnePage = () => {
       closeDeleteTicket();
       queryClient.invalidateQueries({ queryKey: ["weighbridge-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["weighone-combined-tickets"] });
+      queryClient.invalidateQueries({ queryKey: ["route-one-jobs"] });
       reloadBanksmanJobs();
     },
     onError: (e) => toast.error("Failed: " + e.message),
