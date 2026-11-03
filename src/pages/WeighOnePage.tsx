@@ -8,6 +8,8 @@ import { RouteOneArrivalPicker, type ArrivingJob } from "@/components/weighone/R
 import { CONTAINER_GROUPS, bookingContainerLabel } from "@/lib/container-taxonomy";
 import { WASTE_OUT_CONTAINERS, recogniseContainer } from "@/lib/weighone-waste-out";
 import { INBOUND_CONTAINER_GROUPS, isPickedContainer } from "@/lib/weighone-container-groups";
+import { ticketTypeCode } from "@/lib/weighone-ticket-type";
+
 import { ContainerAccordion } from "@/components/weighone/ContainerAccordion";
 import { WasteOutProductPicker, type WasteOutProductOption } from "@/components/weighone/WasteOutProductPicker";
 import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
@@ -77,15 +79,6 @@ const JOB_TYPES = [
 const jobTypeLabel = (v: string | null | undefined) =>
   JOB_TYPES.find((j) => j.value === v)?.label ?? "-";
 
-/** Compact ticket-type code shown beside the ticket number in the list */
-const TICKET_TYPE_CODES: Record<string, { code: string; className: string }> = {
-  waste_in: { code: "IN", className: "border-success/30 bg-success/15 text-success" },
-  waste_out: { code: "OUT", className: "border-info/30 bg-info/15 text-info" },
-  skip: { code: "SKIP", className: "border-warning/40 bg-warning/15 text-warning" },
-};
-
-const ticketTypeCode = (v: string | null | undefined) =>
-  (v ? TICKET_TYPE_CODES[v] : undefined);
 
 
 /** Our own vehicles are Clews Recycling — carrier defaults for Skip jobs */
