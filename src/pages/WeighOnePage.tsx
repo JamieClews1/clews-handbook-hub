@@ -947,7 +947,7 @@ const WeighOnePage = () => {
       const additionalTotal = selectedTransaction.additional_items_total ?? 0;
       const totalPrice = weightCharge + additionalTotal;
 
-      const { error } = await supabase
+      const { data: completedRow, error } = await supabase
         .from("weighbridge_transactions")
         .update({
           tare_weight_kg: tareKg,
@@ -957,7 +957,9 @@ const WeighOnePage = () => {
           status: "completed" as WeighbridgeStatus,
           second_weigh_at: new Date().toISOString(),
         })
-        .eq("id", selectedTransaction.id);
+        .eq("id", selectedTransaction.id)
+        .select("*")
+        .single();
       if (error) throw error;
 
       // Keep any auto-created Route One waste-out job in step with the final weight
@@ -975,9 +977,11 @@ const WeighOnePage = () => {
       const { data: links } = await supabase.from("route_one_job_weighings").select("job_id").eq("weighbridge_transaction_id", selectedTransaction.id);
       const jobIds = (links ?? []).map(l => l.job_id);
       if (jobIds.length) await supabase.from("route_one_jobs").update({ weighed_at: new Date().toISOString() }).in("id", jobIds);
+      return completedRow as WeighbridgeTransaction;
     },
-    onSuccess: () => {
+    onSuccess: (row) => {
       toast.success("Transaction completed");
+      setCompletedTicket({ ticket: row, items: selectedAdditionalItems });
       setSecondWeighDialogOpen(false);
       setSecondWeighKg("");
       setSelectedTransaction(null);
@@ -1218,7 +1222,7 @@ const WeighOnePage = () => {
   const fmtPrice = (val: number | null) => val != null ? `£${val.toFixed(2)}` : "-";
 
   /** Print the A4 waste transfer note (customer copy top, Clews copy bottom). */
-  const printTicket = (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
+  const buildTicketHtml = (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
     const kg = (v: number | null) => (v != null ? Math.round(v).toLocaleString() : "");
     const when = t.first_weigh_at ? new Date(t.first_weigh_at) : null;
     const vars = {
@@ -1255,20 +1259,30 @@ const WeighOnePage = () => {
       additional_items: additionalItems.map((i) => `${i.description} £${i.cost.toFixed(2)}`).join(" · "),
       operator_name: t.operator_name ?? "",
       vehicle_type: t.vehicle_type ?? "",
-      operator_signature: t.operator_signature ? `<img src="${t.operator_signature}" style="height:40px" />` : "",
-      driver_signature: t.driver_signature ? `<img src="${t.driver_signature}" style="height:40px" />` : "",
+      operator_signature: t.operator_signature ? `<img class="sig" src="${t.operator_signature}" alt="Weighbridge signature" />` : "",
+      driver_signature: t.driver_signature ? `<img class="sig" src="${t.driver_signature}" alt="Driver signature" />` : "",
       notes: t.notes ?? "",
       ...WTN_COMPANY_DETAILS,
     };
+    return renderWtnSheet(wtnTemplate?.html || DEFAULT_WTN_TEMPLATE, vars, `WTN ${t.ticket_number}`, { includePrices });
+  };
 
+  const printTicket = (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
     const win = window.open("", "_blank", "width=900,height=1100");
     if (!win) return;
-    win.document.write(
-      renderWtnSheet(wtnTemplate?.html || DEFAULT_WTN_TEMPLATE, vars, `WTN ${t.ticket_number}`, { includePrices }),
-    );
+    win.document.write(buildTicketHtml(t, additionalItems, includePrices));
     win.document.close();
     win.focus();
-    win.print();
+    setTimeout(() => win.print(), 300);
+  };
+
+  const downloadTicket = async (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
+    try {
+      const blob = await wtnHtmlToPdf(buildTicketHtml(t, additionalItems, includePrices));
+      downloadBlob(blob, `Ticket-${t.ticket_number}.pdf`);
+    } catch (e) {
+      toast.error("Could not create the PDF: " + (e as Error).message);
+    }
   };
 
   // Compute preview pricing for second weigh dialog
