@@ -33,7 +33,15 @@ export const PORTAL_SECTIONS: PortalSection[] = [
   { key: "bookings", label: "Bookings", category: "OnePortal", path: "/bookings" },
   { key: "crm", label: "Inbox", category: "OnePortal", path: "/inbox" },
   { key: "pricing", label: "Pricing", category: "OnePortal", path: "/pricing" },
-  { key: "finance", label: "Finance", category: "OnePortal", path: "/finance" },
+  { key: "finance", label: "Invoicing", category: "Finance", path: "/finance" },
+  { key: "company-pl", label: "Company P&L", category: "Finance", path: "/finance/company-pl" },
+  { key: "payroll", label: "Payroll & Time", category: "Finance", path: "/payroll" },
+  { key: "metals", label: "Non-Ferrous Metals", category: "OnePortal", path: "/metals" },
+  { key: "hs-rams", label: "RAMS (Team)", category: "Team", path: "/rams" },
+  { key: "hs-site-inductions", label: "Site Inductions", category: "Team", path: "/site-inductions" },
+  { key: "hs-near-miss", label: "Near Misses (Team)", category: "Team", path: "/near-miss" },
+  { key: "hs-toolbox-talks", label: "Toolbox Talks (Team)", category: "Team", path: "/toolbox-talks" },
+  { key: "hs-fire-safety", label: "Fire Safety", category: "Team", path: "/fire-safety" },
 
   // Performance
   { key: "performance-waste-kpis", label: "Waste KPIs", category: "Performance", path: "/performance-hub/waste-kpis" },
@@ -49,4 +57,5 @@ export const PORTAL_SECTIONS: PortalSection[] = [
   { key: "customer-reporting", label: "Customer Reporting", category: "Performance", path: "/customer-reporting" },
   { key: "rebate-values", label: "Rebate Values", category: "Performance", path: "/rebate-values" },
   { key: "po-checks", label: "PO Checks", category: "Performance", path: "/po-checks" },
+  { key: "performance-recovery", label: "Recovery & incentives", category: "Performance", path: "/performance-hub/recovery" },
 ];
