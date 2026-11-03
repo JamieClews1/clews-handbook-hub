@@ -8,7 +8,6 @@ import { RouteOneArrivalPicker, type ArrivingJob } from "@/components/weighone/R
 import { CONTAINER_GROUPS, bookingContainerLabel } from "@/lib/container-taxonomy";
 import { WASTE_OUT_CONTAINERS, recogniseContainer } from "@/lib/weighone-waste-out";
 import { INBOUND_CONTAINER_GROUPS, isPickedContainer } from "@/lib/weighone-container-groups";
-import { ticketTypeCode } from "@/lib/weighone-ticket-type";
 
 import { ContainerAccordion } from "@/components/weighone/ContainerAccordion";
 import { WasteOutProductPicker, type WasteOutProductOption } from "@/components/weighone/WasteOutProductPicker";
