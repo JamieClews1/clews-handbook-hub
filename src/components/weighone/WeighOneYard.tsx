@@ -64,7 +64,7 @@ export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWei
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-baseline gap-2"><h2 className="text-base font-semibold">Today’s tickets</h2><span className="text-xs text-muted-foreground">{todayTickets.length} native tickets</span></div>
+          <div className="flex items-baseline gap-2"><h2 className="text-base font-semibold">Today’s tickets</h2><span className="text-xs text-muted-foreground">{todayTickets.length} native tickets{onEdit ? " · double-click to edit" : ""}</span></div>
           <div className="flex gap-1.5">{([["all", "All"], ["alert", "Has alert"], ["awaiting", "Awaiting 2nd weigh"]] as const).map(([v, l]) => <Button key={v} size="sm" variant={filter === v ? "default" : "outline"} className="h-7 rounded-full px-3 text-xs" onClick={() => setFilter(v)}>{l}</Button>)}</div>
         </div>
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
