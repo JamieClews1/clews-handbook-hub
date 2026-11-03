@@ -20,3 +20,14 @@ test("test-mode marker on printed tickets: marks copies that are not the default
   assert.ok(withTestMarker("<section><p>x</p></section>", true).includes("data-wtn-test"));
   assert.equal(withTestMarker("<section><p>x</p></section>", false), "<section><p>x</p></section>");
 });
+
+test("prints producer, receiving and broker SIC codes; hides broker when none", async () => {
+  const { renderWtnSheet, DEFAULT_WTN_TEMPLATE } = await import("./wtn-ticket-template");
+  const withBroker = renderWtnSheet(DEFAULT_WTN_TEMPLATE, { producer_sic: "41100", receiving_sic: "38110", broker_name: "Acme Brokers", broker_sic: "46770" });
+  assert.match(withBroker, /SIC: 41100/);
+  assert.match(withBroker, /SIC: 38110/);
+  assert.match(withBroker, /Acme Brokers/);
+  assert.doesNotMatch(withBroker, /\[data-wtn-broker\] \{ display: none/);
+  const noBroker = renderWtnSheet(DEFAULT_WTN_TEMPLATE, { producer_sic: "41100" });
+  assert.match(noBroker, /\[data-wtn-broker\] \{ display: none/);
+});
