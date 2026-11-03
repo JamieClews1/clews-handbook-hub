@@ -8,6 +8,7 @@ import { PortalAssistantWidget } from "@/components/PortalAssistantWidget";
 import { PageCommandPalette } from "@/components/PageCommandPalette";
 import { UrgentContaminationPopup } from "@/components/banksman/UrgentContaminationPopup";
 import { FullScreenToggle } from "@/components/FullScreenToggle";
+import { TestModeToggle } from "@/lib/test-mode";
 import { Button } from "@/components/ui/button";
 import { LogOut, User, Bell, Plus, CircleHelp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -68,6 +69,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
 
             <div className="flex items-center gap-1">
+              <TestModeToggle />
               <FullScreenToggle />
               <Button asChild variant="ghost" size="icon" className="text-muted-foreground" title="Help" aria-label="Help">
                 <Link to="/help"><CircleHelp className="h-5 w-5" /></Link>

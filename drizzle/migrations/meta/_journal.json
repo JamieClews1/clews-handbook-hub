@@ -358,6 +358,13 @@
       "when": 1793381315212,
       "tag": "0050_weighbridge_drivers",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1793727005581,
+      "tag": "0051_migration",
+      "breakpoints": true
     }
   ]
 }

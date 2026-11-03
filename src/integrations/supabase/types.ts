@@ -8742,6 +8742,7 @@ export type Database = {
           id: string
           invoice_address: string | null
           is_live: boolean
+          is_test: boolean
           job_number: string
           job_type: Database["public"]["Enums"]["route_one_job_type"]
           min_weight_charge: number | null
@@ -8815,6 +8816,7 @@ export type Database = {
           id?: string
           invoice_address?: string | null
           is_live?: boolean
+          is_test?: boolean
           job_number?: string
           job_type?: Database["public"]["Enums"]["route_one_job_type"]
           min_weight_charge?: number | null
@@ -8888,6 +8890,7 @@ export type Database = {
           id?: string
           invoice_address?: string | null
           is_live?: boolean
+          is_test?: boolean
           job_number?: string
           job_type?: Database["public"]["Enums"]["route_one_job_type"]
           min_weight_charge?: number | null
@@ -9993,6 +9996,24 @@ export type Database = {
         }
         Relationships: []
       }
+      test_mode_settings: {
+        Row: {
+          enabled: boolean
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       toolbox_talk_signatures: {
         Row: {
           created_at: string
@@ -10528,6 +10549,7 @@ export type Database = {
           first_weigh_at: string | null
           gross_weight_kg: number | null
           id: string
+          is_test: boolean
           job_type: string | null
           linked_job_date: string | null
           linked_job_number: string | null
@@ -10573,6 +10595,7 @@ export type Database = {
           first_weigh_at?: string | null
           gross_weight_kg?: number | null
           id?: string
+          is_test?: boolean
           job_type?: string | null
           linked_job_date?: string | null
           linked_job_number?: string | null
@@ -10618,6 +10641,7 @@ export type Database = {
           first_weigh_at?: string | null
           gross_weight_kg?: number | null
           id?: string
+          is_test?: boolean
           job_type?: string | null
           linked_job_date?: string | null
           linked_job_number?: string | null
