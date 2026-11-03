@@ -31,7 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Scale, Activity, Truck, Plus, Printer, Search, ArrowDownUp, Clock, CheckCircle2, XCircle, Weight, FileText, Trash2, PoundSterling, Settings, Database, HardHat, Users, Pencil, Maximize2, Minimize2, AlertTriangle as AlertTriangleIcon } from "lucide-react";
+import { Download, Scale, Activity, Truck, Plus, Printer, Search, ArrowDownUp, Clock, CheckCircle2, XCircle, Weight, FileText, Trash2, PoundSterling, Settings, Database, HardHat, Users, Pencil, Maximize2, Minimize2, AlertTriangle as AlertTriangleIcon } from "lucide-react";
 import { WeighOneCMS } from "@/components/weighone/WeighOneCMS";
 import MidweighHistory from "@/components/weighone/MidweighHistory";
 import { WeighbridgeRatesSettings, useWeighbridgeRates, resolveRate } from "@/components/weighone/WeighbridgeRatesSettings";
@@ -40,6 +40,7 @@ import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import { WtnTemplateEditor, useWtnTemplate } from "@/components/weighone/WtnTemplateEditor";
 import { StagedAttachmentPicker, WeighbridgeAttachments, uploadWeighbridgeAttachments, type StagedAttachment } from "@/components/weighone/WeighbridgeAttachments";
 import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib/wtn-ticket-template";
+import { wtnHtmlToPdf, downloadBlob } from "@/lib/wtn-ticket-pdf";
 import { format, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { SignatureField } from "@/components/SignatureField";
@@ -209,6 +210,8 @@ const WeighOnePage = () => {
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [secondWeighDialogOpen, setSecondWeighDialogOpen] = useState(false);
+  const [completedTicket, setCompletedTicket] = useState<{ ticket: WeighbridgeTransaction; items: AdditionalItem[] } | null>(null);
+  const [downloadingTicket, setDownloadingTicket] = useState(false);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<WeighbridgeTransaction | null>(null);
   const [deleteLinks, setDeleteLinks] = useState<TicketDeletionLinks | null>(null);
@@ -2481,6 +2484,42 @@ const WeighOnePage = () => {
         </DialogContent>
       </Dialog>
 
+
+      {/* Ticket complete — offer Download / Print now / Close */}
+      <Dialog open={!!completedTicket} onOpenChange={(o) => { if (!o) setCompletedTicket(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ticket {completedTicket?.ticket.ticket_number} complete</DialogTitle>
+          </DialogHeader>
+          {completedTicket && (
+            <p className="text-sm text-muted-foreground">
+              Net weight {fmtWeight(completedTicket.ticket.net_weight_kg)} t · {completedTicket.ticket.vehicle_reg}
+            </p>
+          )}
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Button
+              variant="outline"
+              className="gap-2"
+              disabled={downloadingTicket}
+              onClick={async () => {
+                if (!completedTicket) return;
+                setDownloadingTicket(true);
+                await downloadTicket(completedTicket.ticket, completedTicket.items, completedTicket.ticket.job_type !== "waste_out");
+                setDownloadingTicket(false);
+              }}
+            >
+              <Download className="h-4 w-4" /> {downloadingTicket ? "Preparing…" : "Download"}
+            </Button>
+            <Button
+              className="gap-2"
+              onClick={() => completedTicket && printTicket(completedTicket.ticket, completedTicket.items, completedTicket.ticket.job_type !== "waste_out")}
+            >
+              <Printer className="h-4 w-4" /> Print now
+            </Button>
+            <Button variant="ghost" onClick={() => setCompletedTicket(null)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete ticket — double check before it goes */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && closeDeleteTicket()}>
