@@ -21,12 +21,9 @@ export const PORTAL_SECTIONS: PortalSection[] = [
 
   // OnePortal
   { key: "duty-of-care", label: "Duty of Care", category: "OnePortal", path: "/duty-of-care" },
-  { key: "near-miss", label: "Near Miss", category: "OnePortal", path: "/near-miss" },
   { key: "site-reports", label: "Site Reports", category: "OnePortal", path: "/site-reports" },
   { key: "policies", label: "Policies", category: "OnePortal", path: "/policies" },
   { key: "handbook", label: "Handbook", category: "OnePortal", path: "/handbook" },
-  { key: "rams", label: "RAMS", category: "OnePortal", path: "/rams" },
-  { key: "toolbox-talks", label: "Toolbox Talks", category: "OnePortal", path: "/toolbox-talks" },
   { key: "load-reports", label: "Load Reports", category: "OnePortal", path: "/load-reports" },
   { key: "container-loads", label: "Container Loads", category: "OnePortal", path: "/container-loads" },
   { key: "diary", label: "Diary", category: "OnePortal", path: "/diary" },
@@ -37,10 +34,10 @@ export const PORTAL_SECTIONS: PortalSection[] = [
   { key: "company-pl", label: "Company P&L", category: "Finance", path: "/finance/company-pl" },
   { key: "payroll", label: "Payroll & Time", category: "Finance", path: "/payroll" },
   { key: "metals", label: "Non-Ferrous Metals", category: "OnePortal", path: "/metals" },
-  { key: "hs-rams", label: "RAMS (Team)", category: "Team", path: "/rams" },
+  { key: "hs-rams", label: "RAMS", category: "Team", path: "/rams" },
   { key: "hs-site-inductions", label: "Site Inductions", category: "Team", path: "/site-inductions" },
-  { key: "hs-near-miss", label: "Near Misses (Team)", category: "Team", path: "/near-miss" },
-  { key: "hs-toolbox-talks", label: "Toolbox Talks (Team)", category: "Team", path: "/toolbox-talks" },
+  { key: "hs-near-miss", label: "Near Misses", category: "Team", path: "/near-miss" },
+  { key: "hs-toolbox-talks", label: "Toolbox Talks", category: "Team", path: "/toolbox-talks" },
   { key: "hs-fire-safety", label: "Fire Safety", category: "Team", path: "/fire-safety" },
 
   // Performance
@@ -57,5 +54,4 @@ export const PORTAL_SECTIONS: PortalSection[] = [
   { key: "customer-reporting", label: "Customer Reporting", category: "Performance", path: "/customer-reporting" },
   { key: "rebate-values", label: "Rebate Values", category: "Performance", path: "/rebate-values" },
   { key: "po-checks", label: "PO Checks", category: "Performance", path: "/po-checks" },
-  { key: "performance-recovery", label: "Recovery & incentives", category: "Performance", path: "/performance-hub/recovery" },
 ];
