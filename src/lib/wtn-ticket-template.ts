@@ -192,7 +192,7 @@ export function renderWtnSheet(
   preparedTemplate = preparedTemplate
     .replace(/(Waste Producer[^<]*<\/div>\s*<div class="v">)\s*\{\{\s*customer\s*\}\}\s*(?:<br\s*\/?>)?\s*\{\{\s*site\s*\}\}/i, "$1{{producer_name}}\n{{producer_address}}")
     .replace(/(Receiving Site\s*<\/div>\s*<div class="v">)\s*\{\{\s*company_name\s*\}\}\s*(?:<br\s*\/?>)?\s*\{\{\s*company_address\s*\}\}/i, "$1{{receiving_name}}\n{{receiving_address}}");
-  if (vars.producer_name !== undefined) {
+  {
     preparedTemplate = preparedTemplate.replace(/(Producer Sign\s*<\/div>\s*<div class="name">)\s*\{\{\s*customer\s*\}\}/i, "$1{{producer_name}}");
   }
   // Saved designs may pre-date signature placeholders: place them in the sign boxes.
@@ -202,6 +202,13 @@ export function renderWtnSheet(
   if (!/\{\{\s*operator_signature\s*\}\}/.test(preparedTemplate)) {
     preparedTemplate = preparedTemplate.replace(/(<div class="k">\s*Weighbridge Sign\s*<\/div>)/i, "$1{{operator_signature}}");
   }
+  vars = {
+    producer_name: vars.customer ?? "",
+    producer_address: vars.site ?? "",
+    receiving_name: vars.company_name ?? WTN_COMPANY_DETAILS.company_name,
+    receiving_address: vars.company_address ?? WTN_COMPANY_DETAILS.company_address,
+    ...vars,
+  };
   const printVars = includePrices
     ? vars
     : { ...vars, price_per_tonne: "", total_price: "", vat_amount: "", total_inc_vat: "", additional_items: "", payment: "" };
