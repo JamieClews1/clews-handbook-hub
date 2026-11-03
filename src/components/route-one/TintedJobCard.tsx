@@ -1,6 +1,8 @@
 import type { ReactNode, DragEvent } from "react";
 import { boardJobType, boardUnconfirmed } from "@/lib/route-board-presentation";
 import { bookingContainerLabel } from "@/lib/container-taxonomy";
+import { TestBadge, isTestRecord } from "@/lib/test-mode";
+
 
 export function TintedJobCard({ job, type, label, imported = false, onClick, onDragStart, onDragEnd, isDragging, actions, permit }: {
   job: any; type: string; label: string; imported?: boolean;
@@ -31,7 +33,9 @@ export function TintedJobCard({ job, type, label, imported = false, onClick, onD
     <div className="routeone-job-accent text-[11px] leading-snug flex flex-wrap items-center gap-x-1">
       <span>#{job.job_number || "—"} · {imported ? "Skiptrak" : "RouteOne"}{unconfirmed ? " · Unconfirmed" : ""}</span>
       {!imported && <span>· {job.is_live ? "Sent" : "Draft"}{["completed", "in_progress", "query"].includes(job.status) ? ` · ${job.status === "completed" ? "Done" : job.status === "query" ? "Query" : "In progress"}` : ""}</span>}
+      {isTestRecord(job) && <span className="ml-1 inline-flex"><TestBadge /></span>}
       {permit}
     </div>
+
   </div>;
 }
