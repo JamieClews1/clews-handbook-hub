@@ -66,7 +66,9 @@ export type WtnJob = {
   outbound_weight_t?: number | string | null;
   destination_name?: string | null;
   destination_address?: string | null;
+  is_test?: boolean | null;
 };
+
 
 /** Waste-out skip jobs leave our own site, so Clews is the producer. */
 export const WASTE_OUT_SKIP = "waste_out_skip";
@@ -1045,7 +1047,32 @@ export async function loadLogoDataUrl(): Promise<string | null> {
   return logoCache;
 }
 
+const TEST_STAMP = "TEST JOB — NOT A REAL WASTE TRANSFER NOTE";
+
+/**
+ * Marks the pages of a test job's note so a printed or downloaded copy can never
+ * be handed to a customer as a real waste transfer note.
+ */
+export function stampTestPages(doc: jsPDF, firstPage = 1) {
+  const total = doc.getNumberOfPages();
+  for (let page = firstPage; page <= total; page++) {
+    doc.setPage(page);
+    doc.setFillColor(208, 0, 0);
+    doc.rect(0, 0, 210, 6, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text(TEST_STAMP, 105, 4.2, { align: "center" });
+    doc.setGState(doc.GState({ opacity: 0.12 }));
+    doc.setTextColor(208, 0, 0);
+    doc.setFontSize(52);
+    doc.text("TEST", 105, 160, { align: "center", angle: 45 });
+    doc.setGState(doc.GState({ opacity: 1 }));
+  }
+}
+
 export function buildWtnPdf(
+
   job: WtnJob,
   design: WtnDesign = "classic",
   logo?: string | null,
@@ -1055,6 +1082,8 @@ export function buildWtnPdf(
   const opts = options ?? getWtnOptions();
   const doc = target ?? new jsPDF({ unit: "mm", format: "a4" });
   if (target) doc.addPage();
+  const startPage = doc.getNumberOfPages();
+
   const draw = (top: number, label: string) => {
     if (design === "modern") drawModernCopy(doc, job, top, label, logo, opts);
     else if (design === "field") drawFieldCopy(doc, job, top, label, logo, opts);
@@ -1103,8 +1132,10 @@ export function buildWtnPdf(
     doc.setFontSize(8);
     doc.text("Recorded on the job; classification must be checked against the relevant waste documentation.", 15, 288);
   }
+  if (job.is_test === true) stampTestPages(doc, startPage);
   return doc;
 }
+
 
 /**
  * Waste-out skip loads leave our own weighbridge, so the producer block must show
