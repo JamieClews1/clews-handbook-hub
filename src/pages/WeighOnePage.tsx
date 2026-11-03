@@ -2118,7 +2118,22 @@ const WeighOnePage = () => {
                         const cfg = STATUS_CONFIG[t.status];
                         return (
                           <TableRow key={t.id} className="cursor-pointer select-none hover:bg-muted/40" onClick={() => { setSelectedTransaction(t); setTicketDialogOpen(true); }}>
-                            <TableCell className="font-mono font-medium">{t.ticket_number}</TableCell>
+                            <TableCell className="whitespace-nowrap font-mono font-medium">
+                              <span className="inline-flex items-center gap-1.5">
+                                {t.ticket_number}
+                                {ticketTypeCode(t.job_type) && (
+                                  <span
+                                    className={cn(
+                                      "inline-flex items-center rounded-md border px-1.5 py-0 text-[10px] font-bold leading-4 tracking-wide",
+                                      ticketTypeCode(t.job_type)!.className,
+                                    )}
+                                  >
+                                    {ticketTypeCode(t.job_type)!.code}
+                                  </span>
+                                )}
+                              </span>
+                            </TableCell>
+
                             <TableCell className="font-mono">{t.vehicle_reg}</TableCell>
                             <TableCell>{t.customer ?? "-"}</TableCell>
                             <TableCell className="whitespace-nowrap text-xs">
