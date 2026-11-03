@@ -105,8 +105,8 @@ export function WasteOutProductPicker({ products, value, onChange, placeholder =
                       <span className="font-mono text-xs mr-2">{p.ewc_code}</span>
                       <span className="text-sm">{p.display_name}</span>
                     </span>
-                    {loads ? (
-                      <span className="shrink-0 text-[11px] text-muted-foreground">{loads} loads</span>
+                    {topIds.has(p.id) && loads ? (
+                      <span className="shrink-0 text-[11px] text-muted-foreground">{loads} {loads === 1 ? "load" : "loads"}</span>
                     ) : null}
                   </button>
                 </div>
