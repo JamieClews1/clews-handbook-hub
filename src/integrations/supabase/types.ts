@@ -7088,18 +7088,21 @@ export type Database = {
       }
       portal_section_visibility: {
         Row: {
+          allowed_user_ids: string[]
           hidden: boolean
           section_key: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          allowed_user_ids?: string[]
           hidden?: boolean
           section_key: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          allowed_user_ids?: string[]
           hidden?: boolean
           section_key?: string
           updated_at?: string
@@ -10981,6 +10984,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_payroll: { Args: { _user_id: string }; Returns: boolean }
       can_manage_company_pl_access: {
         Args: { _user_id?: string }
         Returns: boolean
@@ -11143,6 +11147,11 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      section_allows_user: {
+        Args: { _key: string; _user_id: string }
+        Returns: boolean
+      }
+      section_restricted: { Args: { _key: string }; Returns: boolean }
       set_company_pl_access: {
         Args: { _enabled: boolean; _user_id: string }
         Returns: undefined
