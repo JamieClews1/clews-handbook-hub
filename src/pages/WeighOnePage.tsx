@@ -31,7 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Scale, Activity, Truck, Plus, Printer, Search, ArrowDownUp, Clock, CheckCircle2, XCircle, Weight, FileText, Trash2, PoundSterling, Settings, Database, HardHat, Users, Pencil, Maximize2, Minimize2, AlertTriangle as AlertTriangleIcon } from "lucide-react";
+import { Download, Scale, Activity, Truck, Plus, Printer, Search, ArrowDownUp, Clock, CheckCircle2, XCircle, Weight, FileText, Trash2, PoundSterling, Settings, Database, HardHat, Users, Pencil, Maximize2, Minimize2, AlertTriangle as AlertTriangleIcon } from "lucide-react";
 import { WeighOneCMS } from "@/components/weighone/WeighOneCMS";
 import MidweighHistory from "@/components/weighone/MidweighHistory";
 import { WeighbridgeRatesSettings, useWeighbridgeRates, resolveRate } from "@/components/weighone/WeighbridgeRatesSettings";
@@ -40,6 +40,7 @@ import { YardStaffSettings } from "@/components/route-one/YardStaffSettings";
 import { WtnTemplateEditor, useWtnTemplate } from "@/components/weighone/WtnTemplateEditor";
 import { StagedAttachmentPicker, WeighbridgeAttachments, uploadWeighbridgeAttachments, type StagedAttachment } from "@/components/weighone/WeighbridgeAttachments";
 import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib/wtn-ticket-template";
+import { wtnHtmlToPdf, downloadBlob } from "@/lib/wtn-ticket-pdf";
 import { format, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { SignatureField } from "@/components/SignatureField";
@@ -209,6 +210,8 @@ const WeighOnePage = () => {
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [secondWeighDialogOpen, setSecondWeighDialogOpen] = useState(false);
+  const [completedTicket, setCompletedTicket] = useState<{ ticket: WeighbridgeTransaction; items: AdditionalItem[] } | null>(null);
+  const [downloadingTicket, setDownloadingTicket] = useState(false);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<WeighbridgeTransaction | null>(null);
   const [deleteLinks, setDeleteLinks] = useState<TicketDeletionLinks | null>(null);
@@ -947,7 +950,7 @@ const WeighOnePage = () => {
       const additionalTotal = selectedTransaction.additional_items_total ?? 0;
       const totalPrice = weightCharge + additionalTotal;
 
-      const { error } = await supabase
+      const { data: completedRow, error } = await supabase
         .from("weighbridge_transactions")
         .update({
           tare_weight_kg: tareKg,
@@ -957,7 +960,9 @@ const WeighOnePage = () => {
           status: "completed" as WeighbridgeStatus,
           second_weigh_at: new Date().toISOString(),
         })
-        .eq("id", selectedTransaction.id);
+        .eq("id", selectedTransaction.id)
+        .select("*")
+        .single();
       if (error) throw error;
 
       // Keep any auto-created Route One waste-out job in step with the final weight
@@ -975,9 +980,11 @@ const WeighOnePage = () => {
       const { data: links } = await supabase.from("route_one_job_weighings").select("job_id").eq("weighbridge_transaction_id", selectedTransaction.id);
       const jobIds = (links ?? []).map(l => l.job_id);
       if (jobIds.length) await supabase.from("route_one_jobs").update({ weighed_at: new Date().toISOString() }).in("id", jobIds);
+      return completedRow as WeighbridgeTransaction;
     },
-    onSuccess: () => {
+    onSuccess: (row) => {
       toast.success("Transaction completed");
+      setCompletedTicket({ ticket: row, items: selectedAdditionalItems });
       setSecondWeighDialogOpen(false);
       setSecondWeighKg("");
       setSelectedTransaction(null);
@@ -1218,7 +1225,7 @@ const WeighOnePage = () => {
   const fmtPrice = (val: number | null) => val != null ? `£${val.toFixed(2)}` : "-";
 
   /** Print the A4 waste transfer note (customer copy top, Clews copy bottom). */
-  const printTicket = (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
+  const buildTicketHtml = (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
     const kg = (v: number | null) => (v != null ? Math.round(v).toLocaleString() : "");
     const when = t.first_weigh_at ? new Date(t.first_weigh_at) : null;
     const vars = {
@@ -1255,20 +1262,30 @@ const WeighOnePage = () => {
       additional_items: additionalItems.map((i) => `${i.description} £${i.cost.toFixed(2)}`).join(" · "),
       operator_name: t.operator_name ?? "",
       vehicle_type: t.vehicle_type ?? "",
-      operator_signature: t.operator_signature ? `<img src="${t.operator_signature}" style="height:40px" />` : "",
-      driver_signature: t.driver_signature ? `<img src="${t.driver_signature}" style="height:40px" />` : "",
+      operator_signature: t.operator_signature ? `<img class="sig" src="${t.operator_signature}" alt="Weighbridge signature" />` : "",
+      driver_signature: t.driver_signature ? `<img class="sig" src="${t.driver_signature}" alt="Driver signature" />` : "",
       notes: t.notes ?? "",
       ...WTN_COMPANY_DETAILS,
     };
+    return renderWtnSheet(wtnTemplate?.html || DEFAULT_WTN_TEMPLATE, vars, `WTN ${t.ticket_number}`, { includePrices });
+  };
 
+  const printTicket = (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
     const win = window.open("", "_blank", "width=900,height=1100");
     if (!win) return;
-    win.document.write(
-      renderWtnSheet(wtnTemplate?.html || DEFAULT_WTN_TEMPLATE, vars, `WTN ${t.ticket_number}`, { includePrices }),
-    );
+    win.document.write(buildTicketHtml(t, additionalItems, includePrices));
     win.document.close();
     win.focus();
-    win.print();
+    setTimeout(() => win.print(), 300);
+  };
+
+  const downloadTicket = async (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
+    try {
+      const blob = await wtnHtmlToPdf(buildTicketHtml(t, additionalItems, includePrices));
+      downloadBlob(blob, `Ticket-${t.ticket_number}.pdf`);
+    } catch (e) {
+      toast.error("Could not create the PDF: " + (e as Error).message);
+    }
   };
 
   // Compute preview pricing for second weigh dialog
@@ -2349,6 +2366,11 @@ const WeighOnePage = () => {
                   </Button>
                 </div>
               )}
+              {selectedTransaction.status === "completed" && (
+                <Button className="w-full gap-2" variant="outline" onClick={() => downloadTicket(selectedTransaction, selectedAdditionalItems, selectedTransaction.job_type !== "waste_out")}>
+                  <Download className="h-4 w-4" /> Download ticket (PDF)
+                </Button>
+              )}
               {selectedTransaction.status === "completed" && selectedTransaction.job_type === "waste_out" && (
                 <Button className="w-full gap-2" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems, false)}>
                   <Printer className="h-4 w-4" /> Print double ticket (customer + office copy)
@@ -2467,6 +2489,42 @@ const WeighOnePage = () => {
         </DialogContent>
       </Dialog>
 
+
+      {/* Ticket complete — offer Download / Print now / Close */}
+      <Dialog open={!!completedTicket} onOpenChange={(o) => { if (!o) setCompletedTicket(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ticket {completedTicket?.ticket.ticket_number} complete</DialogTitle>
+          </DialogHeader>
+          {completedTicket && (
+            <p className="text-sm text-muted-foreground">
+              Net weight {fmtWeight(completedTicket.ticket.net_weight_kg)} t · {completedTicket.ticket.vehicle_reg}
+            </p>
+          )}
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Button
+              variant="outline"
+              className="gap-2"
+              disabled={downloadingTicket}
+              onClick={async () => {
+                if (!completedTicket) return;
+                setDownloadingTicket(true);
+                await downloadTicket(completedTicket.ticket, completedTicket.items, completedTicket.ticket.job_type !== "waste_out");
+                setDownloadingTicket(false);
+              }}
+            >
+              <Download className="h-4 w-4" /> {downloadingTicket ? "Preparing…" : "Download"}
+            </Button>
+            <Button
+              className="gap-2"
+              onClick={() => completedTicket && printTicket(completedTicket.ticket, completedTicket.items, completedTicket.ticket.job_type !== "waste_out")}
+            >
+              <Printer className="h-4 w-4" /> Print now
+            </Button>
+            <Button variant="ghost" onClick={() => setCompletedTicket(null)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete ticket — double check before it goes */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && closeDeleteTicket()}>
