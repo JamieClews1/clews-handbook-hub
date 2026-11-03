@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
 import {
   rankWasteOutProducts,
   searchWasteOutProducts,
@@ -25,14 +26,14 @@ const names = (list: { display_name: string }[]) => list.map(p => p.display_name
 
 describe("waste out product picker order", () => {
   it("reads recorded loads for a product name", () => {
-    expect(wasteOutLoadsFor("Transfer Station Waste. Landfill")).toBe(155);
-    expect(wasteOutLoadsFor("Wood C grade Outgoing")).toBe(153);
-    expect(wasteOutLoadsFor("Never Seen Product")).toBeNull();
+    assert.equal(wasteOutLoadsFor("Transfer Station Waste. Landfill"), 155);
+    assert.equal(wasteOutLoadsFor("Wood C grade Outgoing"), 153);
+    assert.equal(wasteOutLoadsFor("Never Seen Product"), null);
   });
 
   it("puts the five most common products first, busiest first", () => {
-    expect(WASTE_OUT_TOP_N).toBe(5);
-    expect(names(rankWasteOutProducts(products)).slice(0, 5)).toEqual([
+    assert.equal(WASTE_OUT_TOP_N, 5);
+    assert.deepEqual(names(rankWasteOutProducts(products)).slice(0, 5), [
       "Waste out – landfill",
       "Wood grade C",
       "RDF (waste to energy)",
@@ -42,7 +43,7 @@ describe("waste out product picker order", () => {
   });
 
   it("lists everything after the top five alphabetically", () => {
-    expect(names(rankWasteOutProducts(products)).slice(5)).toEqual([
+    assert.deepEqual(names(rankWasteOutProducts(products)).slice(5), [
       "Aluminium cans",
       "Cardboard",
       "Ferrous metal",
@@ -53,8 +54,8 @@ describe("waste out product picker order", () => {
   it("never promotes a product the analysis has not seen", () => {
     const withNew = [...products, P("Aardvark waste", "Brand New Product", "99 99 99")];
     const ranked = rankWasteOutProducts(withNew);
-    expect(ranked[0].display_name).toBe("Waste out – landfill");
-    expect(names(ranked).slice(5)).toEqual([
+    assert.equal(ranked[0].display_name, "Waste out – landfill");
+    assert.deepEqual(names(ranked).slice(5), [
       "Aardvark waste",
       "Aluminium cans",
       "Cardboard",
@@ -65,17 +66,17 @@ describe("waste out product picker order", () => {
 
   it("keeps the ranked order while searching", () => {
     const ranked = rankWasteOutProducts(products);
-    expect(names(searchWasteOutProducts(ranked, "wood"))).toEqual(["Wood grade C"]);
-    expect(names(searchWasteOutProducts(ranked, "191212"))).toEqual(["Waste out – landfill", "Trommel fines"]);
-    expect(searchWasteOutProducts(ranked, "nothing matches")).toEqual([]);
-    expect(searchWasteOutProducts(ranked, "  ")).toBe(ranked);
+    assert.deepEqual(names(searchWasteOutProducts(ranked, "wood")), ["Wood grade C"]);
+    assert.deepEqual(names(searchWasteOutProducts(ranked, "191212")), ["Waste out – landfill", "Trommel fines"]);
+    assert.deepEqual(searchWasteOutProducts(ranked, "nothing matches"), []);
+    assert.equal(searchWasteOutProducts(ranked, "  "), ranked);
   });
 
   it("honours a smaller top count", () => {
-    expect(names(rankWasteOutProducts(products, 2)).slice(0, 2)).toEqual([
+    assert.deepEqual(names(rankWasteOutProducts(products, 2)).slice(0, 2), [
       "Waste out – landfill",
       "Wood grade C",
     ]);
-    expect(rankWasteOutProducts(products, 0).length).toBe(products.length);
+    assert.equal(rankWasteOutProducts(products, 0).length, products.length);
   });
 });
