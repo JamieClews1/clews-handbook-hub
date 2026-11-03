@@ -8,6 +8,8 @@ import { RouteOneArrivalPicker, type ArrivingJob } from "@/components/weighone/R
 import { CONTAINER_GROUPS, bookingContainerLabel } from "@/lib/container-taxonomy";
 import { WASTE_OUT_CONTAINERS, recogniseContainer } from "@/lib/weighone-waste-out";
 import { INBOUND_CONTAINER_GROUPS, isPickedContainer } from "@/lib/weighone-container-groups";
+import { ticketTypeCode } from "@/lib/weighone-ticket-type";
+
 import { ContainerAccordion } from "@/components/weighone/ContainerAccordion";
 import { WasteOutProductPicker, type WasteOutProductOption } from "@/components/weighone/WasteOutProductPicker";
 import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
@@ -76,6 +78,8 @@ const JOB_TYPES = [
 
 const jobTypeLabel = (v: string | null | undefined) =>
   JOB_TYPES.find((j) => j.value === v)?.label ?? "-";
+
+
 
 /** Our own vehicles are Clews Recycling — carrier defaults for Skip jobs */
 const OWN_CARRIER_NAME = "Clews Recycling Limited";
@@ -2118,7 +2122,22 @@ const WeighOnePage = () => {
                         const cfg = STATUS_CONFIG[t.status];
                         return (
                           <TableRow key={t.id} className="cursor-pointer select-none hover:bg-muted/40" onClick={() => { setSelectedTransaction(t); setTicketDialogOpen(true); }}>
-                            <TableCell className="font-mono font-medium">{t.ticket_number}</TableCell>
+                            <TableCell className="whitespace-nowrap font-mono font-medium">
+                              <span className="inline-flex items-center gap-1.5">
+                                {t.ticket_number}
+                                {ticketTypeCode(t.job_type) && (
+                                  <span
+                                    className={cn(
+                                      "inline-flex items-center rounded-md border px-1.5 py-0 text-[10px] font-bold leading-4 tracking-wide",
+                                      ticketTypeCode(t.job_type)!.className,
+                                    )}
+                                  >
+                                    {ticketTypeCode(t.job_type)!.code}
+                                  </span>
+                                )}
+                              </span>
+                            </TableCell>
+
                             <TableCell className="font-mono">{t.vehicle_reg}</TableCell>
                             <TableCell>{t.customer ?? "-"}</TableCell>
                             <TableCell className="whitespace-nowrap text-xs">
