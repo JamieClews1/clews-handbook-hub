@@ -39,6 +39,10 @@ export const WTN_PLACEHOLDERS: { key: string; label: string }[] = [
   { key: "payment", label: "Payment taken (cash/card ticket)" },
   { key: "additional_items", label: "Additional items (rows)" },
   { key: "operator_name", label: "Weighbridge operator" },
+  { key: "producer_name", label: "Waste producer name" },
+  { key: "producer_address", label: "Waste producer address" },
+  { key: "receiving_name", label: "Receiving site name" },
+  { key: "receiving_address", label: "Receiving site address" },
   { key: "driver_signature", label: "Driver signature (image)" },
   { key: "operator_signature", label: "Weighbridge signature (image)" },
   { key: "notes", label: "Notes / comments" },
@@ -116,15 +120,15 @@ export const DEFAULT_WTN_TEMPLATE = `<div class="wtn-copy">
   <div class="wtn-cols">
     <div class="wtn-col">
       <div class="k">Waste Producer / Customer</div>
-      <div class="v">{{customer}}
-{{site}}</div>
+      <div class="v">{{producer_name}}
+{{producer_address}}</div>
       <div class="k" style="margin-top:1.5mm">EWC</div>
       <div class="v">{{ewc_code}} — {{waste_description}}</div>
     </div>
     <div class="wtn-col">
       <div class="k">Receiving Site</div>
-      <div class="v">{{company_name}}
-{{company_address}}</div>
+      <div class="v">{{receiving_name}}
+{{receiving_address}}</div>
       <div class="k" style="margin-top:1.5mm">Container / Form / Transport</div>
       <div class="v">{{container_type}} · {{physical_form}} · {{means_of_transport}}</div>
     </div>
@@ -157,7 +161,7 @@ export const DEFAULT_WTN_TEMPLATE = `<div class="wtn-copy">
   </div>
 
   <div class="wtn-signs">
-    <div class="wtn-sign"><div class="k">Producer Sign</div><div class="name">{{customer}}</div></div>
+    <div class="wtn-sign"><div class="k">Producer Sign</div><div class="name">{{producer_name}}</div></div>
     <div class="wtn-sign"><div class="k">Driver Sign</div><div class="name">{{driver_name}}</div></div>
     <div class="wtn-sign"><div class="k">Weighbridge Sign</div><div class="name">{{operator_name}}</div></div>
   </div>
@@ -184,6 +188,13 @@ export function renderWtnSheet(
   let preparedTemplate = template
     .replace(/<strong>\s*\{\{\s*company_name\s*\}\}\s*<\/strong>(\s*<br\s*\/?>)?/, logo ? logoImg : "$&")
     .replace(/\{\{\s*company_logo\s*\}\}/g, logoImg);
+  // Saved designs may pre-date producer/receiving placeholders: swap the party blocks in.
+  preparedTemplate = preparedTemplate
+    .replace(/(Waste Producer[^<]*<\/div>\s*<div class="v">)\s*\{\{\s*customer\s*\}\}\s*(?:<br\s*\/?>)?\s*\{\{\s*site\s*\}\}/i, "$1{{producer_name}}\n{{producer_address}}")
+    .replace(/(Receiving Site\s*<\/div>\s*<div class="v">)\s*\{\{\s*company_name\s*\}\}\s*(?:<br\s*\/?>)?\s*\{\{\s*company_address\s*\}\}/i, "$1{{receiving_name}}\n{{receiving_address}}");
+  {
+    preparedTemplate = preparedTemplate.replace(/(Producer Sign\s*<\/div>\s*<div class="name">)\s*\{\{\s*customer\s*\}\}/i, "$1{{producer_name}}");
+  }
   // Saved designs may pre-date signature placeholders: place them in the sign boxes.
   if (!/\{\{\s*driver_signature\s*\}\}/.test(preparedTemplate)) {
     preparedTemplate = preparedTemplate.replace(/(<div class="k">\s*Driver Sign\s*<\/div>)/i, "$1{{driver_signature}}");
@@ -191,6 +202,13 @@ export function renderWtnSheet(
   if (!/\{\{\s*operator_signature\s*\}\}/.test(preparedTemplate)) {
     preparedTemplate = preparedTemplate.replace(/(<div class="k">\s*Weighbridge Sign\s*<\/div>)/i, "$1{{operator_signature}}");
   }
+  vars = {
+    producer_name: vars.customer ?? "",
+    producer_address: vars.site ?? "",
+    receiving_name: vars.company_name ?? WTN_COMPANY_DETAILS.company_name,
+    receiving_address: vars.company_address ?? WTN_COMPANY_DETAILS.company_address,
+    ...vars,
+  };
   const printVars = includePrices
     ? vars
     : { ...vars, price_per_tonne: "", total_price: "", vat_amount: "", total_inc_vat: "", additional_items: "", payment: "" };
