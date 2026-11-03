@@ -230,6 +230,8 @@ const WeighOnePage = () => {
   const [wtnDialogOpen, setWtnDialogOpen] = useState(false);
   const { data: wtnTemplate } = useWtnTemplate();
   const [editingTicket, setEditingTicket] = useState<WeighbridgeTransaction | null>(null);
+  const logRowTimer = useRef<number | null>(null);
+
   const [selectedTransaction, setSelectedTransaction] = useState<WeighbridgeTransaction | null>(null);
   const [stagedAttachments, setStagedAttachments] = useState<StagedAttachment[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
