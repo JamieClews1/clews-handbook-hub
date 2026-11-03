@@ -2366,6 +2366,11 @@ const WeighOnePage = () => {
                   </Button>
                 </div>
               )}
+              {selectedTransaction.status === "completed" && (
+                <Button className="w-full gap-2" variant="outline" onClick={() => downloadTicket(selectedTransaction, selectedAdditionalItems, selectedTransaction.job_type !== "waste_out")}>
+                  <Download className="h-4 w-4" /> Download ticket (PDF)
+                </Button>
+              )}
               {selectedTransaction.status === "completed" && selectedTransaction.job_type === "waste_out" && (
                 <Button className="w-full gap-2" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems, false)}>
                   <Printer className="h-4 w-4" /> Print double ticket (customer + office copy)
