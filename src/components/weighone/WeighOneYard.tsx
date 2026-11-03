@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BanksmanTicketReport, banksmanLabel, type LinkedBanksmanJob } from "./BanksmanTicketReport";
 import { BanksmanJobDialog } from "@/components/banksman/BanksmanJobDialog";
+import { ticketTypeCode } from "@/lib/weighone-ticket-type";
 
-type YardTicket = { id: string; ticket_number: string; vehicle_reg: string; customer: string | null; site?: string | null; waste_description: string | null; ewc_code: string | null; status: string; first_weigh_at: string | null; gross_weight_kg: number | null; net_weight_kg: number | null; created_at?: string | null };
+type YardTicket = { id: string; ticket_number: string; vehicle_reg: string; customer: string | null; site?: string | null; waste_description: string | null; ewc_code: string | null; status: string; first_weigh_at: string | null; gross_weight_kg: number | null; net_weight_kg: number | null; created_at?: string | null; job_type?: string | null };
+
 
 const hhmm = (d: string | null | undefined) => d ? new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "2-digit", minute: "2-digit" }).format(new Date(d)) : "—";
 const STEPS = ["Weighed in", "Tipping", "Checked", "Weigh out"];
