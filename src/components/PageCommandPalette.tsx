@@ -28,7 +28,7 @@ export function PageCommandPalette() {
   const { isAdmin, user } = useAuth();
   const { canAccess } = useFinanceAccess();
   const { canAccessPl } = useCompanyPlAccess();
-  const { hidden } = usePortalSectionVisibility();
+  const { hidden, restrictedAllows } = usePortalSectionVisibility();
   const superAdmin = isSuperAdminEmail(user?.email);
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export function PageCommandPalette() {
   }, []);
 
   const available = [
-    ...STAFF_NAV_GROUPS.flatMap(group => group.items.filter(item => navigationAllowed(item, { isAdmin, canAccessFinance: canAccess, canAccessPl })).map(item => ({ name: `${group.title} · ${item.label}`, path: item.path, key: item.key }))),
+    ...STAFF_NAV_GROUPS.flatMap(group => group.items.filter(item => navigationAllowed(item, { isAdmin, canAccessFinance: canAccess, canAccessPl, restrictedAllows })).map(item => ({ name: `${group.title} · ${item.label}`, path: item.path, key: item.key }))),
     ...otherPages,
   ].filter(page => !page.key || !hidden.has(page.key) || superAdmin);
 

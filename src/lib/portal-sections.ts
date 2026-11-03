@@ -21,19 +21,24 @@ export const PORTAL_SECTIONS: PortalSection[] = [
 
   // OnePortal
   { key: "duty-of-care", label: "Duty of Care", category: "OnePortal", path: "/duty-of-care" },
-  { key: "near-miss", label: "Near Miss", category: "OnePortal", path: "/near-miss" },
   { key: "site-reports", label: "Site Reports", category: "OnePortal", path: "/site-reports" },
   { key: "policies", label: "Policies", category: "OnePortal", path: "/policies" },
   { key: "handbook", label: "Handbook", category: "OnePortal", path: "/handbook" },
-  { key: "rams", label: "RAMS", category: "OnePortal", path: "/rams" },
-  { key: "toolbox-talks", label: "Toolbox Talks", category: "OnePortal", path: "/toolbox-talks" },
   { key: "load-reports", label: "Load Reports", category: "OnePortal", path: "/load-reports" },
   { key: "container-loads", label: "Container Loads", category: "OnePortal", path: "/container-loads" },
   { key: "diary", label: "Diary", category: "OnePortal", path: "/diary" },
   { key: "bookings", label: "Bookings", category: "OnePortal", path: "/bookings" },
   { key: "crm", label: "Inbox", category: "OnePortal", path: "/inbox" },
   { key: "pricing", label: "Pricing", category: "OnePortal", path: "/pricing" },
-  { key: "finance", label: "Finance", category: "OnePortal", path: "/finance" },
+  { key: "finance", label: "Invoicing", category: "Finance", path: "/finance" },
+  { key: "company-pl", label: "Company P&L", category: "Finance", path: "/finance/company-pl" },
+  { key: "payroll", label: "Payroll & Time", category: "Finance", path: "/payroll" },
+  { key: "metals", label: "Non-Ferrous Metals", category: "OnePortal", path: "/metals" },
+  { key: "hs-rams", label: "RAMS", category: "Team", path: "/rams" },
+  { key: "hs-site-inductions", label: "Site Inductions", category: "Team", path: "/site-inductions" },
+  { key: "hs-near-miss", label: "Near Misses", category: "Team", path: "/near-miss" },
+  { key: "hs-toolbox-talks", label: "Toolbox Talks", category: "Team", path: "/toolbox-talks" },
+  { key: "hs-fire-safety", label: "Fire Safety", category: "Team", path: "/fire-safety" },
 
   // Performance
   { key: "performance-waste-kpis", label: "Waste KPIs", category: "Performance", path: "/performance-hub/waste-kpis" },
