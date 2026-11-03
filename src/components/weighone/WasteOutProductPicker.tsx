@@ -3,7 +3,6 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
   rankWasteOutProducts,
@@ -77,7 +76,7 @@ export function WasteOutProductPicker({ products, value, onChange, placeholder =
             className="h-8"
           />
         </div>
-        <ScrollArea className="max-h-72">
+        <div className="max-h-72 overflow-y-auto overscroll-contain" onWheel={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}>
           <div className="p-1">
             {shown.length === 0 && (
               <p className="p-3 text-sm text-muted-foreground">No waste types match.</p>
@@ -113,7 +112,7 @@ export function WasteOutProductPicker({ products, value, onChange, placeholder =
               );
             })}
           </div>
-        </ScrollArea>
+        </div>
       </PopoverContent>
     </Popover>
   );
