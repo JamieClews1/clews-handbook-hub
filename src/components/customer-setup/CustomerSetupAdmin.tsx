@@ -63,6 +63,7 @@ type Customer = {
   custom_reporting_periods_enabled: boolean;
   po_spans_periods: boolean;
   is_broker: boolean;
+  account_type?: "customer" | "supplier" | "both" | null;
   all_data_hub_sites: boolean;
   midweigh_rebates_enabled: boolean;
   midweigh_rebate_contact_id: string | null;
@@ -179,7 +180,7 @@ export function CustomerSetupAdmin() {
 
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", pod_email: "", auto_pod_emails_enabled: false, custom_reporting_periods_enabled: false, po_spans_periods: false, is_broker: false, all_data_hub_sites: false, midweigh_rebates_enabled: false, midweigh_rebate_contact_id: "" });
+  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", pod_email: "", auto_pod_emails_enabled: false, custom_reporting_periods_enabled: false, po_spans_periods: false, is_broker: false, all_data_hub_sites: false, midweigh_rebates_enabled: false, midweigh_rebate_contact_id: "", account_type: "customer" as "customer" | "supplier" | "both" });
   const [editCustomerContacts, setEditCustomerContacts] = useState<CustomerContact[]>([]);
 
   const customerCreateSchema = useMemo(
@@ -420,17 +421,20 @@ export function CustomerSetupAdmin() {
     [customers, selectedCustomerId]
   );
 
+  const listView = setupTab === "suppliers" ? "suppliers" : "customers";
   const filteredCustomers = useMemo(() => {
     const q = customerSearch.trim().toLowerCase();
     return customers.filter((c) => {
       if (!showArchived && !c.is_active) return false;
+      const type = c.account_type ?? "customer";
+      if (listView === "suppliers" ? type === "customer" : type === "supplier") return false;
       if (!q) return true;
       const code = c.customer_code.toLowerCase();
       const name = c.customer_name.toLowerCase();
       const dataHubCustomer = (c.data_hub_customer ?? "").toLowerCase();
       return code.includes(q) || name.includes(q) || dataHubCustomer.includes(q);
     });
-  }, [customers, customerSearch, showArchived]);
+  }, [customers, customerSearch, showArchived, listView]);
 
   const sourceCustomerMatches = useMemo(() => {
     const q = customerSearch.trim().toLowerCase();
@@ -466,7 +470,7 @@ export function CustomerSetupAdmin() {
     for (let from = 0; ; from += pageSize) {
       const { data, error } = await supabase
         .from("customers")
-        .select("id,customer_code,customer_name,po_notification_email,pod_email,auto_pod_emails_enabled,custom_reporting_periods_enabled,po_spans_periods,is_broker,all_data_hub_sites,midweigh_rebates_enabled,midweigh_rebate_contact_id,is_active,data_hub_customer,created_at,updated_at")
+        .select("id,customer_code,customer_name,po_notification_email,pod_email,auto_pod_emails_enabled,custom_reporting_periods_enabled,po_spans_periods,is_broker,account_type,all_data_hub_sites,midweigh_rebates_enabled,midweigh_rebate_contact_id,is_active,data_hub_customer,created_at,updated_at")
         .order("customer_name", { ascending: true })
         .range(from, from + pageSize - 1);
       if (error) throw error;
@@ -987,6 +991,7 @@ export function CustomerSetupAdmin() {
       custom_reporting_periods_enabled: customer.custom_reporting_periods_enabled ?? false,
       po_spans_periods: customer.po_spans_periods ?? false,
       is_broker: customer.is_broker ?? false,
+      account_type: (customer.account_type ?? "customer") as "customer" | "supplier" | "both",
       all_data_hub_sites: customer.all_data_hub_sites ?? false,
       midweigh_rebates_enabled: customer.midweigh_rebates_enabled ?? false,
       midweigh_rebate_contact_id: customer.midweigh_rebate_contact_id ?? "",
@@ -1025,6 +1030,7 @@ export function CustomerSetupAdmin() {
           custom_reporting_periods_enabled: editCustomerForm.custom_reporting_periods_enabled,
           po_spans_periods: editCustomerForm.po_spans_periods,
           is_broker: editCustomerForm.is_broker,
+          account_type: editCustomerForm.account_type,
           all_data_hub_sites: editCustomerForm.all_data_hub_sites,
           midweigh_rebates_enabled: editCustomerForm.midweigh_rebates_enabled,
           midweigh_rebate_contact_id: editCustomerForm.midweigh_rebates_enabled && editCustomerForm.midweigh_rebate_contact_id ? editCustomerForm.midweigh_rebate_contact_id : null,
@@ -1427,18 +1433,20 @@ export function CustomerSetupAdmin() {
     <Tabs value={setupTab} onValueChange={setSetupTab} className="w-full">
       <TabsList className="flex-wrap h-auto">
         <TabsTrigger value="customers">Customers</TabsTrigger>
+        <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
         <TabsTrigger value="portal-directory">Portal access</TabsTrigger>
         <TabsTrigger value="new-customers">New customers</TabsTrigger>
         <TabsTrigger value="gdpr">GDPR cleanup</TabsTrigger>
 
       </TabsList>
 
-      <TabsContent value="customers" className="mt-4">
+      {listView === setupTab && (
+      <div className="mt-4">
         <div className="grid lg:grid-cols-[360px_1fr] gap-6">
       <Card className="h-fit">
         <CardHeader>
-          <CardTitle>Customers</CardTitle>
-          <CardDescription>Select a customer to manage sites, contacts, and portal access.</CardDescription>
+          <CardTitle>{listView === "suppliers" ? "Suppliers" : "Customers"}</CardTitle>
+          <CardDescription>{listView === "suppliers" ? "Companies we send Waste Out loads to. Accounts marked Both also appear under Customers." : "Select a customer to manage sites, contacts, and portal access."}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex gap-2">
@@ -1459,7 +1467,7 @@ export function CustomerSetupAdmin() {
           <div className="flex items-center gap-2 text-sm">
             <Switch checked={showArchived} onCheckedChange={setShowArchived} id="show-archived" />
             <Label htmlFor="show-archived" className="text-muted-foreground cursor-pointer">Show archived</Label>
-            <span className="ml-auto text-xs text-muted-foreground">{filteredCustomers.length} customers</span>
+            <span className="ml-auto text-xs text-muted-foreground">{filteredCustomers.length} {listView}</span>
           </div>
 
           <div className="rounded-md border border-border overflow-hidden">
@@ -1481,6 +1489,7 @@ export function CustomerSetupAdmin() {
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {c.customer_name}
+                          {c.account_type === "both" && <Badge variant="outline" className="text-xs">{listView === "suppliers" ? "Also customer" : "Also supplier"}</Badge>}
                           {!c.is_active && <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">Archived</Badge>}
                         </div>
                       </TableCell>
@@ -2071,7 +2080,8 @@ export function CustomerSetupAdmin() {
 
         </div>
         </div>
-      </TabsContent>
+      </div>
+      )}
 
       <TabsContent value="portal-directory" className="mt-4">
         <PortalAccessDirectory
@@ -2227,6 +2237,21 @@ export function CustomerSetupAdmin() {
                 checked={editCustomerForm.po_spans_periods}
                 onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, po_spans_periods: v }))}
               />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <Label>Account type</Label>
+                <p className="text-xs text-muted-foreground">Suppliers are companies we send Waste Out loads to. Both shows the account under Customers and Suppliers.</p>
+              </div>
+              <Select value={editCustomerForm.account_type} onValueChange={(v) => setEditCustomerForm((p) => ({ ...p, account_type: v as "customer" | "supplier" | "both" }))}>
+                <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="customer">Customer</SelectItem>
+                  <SelectItem value="supplier">Supplier</SelectItem>
+                  <SelectItem value="both">Both</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Separator />
             <div className="flex items-center justify-between">

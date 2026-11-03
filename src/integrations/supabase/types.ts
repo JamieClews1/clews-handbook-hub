@@ -2908,6 +2908,7 @@ export type Database = {
       }
       customers: {
         Row: {
+          account_type: string
           all_data_hub_sites: boolean
           auto_pod_emails_enabled: boolean
           created_at: string
@@ -2930,6 +2931,7 @@ export type Database = {
           waste_carrier_licence_expiry: string | null
         }
         Insert: {
+          account_type?: string
           all_data_hub_sites?: boolean
           auto_pod_emails_enabled?: boolean
           created_at?: string
@@ -2952,6 +2954,7 @@ export type Database = {
           waste_carrier_licence_expiry?: string | null
         }
         Update: {
+          account_type?: string
           all_data_hub_sites?: boolean
           auto_pod_emails_enabled?: boolean
           created_at?: string
