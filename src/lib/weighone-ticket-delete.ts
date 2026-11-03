@@ -10,6 +10,8 @@
 export type TicketDeletionLinks = {
   /** Route One job number the ticket was raised against, when linked. */
   routeOneJobNumber?: string | null;
+  /** True when the Route One job was raised automatically by this Waste Out ticket, so it goes with it. */
+  routeOneJobFromTicket?: boolean;
   /** Banksman job number whose report is attached to this ticket. */
   banksmanJobNumber?: string | null;
   /** Invoice numbers that already carry this ticket. */
@@ -34,7 +36,9 @@ export function planTicketDeletion(links: TicketDeletionLinks): TicketDeletionPl
   }
 
   const consequences: string[] = [];
-  if (links.routeOneJobNumber) {
+  if (links.routeOneJobNumber && links.routeOneJobFromTicket) {
+    consequences.push(`Route One job ${links.routeOneJobNumber}, raised from this Waste Out ticket, is deleted too.`);
+  } else if (links.routeOneJobNumber) {
     consequences.push(`Route One job ${links.routeOneJobNumber} keeps its records, but the ticket link is removed.`);
   }
   if (links.banksmanJobNumber) {
@@ -48,10 +52,12 @@ export function planTicketDeletion(links: TicketDeletionLinks): TicketDeletionPl
 /** Linked records that have to be detached before the ticket row can go. */
 export function ticketDeletionUnlinks(links: TicketDeletionLinks): {
   routeOneJob: boolean;
+  deleteRouteOneJob: boolean;
   banksmanJob: boolean;
 } {
   return {
     routeOneJob: Boolean(links.routeOneJobNumber),
+    deleteRouteOneJob: Boolean(links.routeOneJobNumber && links.routeOneJobFromTicket),
     banksmanJob: Boolean(links.banksmanJobNumber),
   };
 }

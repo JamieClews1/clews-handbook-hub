@@ -32,3 +32,9 @@ test("Only linked records are detached during deletion", () => {
   assert.deepEqual(ticketDeletionUnlinks({ banksmanJobNumber: "BM-12" }), { routeOneJob: false, banksmanJob: true });
   assert.deepEqual(ticketDeletionUnlinks({}), { routeOneJob: false, banksmanJob: false });
 });
+
+test("deletes the Route One job raised from a Waste Out ticket", () => {
+  const links = { routeOneJobNumber: "RO-1", routeOneJobFromTicket: true };
+  assert.equal(ticketDeletionUnlinks(links).deleteRouteOneJob, true);
+  assert.equal(ticketDeletionUnlinks({ routeOneJobNumber: "RO-1" }).deleteRouteOneJob, false);
+});
