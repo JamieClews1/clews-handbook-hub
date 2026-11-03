@@ -39,6 +39,8 @@ export const WTN_PLACEHOLDERS: { key: string; label: string }[] = [
   { key: "payment", label: "Payment taken (cash/card ticket)" },
   { key: "additional_items", label: "Additional items (rows)" },
   { key: "operator_name", label: "Weighbridge operator" },
+  { key: "driver_signature", label: "Driver signature (image)" },
+  { key: "operator_signature", label: "Weighbridge signature (image)" },
   { key: "notes", label: "Notes / comments" },
   { key: "company_name", label: "Company name" },
   { key: "company_address", label: "Company address" },
@@ -77,6 +79,7 @@ export const WTN_PRINT_STYLES = `
   .wtn-sign { flex: 1; min-width: 0; border: 1px solid #000; padding: 1.5mm 2mm; min-height: 20mm; }
   .wtn-sign .k { font-size: 6.5pt; text-transform: uppercase; color: #444; }
   .wtn-sign .name { font-size: 8pt; border-top: 1px solid #999; margin-top: 7mm; padding-top: .8mm; overflow-wrap: anywhere; }
+  .wtn-sign img.sig { display: block; height: 9mm; max-width: 100%; object-fit: contain; margin: .5mm 0 -9.5mm; }
 `;
 
 /** Default design for one half of the sheet. */
@@ -178,9 +181,16 @@ export function renderWtnSheet(
   const logoImg = logo
     ? `<img src="${logo}" alt="{{company_name}}" style="display:block;max-height:13mm;max-width:60mm;margin-bottom:1mm;" />`
     : "<strong>{{company_name}}</strong>";
-  const preparedTemplate = template
+  let preparedTemplate = template
     .replace(/<strong>\s*\{\{\s*company_name\s*\}\}\s*<\/strong>(\s*<br\s*\/?>)?/, logo ? logoImg : "$&")
     .replace(/\{\{\s*company_logo\s*\}\}/g, logoImg);
+  // Saved designs may pre-date signature placeholders: place them in the sign boxes.
+  if (!/\{\{\s*driver_signature\s*\}\}/.test(preparedTemplate)) {
+    preparedTemplate = preparedTemplate.replace(/(<div class="k">\s*Driver Sign\s*<\/div>)/i, "$1{{driver_signature}}");
+  }
+  if (!/\{\{\s*operator_signature\s*\}\}/.test(preparedTemplate)) {
+    preparedTemplate = preparedTemplate.replace(/(<div class="k">\s*Weighbridge Sign\s*<\/div>)/i, "$1{{operator_signature}}");
+  }
   const printVars = includePrices
     ? vars
     : { ...vars, price_per_tonne: "", total_price: "", vat_amount: "", total_inc_vat: "", additional_items: "", payment: "" };
