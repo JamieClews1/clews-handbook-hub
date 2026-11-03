@@ -86,7 +86,7 @@ export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWei
                 <td className="px-3 py-2 text-right font-mono">{ticket.net_weight_kg != null ? (ticket.net_weight_kg / 1000).toFixed(3) : "—"}</td>
                 <td className="px-3 py-2">{ticket.status === "first_weigh" ? <Badge variant="outline">In yard</Badge> : <Badge className="bg-primary/10 text-primary hover:bg-primary/10">Complete</Badge>}</td>
               </tr>;
-            })}{!rows.length && <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">No tickets.</td></tr>}</tbody>
+            })}{!rows.length && <tr><td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">No tickets.</td></tr>}</tbody>
           </table>
         </div>
       </section>
