@@ -2067,7 +2067,7 @@ const WeighOnePage = () => {
 
       {/* Transaction Log */}
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsContent value="yard" className="mt-4"><WeighOneYard todayTickets={todayTickets} tickets={transactions} jobs={banksmanJobs as LinkedBanksmanJob[]} onTicket={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setTicketDialogOpen(true); } }} onWeighOut={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setSecondWeighDialogOpen(true); } }} onEdit={id => { const ticket = transactions.find(t => t.id === id); if (ticket) openEdit(ticket); }} /></TabsContent>
+        <TabsContent value="yard" className="mt-4"><WeighOneYard todayTickets={todayTickets} tickets={transactions} jobs={banksmanJobs as LinkedBanksmanJob[]} onTicket={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setTicketDialogOpen(true); } }} onWeighOut={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setSelectedTransaction(ticket); setSecondWeighDialogOpen(true); } }} onEdit={id => { const ticket = transactions.find(t => t.id === id); if (ticket) { setTicketDialogOpen(false); openEdit(ticket); } }} /></TabsContent>
         <TabsContent value="tickets" className="mt-4"><CombinedTicketList tablet={tablet} banksmanJobs={banksmanJobs as LinkedBanksmanJob[]} /></TabsContent>
         <TabsContent value="alerts" className="mt-4"><BanksmanAlertsPanel /></TabsContent>
         <TabsContent value="log" className="mt-4">
@@ -2121,7 +2121,7 @@ const WeighOnePage = () => {
                       {filtered.map((t) => {
                         const cfg = STATUS_CONFIG[t.status];
                         return (
-                          <TableRow key={t.id} className="cursor-pointer select-none hover:bg-muted/40" onClick={() => { setSelectedTransaction(t); setTicketDialogOpen(true); }}>
+                          <TableRow key={t.id} title="Double-click to edit" className="cursor-pointer select-none hover:bg-muted/40" onClick={() => { setSelectedTransaction(t); setTicketDialogOpen(true); }} onDoubleClick={() => { setTicketDialogOpen(false); openEdit(t); }}>
                             <TableCell className="whitespace-nowrap font-mono font-medium">
                               <span className="inline-flex items-center gap-1.5">
                                 {t.ticket_number}
