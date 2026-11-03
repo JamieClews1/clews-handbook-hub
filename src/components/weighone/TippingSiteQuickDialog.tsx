@@ -22,7 +22,7 @@ export function TippingSiteQuickDialog({ open, onOpenChange, site, initialName, 
   const qc = useQueryClient();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [f, setF] = useState({ site_name: "", operator_name: "", address: "", postcode: "", registration_number: "" });
+  const [f, setF] = useState({ site_name: "", operator_name: "", address: "", postcode: "", registration_number: "", sic_code: "" });
 
   useEffect(() => {
     if (!open) return;
@@ -32,6 +32,7 @@ export function TippingSiteQuickDialog({ open, onOpenChange, site, initialName, 
       address: site?.address ?? "",
       postcode: site?.postcode ?? "",
       registration_number: site?.registration_number ?? "",
+      sic_code: site?.sic_code ?? "",
     });
   }, [open, site, initialName]);
 
@@ -45,6 +46,7 @@ export function TippingSiteQuickDialog({ open, onOpenChange, site, initialName, 
       address: f.address.trim() || null,
       postcode: f.postcode.trim().toUpperCase() || null,
       registration_number: f.registration_number.trim().toUpperCase() || null,
+      sic_code: f.sic_code.trim() || null,
     };
     let error;
     if (site) {
@@ -80,6 +82,7 @@ export function TippingSiteQuickDialog({ open, onOpenChange, site, initialName, 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5"><Label className="text-xs">Postcode</Label><Input value={f.postcode} onChange={set("postcode")} /></div>
             <div className="space-y-1.5"><Label className="text-xs">Permit number</Label><Input className="font-mono" value={f.registration_number} onChange={set("registration_number")} /></div>
+            <div className="space-y-1.5"><Label className="text-xs">SIC code</Label><Input className="font-mono" value={f.sic_code} onChange={set("sic_code")} /></div>
           </div>
         </div>
         <DialogFooter>

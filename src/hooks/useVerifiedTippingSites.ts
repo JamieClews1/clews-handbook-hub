@@ -7,6 +7,7 @@ export interface VerifiedTippingSite {
   id: string;
   site_name: string;
   site_class?: SiteClass;
+  sic_code?: string | null;
   operator_name: string | null;
   registration_number: string | null;
   register: string;

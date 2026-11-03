@@ -124,14 +124,19 @@ export const DEFAULT_WTN_TEMPLATE = `<div class="wtn-copy">
     <div class="wtn-col">
       <div class="k">Waste Producer / Customer</div>
       <div class="v">{{producer_name}}
-{{producer_address}}</div>
+{{producer_address}}
+SIC: {{producer_sic}}</div>
+      <div class="v" data-wtn-broker style="margin-top:1mm"><strong>Broker:</strong> {{broker_name}}
+{{broker_address}}
+SIC: {{broker_sic}}</div>
       <div class="k" style="margin-top:1.5mm">EWC</div>
       <div class="v">{{ewc_code}} — {{waste_description}}</div>
     </div>
     <div class="wtn-col">
       <div class="k">Receiving Site</div>
       <div class="v">{{receiving_name}}
-{{receiving_address}}</div>
+{{receiving_address}}
+SIC: {{receiving_sic}}</div>
       <div class="k" style="margin-top:1.5mm">Container / Form / Transport</div>
       <div class="v">{{container_type}} · {{physical_form}} · {{means_of_transport}}</div>
     </div>
@@ -211,6 +216,13 @@ export function renderWtnSheet(
   {
     preparedTemplate = preparedTemplate.replace(/(Producer Sign\s*<\/div>\s*<div class="name">)\s*\{\{\s*customer\s*\}\}/i, "$1{{producer_name}}");
   }
+  // Saved designs may pre-date SIC/broker placeholders: add them under each party.
+  if (!/\{\{\s*producer_sic\s*\}\}/.test(preparedTemplate)) {
+    preparedTemplate = preparedTemplate.replace(/\{\{\s*producer_address\s*\}\}/, "{{producer_address}}\nSIC: {{producer_sic}}</div><div class=\"v\" data-wtn-broker style=\"margin-top:1mm\"><strong>Broker:</strong> {{broker_name}}\n{{broker_address}}\nSIC: {{broker_sic}}");
+  }
+  if (!/\{\{\s*receiving_sic\s*\}\}/.test(preparedTemplate)) {
+    preparedTemplate = preparedTemplate.replace(/\{\{\s*receiving_address\s*\}\}/, "{{receiving_address}}\nSIC: {{receiving_sic}}");
+  }
   // Saved designs may pre-date signature placeholders: place them in the sign boxes.
   if (!/\{\{\s*driver_signature\s*\}\}/.test(preparedTemplate)) {
     preparedTemplate = preparedTemplate.replace(/(<div class="k">\s*Driver Sign\s*<\/div>)/i, "$1{{driver_signature}}");
@@ -234,6 +246,7 @@ export function renderWtnSheet(
   return `<!doctype html><html><head><meta charset="utf-8" /><title>${title}</title>
 <style>${WTN_PRINT_STYLES}
   ${includePrices ? "" : "[data-wtn-pricing] { display: none !important; }"}
+  ${vars.broker_name ? "" : "[data-wtn-broker] { display: none !important; }"}
   .wtn-pricing { display: grid; grid-template-columns: 1fr 1.4fr 1fr 0.9fr 1fr 1fr; border: 1px solid #000; margin-top: 2mm; }
   .wtn-pricing > div { min-width: 0; padding: 1mm 2mm; border-right: 1px solid #000; }
   .wtn-pricing > div:last-child { border-right: 0; }
