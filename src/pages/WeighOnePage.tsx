@@ -125,6 +125,11 @@ interface WeighbridgeTransaction {
   linked_job_source: string | null;
   linked_job_date: string | null;
   is_test: boolean | null;
+  producer_sic?: string | null;
+  receiving_sic?: string | null;
+  broker_name?: string | null;
+  broker_address?: string | null;
+  broker_sic?: string | null;
 
 
 
@@ -269,6 +274,12 @@ const WeighOnePage = () => {
     linked_job_source: "",
     linked_job_date: "",
     tare_weight_kg: "",
+    producer_sic: "",
+    receiving_sic: "",
+    use_broker: false,
+    broker_name: "",
+    broker_address: "",
+    broker_sic: "",
   };
 
 
@@ -376,6 +387,17 @@ const WeighOnePage = () => {
       return data?.waste_carriers_licence_number ?? "";
     },
   });
+
+  // Our registered SIC code (company_profile) for the Clews side of each ticket
+  const { data: ownSic = "" } = useQuery({
+    queryKey: ["weighone-own-sic"],
+    queryFn: async () => {
+      const { data } = await supabase.from("company_profile").select("sic_code").limit(1).maybeSingle();
+      return data?.sic_code ?? "";
+    },
+  });
+  const brokerSites = verifiedSites.filter((v) => v.site_class === "broker");
+  const findVerifiedSite = (name: string) => verifiedSites.find((v) => v.site_name.trim().toLowerCase() === (name || "").trim().toLowerCase());
 
   // Registered company name — Waste Out always leaves from our own site
   const { data: ownCompanyName = "Clews Recycling" } = useQuery({
@@ -694,7 +716,7 @@ const WeighOnePage = () => {
       .maybeSingle();
     const { data: doc } = await supabase
       .from("customers")
-      .select("waste_carrier_licence")
+      .select("waste_carrier_licence, sic_code")
       .ilike("customer_name", customerName)
       .limit(1)
       .maybeSingle();
@@ -704,6 +726,7 @@ const WeighOnePage = () => {
       rate_group_id: data?.rate_group_id ?? p.rate_group_id,
       carrier_name: data?.carrier_name || p.carrier_name,
       carrier_registration: data?.carrier_registration || doc?.waste_carrier_licence || p.carrier_registration,
+      producer_sic: doc?.sic_code || p.producer_sic,
     }));
   };
 
@@ -830,6 +853,11 @@ const WeighOnePage = () => {
         linked_job_source: formData.linked_job_number ? (formData.linked_job_source || "skiptrak") : null,
         linked_job_date: formData.linked_job_date || null,
         tare_weight_kg: hasTare ? tareKg : null,
+        producer_sic: (formData.producer_sic || (isWasteOut ? ownSic : "")).trim() || null,
+        receiving_sic: (formData.receiving_sic || (isWasteOut ? findVerifiedSite(formData.site)?.sic_code ?? "" : ownSic)).trim() || null,
+        broker_name: formData.use_broker ? (formData.broker_name.trim() || null) : null,
+        broker_address: formData.use_broker ? (formData.broker_address.trim() || null) : null,
+        broker_sic: formData.use_broker ? (formData.broker_sic.trim() || null) : null,
         net_weight_kg: netKg,
         weight_charge: weightCharge,
         total_price: hasTare ? (weightCharge ?? 0) + itemsTotal : null,
@@ -1122,6 +1150,12 @@ const WeighOnePage = () => {
       linked_job_source: t.linked_job_source ?? "",
       linked_job_date: t.linked_job_date ?? "",
       tare_weight_kg: t.tare_weight_kg != null ? String(t.tare_weight_kg) : "",
+      producer_sic: t.producer_sic ?? "",
+      receiving_sic: t.receiving_sic ?? "",
+      use_broker: !!t.broker_name,
+      broker_name: t.broker_name ?? "",
+      broker_address: t.broker_address ?? "",
+      broker_sic: t.broker_sic ?? "",
     });
     setOutProductId(product?.id ?? "");
     setClassification(asClassification(t.waste_classification));
@@ -1240,6 +1274,11 @@ const WeighOnePage = () => {
   const ticketParties = (t: WeighbridgeTransaction) => {
     const clewsName = WTN_COMPANY_DETAILS.company_name;
     const clewsAddress = WTN_COMPANY_DETAILS.company_address;
+    const brokerVars = {
+      broker_name: t.broker_name ?? "",
+      broker_address: t.broker_address ?? "",
+      broker_sic: t.broker_sic ?? "",
+    };
     if (t.job_type === "waste_out") {
       const label = (t.site ?? "").trim();
       const norm = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -1255,6 +1294,9 @@ const WeighOnePage = () => {
         producer_address: clewsAddress,
         receiving_name: match ? (match.operator_name ? `${match.operator_name} – ${match.site_name}` : match.site_name) : label,
         receiving_address: address,
+        producer_sic: t.producer_sic || ownSic || "",
+        receiving_sic: t.receiving_sic || match?.sic_code || "",
+        ...brokerVars,
       };
     }
     return {
@@ -1262,6 +1304,9 @@ const WeighOnePage = () => {
       producer_address: t.site ?? "",
       receiving_name: clewsName,
       receiving_address: clewsAddress,
+      producer_sic: t.producer_sic ?? "",
+      receiving_sic: t.receiving_sic || ownSic || "",
+      ...brokerVars,
     };
   };
 
@@ -1722,6 +1767,34 @@ const WeighOnePage = () => {
                               </>
                             );
                           })()}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Producer SIC code</Label>
+                            <Input className="h-9 font-mono" placeholder={isWasteOut ? (ownSic || "e.g. 38110") : "From Customer Setup"} value={formData.producer_sic} onChange={(e) => setFormData((p) => ({ ...p, producer_sic: e.target.value }))} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">{isWasteOut ? "Disposal site SIC code" : "Receiving site SIC code"}</Label>
+                            <Input className="h-9 font-mono" placeholder={isWasteOut ? (findVerifiedSite(formData.site)?.sic_code || "e.g. 38210") : (ownSic || "e.g. 38110")} value={formData.receiving_sic} onChange={(e) => setFormData((p) => ({ ...p, receiving_sic: e.target.value }))} />
+                          </div>
+                        </div>
+                        <div className="rounded-md border p-2 space-y-2">
+                          <label className="flex items-center gap-2 text-sm font-medium">
+                            <input type="checkbox" className="h-4 w-4 accent-primary" checked={formData.use_broker} onChange={(e) => setFormData((p) => ({ ...p, use_broker: e.target.checked }))} />
+                            A waste broker is used
+                          </label>
+                          {formData.use_broker && (
+                            <div className="space-y-2">
+                              <Input className="h-9" list="weighone-brokers" placeholder="Broker company name" value={formData.broker_name} onChange={(e) => {
+                                const name = e.target.value;
+                                const b = brokerSites.find((v) => (v.operator_name || v.site_name).trim().toLowerCase() === name.trim().toLowerCase());
+                                setFormData((p) => ({ ...p, broker_name: name, ...(b ? { broker_address: [b.address, b.postcode && !(b.address ?? "").includes(b.postcode) ? b.postcode : ""].filter(Boolean).join(", "), broker_sic: b.sic_code || p.broker_sic } : {}) }));
+                              }} />
+                              <datalist id="weighone-brokers">{brokerSites.map((b) => <option key={b.id} value={b.operator_name || b.site_name} />)}</datalist>
+                              <Input className="h-9" placeholder="Broker address" value={formData.broker_address} onChange={(e) => setFormData((p) => ({ ...p, broker_address: e.target.value }))} />
+                              <Input className="h-9 font-mono" placeholder="Broker SIC code" value={formData.broker_sic} onChange={(e) => setFormData((p) => ({ ...p, broker_sic: e.target.value }))} />
+                            </div>
+                          )}
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs">Haulier</Label>
