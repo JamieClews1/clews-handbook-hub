@@ -72,20 +72,12 @@ export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWei
         </div>
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-border text-left text-xs text-muted-foreground"><th className="px-3 py-2 font-medium">Ticket</th><th className="px-3 py-2 font-medium">Customer / Site</th><th className="px-3 py-2 font-medium">Vehicle</th><th className="px-3 py-2 font-medium">Waste</th><th className="px-3 py-2 font-medium">Banksman</th><th className="px-3 py-2 font-medium text-right">Net (t)</th><th className="px-3 py-2 font-medium">Status</th></tr></thead>
+            <thead><tr className="border-b border-border text-left text-xs text-muted-foreground"><th className="px-3 py-2 font-medium">Ticket</th><th className="px-3 py-2 font-medium">Type</th><th className="px-3 py-2 font-medium">Customer / Site</th><th className="px-3 py-2 font-medium">Vehicle</th><th className="px-3 py-2 font-medium">Waste</th><th className="px-3 py-2 font-medium">Banksman</th><th className="px-3 py-2 font-medium text-right">Net (t)</th><th className="px-3 py-2 font-medium">Status</th></tr></thead>
             <tbody>{rows.map(ticket => {
               const job = match(ticket.id); const t = tone(job);
               return <tr key={ticket.id} title={onEdit ? "Double-click to edit" : undefined} onClick={() => { clearRowTimer(); rowTimer.current = window.setTimeout(() => onTicket(ticket.id), 250); }} onDoubleClick={e => { e.stopPropagation(); clearRowTimer(); if (onEdit) onEdit(ticket.id); }} className={`cursor-pointer border-b border-border last:border-0 hover:bg-muted/50 ${t === "urgent" ? "shadow-[inset_3px_0_0_hsl(var(--destructive))]" : t === "contamination" ? "shadow-[inset_3px_0_0_hsl(var(--warning))]" : ""}`}>
-                <td className="px-3 py-2 font-mono font-semibold">
-                  <span className="inline-flex items-center gap-1.5">
-                    {ticket.ticket_number}
-                    {ticketTypeCode(ticket.job_type) && (
-                      <span className={`inline-flex items-center rounded-md border px-1.5 py-0 text-[10px] font-bold leading-4 tracking-wide ${ticketTypeCode(ticket.job_type)!.className}`}>
-                        {ticketTypeCode(ticket.job_type)!.code}
-                      </span>
-                    )}
-                  </span>
-                </td>
+                <td className="px-3 py-2 font-mono font-semibold">{ticket.ticket_number}</td>
+                <td className="px-3 py-2">{ticketTypeCode(ticket.job_type) ? <span className={`inline-flex items-center rounded-md border px-1.5 py-0 text-[10px] font-bold leading-4 tracking-wide ${ticketTypeCode(ticket.job_type)!.className}`}>{ticketTypeCode(ticket.job_type)!.code}</span> : <span className="text-xs text-muted-foreground">—</span>}</td>
 
                 <td className="px-3 py-2">{ticket.customer || "—"}</td>
                 <td className="px-3 py-2"><span className="rounded bg-warning-subtle px-1.5 py-0.5 font-mono text-xs font-bold">{ticket.vehicle_reg}</span></td>
@@ -94,7 +86,7 @@ export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWei
                 <td className="px-3 py-2 text-right font-mono">{ticket.net_weight_kg != null ? (ticket.net_weight_kg / 1000).toFixed(3) : "—"}</td>
                 <td className="px-3 py-2">{ticket.status === "first_weigh" ? <Badge variant="outline">In yard</Badge> : <Badge className="bg-primary/10 text-primary hover:bg-primary/10">Complete</Badge>}</td>
               </tr>;
-            })}{!rows.length && <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">No tickets.</td></tr>}</tbody>
+            })}{!rows.length && <tr><td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">No tickets.</td></tr>}</tbody>
           </table>
         </div>
       </section>

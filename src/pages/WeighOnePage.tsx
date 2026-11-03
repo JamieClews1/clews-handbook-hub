@@ -8,7 +8,6 @@ import { RouteOneArrivalPicker, type ArrivingJob } from "@/components/weighone/R
 import { CONTAINER_GROUPS, bookingContainerLabel } from "@/lib/container-taxonomy";
 import { WASTE_OUT_CONTAINERS, recogniseContainer } from "@/lib/weighone-waste-out";
 import { INBOUND_CONTAINER_GROUPS, isPickedContainer } from "@/lib/weighone-container-groups";
-import { ticketTypeCode } from "@/lib/weighone-ticket-type";
 
 import { ContainerAccordion } from "@/components/weighone/ContainerAccordion";
 import { WasteOutProductPicker, type WasteOutProductOption } from "@/components/weighone/WasteOutProductPicker";
@@ -2156,19 +2155,7 @@ const WeighOnePage = () => {
                         return (
                           <TableRow key={t.id} title="Double-click to edit" className="cursor-pointer select-none hover:bg-muted/40" onClick={() => { if (logRowTimer.current) window.clearTimeout(logRowTimer.current); logRowTimer.current = window.setTimeout(() => { setSelectedTransaction(t); setTicketDialogOpen(true); }, 250); }} onDoubleClick={() => { if (logRowTimer.current) { window.clearTimeout(logRowTimer.current); logRowTimer.current = null; } setTicketDialogOpen(false); openEdit(t); }}>
                             <TableCell className="whitespace-nowrap font-mono font-medium">
-                              <span className="inline-flex items-center gap-1.5">
-                                {t.ticket_number}
-                                {ticketTypeCode(t.job_type) && (
-                                  <span
-                                    className={cn(
-                                      "inline-flex items-center rounded-md border px-1.5 py-0 text-[10px] font-bold leading-4 tracking-wide",
-                                      ticketTypeCode(t.job_type)!.className,
-                                    )}
-                                  >
-                                    {ticketTypeCode(t.job_type)!.code}
-                                  </span>
-                                )}
-                              </span>
+                              {t.ticket_number}
                             </TableCell>
 
                             <TableCell className="font-mono">{t.vehicle_reg}</TableCell>
