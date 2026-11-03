@@ -1773,24 +1773,24 @@ const WeighOnePage = () => {
                             );
                           })()}
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <>
                           <div className="space-y-1.5">
-                            <Label className="text-xs">Producer SIC code</Label>
+                            <Label className="text-xs">Producer SIC</Label>
                             <Input className="h-9 font-mono" placeholder={isWasteOut ? (ownSic || "e.g. 38110") : "From Customer Setup"} value={formData.producer_sic} onChange={(e) => setFormData((p) => ({ ...p, producer_sic: e.target.value }))} />
                           </div>
                           <div className="space-y-1.5">
-                            <Label className="text-xs">{isWasteOut ? "Disposal site SIC code" : "Receiving site SIC code"}</Label>
+                            <Label className="text-xs">{isWasteOut ? "Disposal site SIC" : "Receiving site SIC"}</Label>
                             <Input className="h-9 font-mono" placeholder={isWasteOut ? (findVerifiedSite(formData.site)?.sic_code || "e.g. 38210") : (ownSic || "e.g. 38110")} value={formData.receiving_sic} onChange={(e) => setFormData((p) => ({ ...p, receiving_sic: e.target.value }))} />
                           </div>
-                        </div>
-                        <div className="rounded-md border p-2 space-y-2">
-                          <label className="flex items-center gap-2 text-sm font-medium">
+                        </>
+                        <div className="col-span-2 rounded-md border bg-muted/30 p-3 space-y-3">
+                          <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
                             <input type="checkbox" className="h-4 w-4 accent-primary" checked={formData.use_broker} onChange={(e) => setFormData((p) => ({ ...p, use_broker: e.target.checked }))} />
                             A waste broker is used
                           </label>
                           {formData.use_broker && (
-                            <div className="space-y-2">
-                              <Input className="h-9" list="weighone-brokers" placeholder="Broker company name" value={formData.broker_name} onChange={(e) => {
+                            <div className="grid grid-cols-2 gap-3">
+                              <Input className="col-span-2 h-9" list="weighone-brokers" placeholder="Broker company name" value={formData.broker_name} onChange={(e) => {
                                 const name = e.target.value;
                                 const b = brokerSites.find((v) => (v.operator_name || v.site_name).trim().toLowerCase() === name.trim().toLowerCase());
                                 setFormData((p) => ({ ...p, broker_name: name, ...(b ? { broker_address: [b.address, b.postcode && !(b.address ?? "").includes(b.postcode) ? b.postcode : ""].filter(Boolean).join(", "), broker_sic: b.sic_code || p.broker_sic } : {}) }));
