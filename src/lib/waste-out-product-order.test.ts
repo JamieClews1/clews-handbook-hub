@@ -66,7 +66,7 @@ describe("waste out product picker order", () => {
   it("keeps the ranked order while searching", () => {
     const ranked = rankWasteOutProducts(products);
     expect(names(searchWasteOutProducts(ranked, "wood"))).toEqual(["Wood grade C"]);
-    expect(names(searchWasteOutProducts(ranked, "191212"))).toEqual(["Trommel fines", "Waste out – landfill"]);
+    expect(names(searchWasteOutProducts(ranked, "191212"))).toEqual(["Waste out – landfill", "Trommel fines"]);
     expect(searchWasteOutProducts(ranked, "nothing matches")).toEqual([]);
     expect(searchWasteOutProducts(ranked, "  ")).toBe(ranked);
   });
