@@ -181,9 +181,11 @@ export function renderWtnSheet(
   template: string,
   vars: WtnVars,
   title = "Waste Transfer Note",
-  options: { includePrices?: boolean } = {},
+  options: { includePrices?: boolean; testMode?: boolean } = {},
 ): string {
   const includePrices = options.includePrices ?? true;
+  const testMode = options.testMode === true;
+
   const logo = getBrandLogoUrl();
   const logoImg = logo
     ? `<img src="${logo}" alt="{{company_name}}" style="display:block;max-height:13mm;max-width:60mm;margin-bottom:1mm;" />`
