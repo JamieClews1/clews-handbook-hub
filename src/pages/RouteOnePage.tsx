@@ -89,6 +89,7 @@ import { usePostcodeCoords } from "@/hooks/usePostcodeCoords";
 import { usePostcodeZoneLookup } from "@/hooks/usePostcodeZoneLookup";
 import { Search } from "lucide-react";
 import { Columns3 } from "lucide-react";
+import { useTestModeActive, TestModeSettingsCard } from "@/lib/test-mode";
 
 // Columns available in the List view. Each column knows how to read its value
 // from a native RouteOne job and from a Skiptrak (data hub) job.
@@ -220,6 +221,7 @@ const costFields = (form: any) => {
 };
 
 const RouteOnePage = () => {
+  const testMode = useTestModeActive();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -493,6 +495,7 @@ const RouteOnePage = () => {
   const createJob = useMutation({
     mutationFn: async ({ form, send }: { form: typeof jobForm; send: boolean }) => {
       const { error } = await supabase.from("route_one_jobs").insert({
+        is_test: testMode,
         customer_name: form.customer_name,
         site_name: form.site_name || null,
         site_address: form.site_address || null,
@@ -1023,6 +1026,7 @@ const RouteOnePage = () => {
                   <TabsTrigger value="container-types" className="text-xs whitespace-nowrap">Containers</TabsTrigger>
                   <TabsTrigger value="wtn-design" className="text-xs whitespace-nowrap">Ticket Builder</TabsTrigger>
                   <TabsTrigger value="routing" className="text-xs whitespace-nowrap">Routing Rules</TabsTrigger>
+                  <TabsTrigger value="test-mode" className="text-xs whitespace-nowrap text-destructive">Test mode</TabsTrigger>
                 </TabsList>
 
                 <div className="mt-4">
@@ -1060,6 +1064,9 @@ const RouteOnePage = () => {
                   </TabsContent>
                   <TabsContent value="wtn-design">
                     <WtnDesignSettings />
+                  </TabsContent>
+                  <TabsContent value="test-mode">
+                    <TestModeSettingsCard />
                   </TabsContent>
                   <TabsContent value="routing">
                     <RoutingRulesSettings />

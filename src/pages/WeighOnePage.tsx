@@ -61,6 +61,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { useTestModeActive, TestModeSettingsCard } from "@/lib/test-mode";
 import { planTicketDeletion, ticketDeletionUnlinks, type TicketDeletionLinks } from "@/lib/weighone-ticket-delete";
 
 type WeighbridgeStatus = "first_weigh" | "completed" | "voided";
@@ -237,6 +238,7 @@ const WeighOnePage = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [skipDriver, setSkipDriver] = useState<string>("");
   const { user } = useAuth();
+  const testMode = useTestModeActive();
   const [operatorSignature, setOperatorSignature] = useState<string | null>(null);
   const [driverSignature, setDriverSignature] = useState<string | null>(null);
   /** Waste OUT on a Clews vehicle → also raise the matching Route One job */
@@ -841,7 +843,7 @@ const WeighOnePage = () => {
         txData = { id: editing.id };
       } else {
         const { data, error } = await supabase.from("weighbridge_transactions")
-          .insert({ ...payload, ticket_number: ticket, operator_id: user?.id ?? null })
+          .insert({ ...payload, ticket_number: ticket, operator_id: user?.id ?? null, is_test: testMode })
           .select("id").single();
         if (error) throw error;
         txData = data;
@@ -900,6 +902,7 @@ const WeighOnePage = () => {
         isOwnVehicle(formData.vehicle_reg, formData.carrier_name)
       ) {
         const { error: roError } = await supabase.from("route_one_jobs").insert({
+          is_test: testMode,
           customer_name: formData.customer || OWN_CARRIER_NAME,
           site_name: formData.site || null,
           job_type: "waste_out_skip",
@@ -2282,7 +2285,7 @@ const WeighOnePage = () => {
               <BanksmanAppGuide />
             </TabsContent>
             <TabsContent value="settings">
-              <BanksmanSettings />
+              <div className="space-y-4"><TestModeSettingsCard /><BanksmanSettings /></div>
             </TabsContent>
             <TabsContent value="yard-staff">
               <Card className="border-border/50">
