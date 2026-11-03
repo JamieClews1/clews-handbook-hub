@@ -6,8 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { BanksmanTicketReport, banksmanLabel, type LinkedBanksmanJob } from "./BanksmanTicketReport";
 import { BanksmanJobDialog } from "@/components/banksman/BanksmanJobDialog";
 import { ticketTypeCode } from "@/lib/weighone-ticket-type";
+import { TestBadge, isTestRecord } from "@/lib/test-mode";
 
-type YardTicket = { id: string; ticket_number: string; vehicle_reg: string; customer: string | null; site?: string | null; waste_description: string | null; ewc_code: string | null; status: string; first_weigh_at: string | null; gross_weight_kg: number | null; net_weight_kg: number | null; created_at?: string | null; job_type?: string | null };
+
+type YardTicket = { id: string; ticket_number: string; vehicle_reg: string; customer: string | null; site?: string | null; waste_description: string | null; ewc_code: string | null; status: string; first_weigh_at: string | null; gross_weight_kg: number | null; net_weight_kg: number | null; created_at?: string | null; job_type?: string | null; is_test?: boolean | null };
 
 
 const hhmm = (d: string | null | undefined) => d ? new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "2-digit", minute: "2-digit" }).format(new Date(d)) : "—";
@@ -56,7 +58,7 @@ export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWei
           return <div role="button" tabIndex={0} key={ticket.id} onClick={() => onTicket(ticket.id)} onKeyDown={e => { if (e.key === "Enter") onTicket(ticket.id); }} className={`cursor-pointer ` + `min-w-0 rounded-xl border bg-card p-3.5 text-left space-y-2 transition-colors hover:border-foreground/30 ${t === "urgent" ? "border-destructive" : "border-border"}`}>
             <div className="flex items-center justify-between gap-2"><span className="rounded bg-warning-subtle px-2 py-0.5 font-mono text-sm font-bold text-foreground">{ticket.vehicle_reg}</span><span className="flex items-center gap-1.5 text-xs text-muted-foreground">{elapsed !== null && elapsed > 45 && <span className="h-2 w-2 rounded-full bg-warning" />}{elapsed !== null ? `${elapsed} min` : "—"}</span></div>
             <div><p className="truncate font-semibold text-foreground">{ticket.customer || "No customer"}</p><p className="truncate text-xs text-muted-foreground">{ticket.waste_description || "—"} · {hhmm(ticket.first_weigh_at)}</p></div>
-            <p className="font-mono text-xs text-muted-foreground">1st {hhmm(ticket.first_weigh_at)} · {ticket.gross_weight_kg !== null ? `${(ticket.gross_weight_kg / 1000).toFixed(2)} t gross` : "—"} · #{ticket.ticket_number}</p>
+            <p className="font-mono text-xs text-muted-foreground">1st {hhmm(ticket.first_weigh_at)} · {ticket.gross_weight_kg !== null ? `${(ticket.gross_weight_kg / 1000).toFixed(2)} t gross` : "—"} · #{ticket.ticket_number}{isTestRecord(ticket) && <> <TestBadge />}</>}</p>
             <div className="grid grid-cols-4 gap-1">{STEPS.map((s, i) => <span key={s} className={`h-1 rounded-full ${i <= stage ? (t === "urgent" ? "bg-destructive" : "bg-primary") : "bg-muted"}`} />)}</div>
             <div className="flex items-center justify-between gap-2 text-xs"><span className="font-medium text-foreground">{STEPS[stage]}</span><span className="flex items-center gap-3">{onEdit && <button type="button" className="inline-flex items-center gap-1 font-medium text-foreground/75 hover:text-primary hover:underline" onClick={e => { e.stopPropagation(); onEdit(ticket.id); }}><Pencil className="h-3 w-3" />Edit</button>}<button type="button" className="text-muted-foreground hover:text-primary hover:underline" onClick={e => { e.stopPropagation(); onWeighOut(ticket.id); }}>Next: {STEPS[stage + 1]}</button></span></div>
             {t && <p className={`rounded-md px-2 py-1 text-xs font-medium ${toneClass[t]}`}>Banksman · {banksmanLabel(job)}</p>}
@@ -76,7 +78,7 @@ export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWei
             <tbody>{rows.map(ticket => {
               const job = match(ticket.id); const t = tone(job);
               return <tr key={ticket.id} title={onEdit ? "Double-click to edit" : undefined} onClick={() => { clearRowTimer(); rowTimer.current = window.setTimeout(() => onTicket(ticket.id), 250); }} onDoubleClick={e => { e.stopPropagation(); clearRowTimer(); if (onEdit) onEdit(ticket.id); }} className={`cursor-pointer border-b border-border last:border-0 hover:bg-muted/50 ${t === "urgent" ? "shadow-[inset_3px_0_0_hsl(var(--destructive))]" : t === "contamination" ? "shadow-[inset_3px_0_0_hsl(var(--warning))]" : ""}`}>
-                <td className="px-3 py-2 font-mono font-semibold">{ticket.ticket_number}</td>
+                <td className="px-3 py-2 font-mono font-semibold">{ticket.ticket_number}{isTestRecord(ticket) && <span className="ml-1 inline-flex align-middle"><TestBadge /></span>}</td>
                 <td className="px-3 py-2">{ticketTypeCode(ticket.job_type) ? <span className={`inline-flex items-center rounded-md border px-1.5 py-0 text-[10px] font-bold leading-4 tracking-wide ${ticketTypeCode(ticket.job_type)!.className}`}>{ticketTypeCode(ticket.job_type)!.code}</span> : <span className="text-xs text-muted-foreground">—</span>}</td>
 
                 <td className="px-3 py-2">{ticket.customer || "—"}</td>
