@@ -1605,31 +1605,21 @@ export function CustomerSetupAdmin() {
 
                 <TabsContent value="sites" className="mt-4 space-y-4">
                   <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold">Sites</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Create sites, manually attach Data Hub identifiers, set an owner contact, and pick a rebate price-set template.
-                      </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Input
+                        placeholder={showArchivedSites ? "Search archived sites" : "Search sites"}
+                        value={siteSearch}
+                        onChange={(e) => setSiteSearch(e.target.value)}
+                        className="w-full sm:w-80"
+                      />
+                      {(showArchivedSites || sites.some((s) => s.is_archived)) && (
+                        <FilterChip active={showArchivedSites} onClick={() => setShowArchivedSites((v) => !v)}>
+                          Archived {sites.filter((s) => s.is_archived).length}
+                        </FilterChip>
+                      )}
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant={showArchivedSites ? "default" : "outline"}
-                        onClick={() => setShowArchivedSites((v) => !v)}
-                      >
-                        {showArchivedSites
-                          ? `Showing archived (${sites.filter((s) => s.is_archived).length})`
-                          : `Show archived (${sites.filter((s) => s.is_archived).length})`}
-                      </Button>
-                      <Button onClick={openCreateSite}>New site</Button>
-                    </div>
+                    <Button onClick={openCreateSite}><Plus className="h-4 w-4" /> New site</Button>
                   </div>
-
-                  <Input
-                    placeholder={showArchivedSites ? "Search archived sites…" : "Search sites…"}
-                    value={siteSearch}
-                    onChange={(e) => setSiteSearch(e.target.value)}
-                    className="max-w-sm"
-                  />
 
                   {loadingDataHubSites && (
                     <p className="text-sm text-muted-foreground">Reading sites from this customer's jobs…</p>
