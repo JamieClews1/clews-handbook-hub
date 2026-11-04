@@ -86,6 +86,20 @@ export function rentalCustomerKey(customer: string | null): string {
     .replace(/[^a-z0-9]/g, "");
 }
 
+/** Waste wording for the open tickets behind one bin: the recorded description where
+ * the upload carries one, otherwise the EWC code alone. Never invented — a bin whose
+ * movements record nothing yields an empty list. */
+function openBinWasteTypes(slots: Slot[]): string[] {
+  const types: string[] = [];
+  for (const slot of slots) {
+    const description = (slot.job.waste_description ?? "").replace(/\s+/g, " ").trim();
+    const ewc = (slot.job.ewc ?? "").replace(/\s+/g, " ").trim();
+    const label = description || (ewc ? `EWC ${ewc}` : "");
+    if (label && !types.includes(label)) types.push(label);
+  }
+  return types;
+}
+
 /** Replay physical movements so collections consume stock and exchanges replace
  * the old ticket, even when its EWC or container spelling changed. */
 export function openRentalBins(
