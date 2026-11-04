@@ -1217,6 +1217,9 @@ export async function buildWtnBatch(jobs: WtnJob[]): Promise<jsPDF | null> {
 async function loadWasteOutSignatures(job: WtnJob & { weighbridge_transaction_id?: string | null }): Promise<WtnJob> {
   if (job.job_type !== WASTE_OUT_SKIP || !job.weighbridge_transaction_id) return job;
   const { supabase } = await import("@/integrations/supabase/client");
+  // PIN-only drivers use the producer snapshot already stored on their assigned job.
+  const { data: session } = await supabase.auth.getSession();
+  if (!session.session) return job;
   const { wasteOutProducerSignature } = await import("./waste-out-signatures");
   const { data, error } = await supabase.from("weighbridge_transactions")
     .select("operator_signature,operator_name,first_weigh_at,disposer_signature,disposer_name,disposer_signoff_at")
