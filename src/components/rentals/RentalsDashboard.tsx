@@ -584,7 +584,7 @@ export default function RentalsDashboard() {
                   const assigneeColour = assignee ? staffColours.get(assignee.id) ?? null : null;
                   return (
                     <TableRow
-                      key={b.binKey}
+                      key={`${b.binKey}::${b.customer}`}
                       className="bg-destructive/5"
                       style={assigneeColour ? { boxShadow: `inset 4px 0 0 ${assigneeColour}` } : undefined}
                     >
@@ -685,7 +685,7 @@ export default function RentalsDashboard() {
               </TableHeader>
               <TableBody>
                 {visibleCoveredBins.map((b) => (
-                  <TableRow key={b.binKey} className="bg-primary/5">
+                  <TableRow key={`${b.binKey}::${b.customer}`} className="bg-primary/5">
                     <TableCell className="font-medium">{b.customer}</TableCell>
                     <TableCell>{b.site}</TableCell>
                     <TableCell><Badge variant="outline" className="text-xs">{b.containerType}</Badge></TableCell>
@@ -730,7 +730,7 @@ export default function RentalsDashboard() {
                 {visibleOwnSkipBins.map((b) => {
                   const c = chases[b.binKey];
                   return (
-                    <TableRow key={b.binKey}>
+                    <TableRow key={`${b.binKey}::${b.customer}`}>
                       <TableCell className="font-medium">{b.customer}</TableCell>
                       <TableCell>{b.site}</TableCell>
                       <TableCell><Badge variant="outline" className="text-xs">{b.containerType}</Badge></TableCell>
