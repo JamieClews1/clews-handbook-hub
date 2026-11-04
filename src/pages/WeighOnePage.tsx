@@ -2220,7 +2220,7 @@ const WeighOnePage = () => {
                           )}
                           {isWasteOut && <><Input aria-label="Disposal site signatory name" placeholder="Disposal site signatory" value={disposerName} onChange={(e) => setDisposerName(e.target.value)} className="w-44" /><SignatureField compact label="Disposal site signature" value={disposerSignature} onChange={setDisposerSignature} /></>}
 
-                <div className="ml-auto flex items-center gap-3">{editingTicket && (<><Button variant="outline" size="sm" className="gap-1.5" title="Download the saved ticket as PDF" onClick={() => downloadTicket(editingTicket, formItemsForPrint(), editingTicket.job_type !== "waste_out")}><Download className="h-4 w-4" /> PDF</Button><Button variant="outline" size="sm" className="gap-1.5" title="Print the saved ticket" onClick={() => printTicket(editingTicket, formItemsForPrint(), editingTicket.job_type !== "waste_out")}><Printer className="h-4 w-4" /> Print</Button><Button variant="outline" size="sm" className="gap-1.5" title="Start a new ticket with these details" onClick={() => duplicateTicket(editingTicket)}><Copy className="h-4 w-4" /> Duplicate</Button></>)}<Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>{editingTicket ? "Close" : "Cancel"}</Button><Button variant="outline" onClick={() => createMutation.mutate({ keepOpen: true })} disabled={!formData.vehicle_reg || createMutation.isPending}>Save</Button><Button onClick={() => createMutation.mutate(undefined)} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? (editingTicket ? "Saving…" : "Recording…") : editingTicket ? "Save & close" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
+                <div className="ml-auto flex items-center gap-3">{editingTicket && (<><Button variant="outline" size="sm" className="gap-1.5" title="Download the saved ticket as PDF" onClick={() => downloadTicket(editingTicket, formItemsForPrint(), hasWeighbridgePricing(editingTicket.job_type))}><Download className="h-4 w-4" /> PDF</Button><Button variant="outline" size="sm" className="gap-1.5" title="Print the saved ticket" onClick={() => printTicket(editingTicket, formItemsForPrint(), hasWeighbridgePricing(editingTicket.job_type))}><Printer className="h-4 w-4" /> Print</Button><Button variant="outline" size="sm" className="gap-1.5" title="Start a new ticket with these details" onClick={() => duplicateTicket(editingTicket)}><Copy className="h-4 w-4" /> Duplicate</Button></>)}<Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>{editingTicket ? "Close" : "Cancel"}</Button><Button variant="outline" onClick={() => createMutation.mutate({ keepOpen: true })} disabled={!formData.vehicle_reg || createMutation.isPending}>Save</Button><Button onClick={() => createMutation.mutate(undefined)} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? (editingTicket ? "Saving…" : "Recording…") : editingTicket ? "Save & close" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
               </div>
             </DialogContent>
           </Dialog>
@@ -2385,7 +2385,7 @@ const WeighOnePage = () => {
                             <TableCell className="text-right tabular-nums">{fmtWeight(t.tare_weight_kg)}</TableCell>
                             <TableCell className="text-right tabular-nums font-bold">{fmtWeight(t.net_weight_kg)}</TableCell>
                             <TableCell className="text-right tabular-nums">{t.price_per_tonne != null ? t.price_per_tonne.toFixed(2) : "-"}</TableCell>
-                            <TableCell className="text-right tabular-nums font-bold">{fmtPrice(t.total_price)}</TableCell>
+                            <TableCell className="text-right tabular-nums font-bold">{hasWeighbridgePricing(t.job_type) ? fmtPrice(t.total_price) : "—"}</TableCell>
                             <TableCell>
                               <Badge variant="outline" className={cfg.color}>{cfg.label}</Badge>
                             </TableCell>
@@ -2565,7 +2565,7 @@ const WeighOnePage = () => {
               </div>
 
               {/* Pricing (not used on Waste Out tickets) */}
-              {selectedTransaction.job_type !== "waste_out" && (<>
+              {hasWeighbridgePricing(selectedTransaction.job_type) && (<>
               <div className="p-3 rounded-lg border border-border space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Price per tonne</span>
@@ -2594,13 +2594,13 @@ const WeighOnePage = () => {
                 </div>
               </div>
               </>)}
-              {selectedTransaction.job_type !== "waste_out" && (
+              {hasWeighbridgePricing(selectedTransaction.job_type) && (
               <WeighOnePaymentPanel
                 transaction={selectedTransaction as any}
                 onSaved={(patch) => setSelectedTransaction({ ...selectedTransaction, ...patch } as WeighbridgeTransaction)}
               />
               )}
-              {selectedTransaction.job_type !== "waste_out" && selectedTransaction.status === "completed" && !(selectedTransaction as any).payment_paid && (
+              {hasWeighbridgePricing(selectedTransaction.job_type) && selectedTransaction.status === "completed" && !(selectedTransaction as any).payment_paid && (
                 <Button variant="secondary" className="w-full gap-2" onClick={() => invoiceFromSource({ transactionId: selectedTransaction.id })}>
                   <PoundSterling className="h-4 w-4" /> Create invoice (account customer)
                 </Button>
@@ -2622,10 +2622,10 @@ const WeighOnePage = () => {
               )}
               {selectedTransaction.status !== "completed" && (
                 <div className="grid gap-2 sm:grid-cols-2">
-                  <Button className="w-full gap-2" variant="outline" onClick={() => downloadTicket(selectedTransaction, selectedAdditionalItems, selectedTransaction.job_type !== "waste_out")}>
+                  <Button className="w-full gap-2" variant="outline" onClick={() => downloadTicket(selectedTransaction, selectedAdditionalItems, hasWeighbridgePricing(selectedTransaction.job_type))}>
                     <Download className="h-4 w-4" /> Download PDF
                   </Button>
-                  <Button className="w-full gap-2" variant="outline" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems, selectedTransaction.job_type !== "waste_out")}>
+                  <Button className="w-full gap-2" variant="outline" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems, hasWeighbridgePricing(selectedTransaction.job_type))}>
                     <Printer className="h-4 w-4" /> Print ticket
                   </Button>
                 </div>
@@ -2634,16 +2634,16 @@ const WeighOnePage = () => {
                 <Copy className="h-4 w-4" /> Duplicate ticket
               </Button>
               {selectedTransaction.status === "completed" && (
-                <Button className="w-full gap-2" variant="outline" onClick={() => downloadTicket(selectedTransaction, selectedAdditionalItems, selectedTransaction.job_type !== "waste_out")}>
+                <Button className="w-full gap-2" variant="outline" onClick={() => downloadTicket(selectedTransaction, selectedAdditionalItems, hasWeighbridgePricing(selectedTransaction.job_type))}>
                   <Download className="h-4 w-4" /> Download ticket (PDF)
                 </Button>
               )}
-              {selectedTransaction.status === "completed" && selectedTransaction.job_type === "waste_out" && (
+              {selectedTransaction.status === "completed" && !hasWeighbridgePricing(selectedTransaction.job_type) && (
                 <Button className="w-full gap-2" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems, false)}>
                   <Printer className="h-4 w-4" /> Print double ticket (customer + office copy)
                 </Button>
               )}
-              {selectedTransaction.status === "completed" && selectedTransaction.job_type !== "waste_out" && (
+              {selectedTransaction.status === "completed" && hasWeighbridgePricing(selectedTransaction.job_type) && (
                 <div className="grid gap-2 sm:grid-cols-2">
                   <Button className="w-full gap-2" variant="outline" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems, false)}>
                     <Printer className="h-4 w-4" /> Without prices
@@ -2776,7 +2776,7 @@ const WeighOnePage = () => {
               onClick={async () => {
                 if (!completedTicket) return;
                 setDownloadingTicket(true);
-                await downloadTicket(completedTicket.ticket, completedTicket.items, completedTicket.ticket.job_type !== "waste_out");
+                await downloadTicket(completedTicket.ticket, completedTicket.items, hasWeighbridgePricing(completedTicket.ticket.job_type));
                 setDownloadingTicket(false);
               }}
             >
@@ -2784,7 +2784,7 @@ const WeighOnePage = () => {
             </Button>
             <Button
               className="gap-2"
-              onClick={() => completedTicket && printTicket(completedTicket.ticket, completedTicket.items, completedTicket.ticket.job_type !== "waste_out")}
+              onClick={() => completedTicket && printTicket(completedTicket.ticket, completedTicket.items, hasWeighbridgePricing(completedTicket.ticket.job_type))}
             >
               <Printer className="h-4 w-4" /> Print now
             </Button>
