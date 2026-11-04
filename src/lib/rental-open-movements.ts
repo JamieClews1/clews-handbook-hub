@@ -21,11 +21,14 @@ export function isCompletedRentalMovement(job: OverRentalJob, today = londonCale
   if (!job.job_date || !parseLoadReportDate(job.job_date) || job.job_date > today) return false;
   const status = String(job.rental_status ?? "").trim().toUpperCase();
   // Older uploads omitted Status. Retain their historical movements, but never
-  // count explicitly uncompleted/query/void bookings as physical movements.
-  return status === "" || status === "Y";
+  // count explicitly uncompleted/void bookings as physical movements. A queried (Q)
+  // collection or exchange has physically happened (only its paperwork is queried),
+  // so it still removes/replaces the container; a queried delivery never adds one.
+  if (status === "" || status === "Y") return true;
+  return status === "Q" && (job.movement_type === "Collect" || job.movement_type === "Exchange");
 }
 
-type Slot = { job: OverRentalJob; date: string; ewc: string };
+type Slot = { job: OverRentalJob; date: string; ewc: string; size: string };
 
 /** Remove only a non-address contact prefix before an explicit numbered street.
  * House numbers, units and customer identity remain part of the physical key. */
@@ -39,7 +42,18 @@ export function rentalSiteKey(job: Pick<OverRentalJob, "customer" | "site" | "id
   const isNumberedStreet = /^\d+[a-z]?(?:\s*[-/]\s*\d+[a-z]?)?\s+.+\b(street|road|lane|close|avenue|drive|way|crescent|terrace|place|court|grove)\b$/.test(address);
   const identity = isContactPrefix && isNumberedStreet ? address : site;
   // Missing locations must not let unrelated unknown-site collections cancel stock.
-  return `${normalise(job.customer ?? "")}|||${identity || `unknown:${job.id}`}`;
+  return `${rentalCustomerKey(job.customer)}|||${identity || `unknown:${job.id}`}`;
+}
+
+/** One account recorded under spelling/branch variants, e.g. "IPR Environmental"
+ * vs "IPR Environmental Ltd" or "Opticrealm (Rugby) Limited" vs "(Newmarket)". */
+export function rentalCustomerKey(customer: string | null): string {
+  return (customer ?? "").toLowerCase()
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\bt\/a\b.*$/, " ")
+    .replace(/&/g, " and ")
+    .replace(/\b(ltd|limited|plc|llp|uk|group|the)\b/g, " ")
+    .replace(/[^a-z0-9]/g, "");
 }
 
 /** Replay physical movements so collections consume stock and exchanges replace
@@ -55,13 +69,17 @@ export function openRentalBins(
   for (const job of movements) {
     const category = categorise(job.container_type, job.vehicle_registration, settings);
     if (!category || category === "artic" || !job.container_type || !job.job_date) continue;
-    const key = `${rentalSiteKey(job)}|||${category}|||${rentalContainerKey(job.container_type)}`;
+    // Group by site + skip/RoRo; size is matched within the group so an exchange that
+    // swaps size (8yd out, 12yd in) still replaces the original container.
+    const key = `${rentalSiteKey(job)}|||${category}`;
     const group = groups.get(key) ?? { category, slots: [] };
     groups.set(key, group);
     const ewc = (job.ewc ?? "").replace(/\s/g, "");
-    const matching = group.slots.findIndex(s => s.ewc === ewc);
-    const index = matching >= 0 ? matching : 0;
-    const slot = { job, date: job.job_date, ewc };
+    const size = rentalContainerKey(job.container_type);
+    const sameSizeEwc = group.slots.findIndex(s => s.size === size && s.ewc === ewc);
+    const sameSize = group.slots.findIndex(s => s.size === size);
+    const index = sameSizeEwc >= 0 ? sameSizeEwc : sameSize >= 0 ? sameSize : 0;
+    const slot = { job, date: job.job_date, ewc, size };
     if (job.movement_type === "Deliver") group.slots.push(slot);
     if (job.movement_type === "Collect" && group.slots.length) group.slots.splice(index, 1);
     if (job.movement_type === "Exchange" || job.movement_type === "Tip/Return") {
