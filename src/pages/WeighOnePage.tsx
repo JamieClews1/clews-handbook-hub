@@ -43,6 +43,7 @@ import { StagedAttachmentPicker, WeighbridgeAttachments, uploadWeighbridgeAttach
 import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib/wtn-ticket-template";
 import { wtnHtmlToPdf, downloadBlob } from "@/lib/wtn-ticket-pdf";
 import { wasteOutProducerSignature } from "@/lib/waste-out-signatures";
+import { signaturePrintMarkup, signoffAt } from "@/lib/weighone-signature-times";
 import { format, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { SignatureField } from "@/components/SignatureField";
@@ -100,7 +101,9 @@ interface WeighbridgeTransaction {
   container_type: string | null;
   vehicle_type: string | null;
   operator_signature: string | null;
+  operator_signoff_at?: string | null;
   driver_signature: string | null;
+  driver_signoff_at?: string | null;
   disposer_signature?: string | null;
   disposer_name?: string | null;
   disposer_signoff_at?: string | null;
@@ -881,7 +884,9 @@ const WeighOnePage = () => {
         container_type: formData.container_type || null,
         vehicle_type: formData.vehicle_type || null,
         operator_signature: operatorSignature,
+        operator_signoff_at: signoffAt(operatorSignature, { image: editing?.operator_signature, at: editing?.operator_signoff_at }),
         driver_signature: driverSignature,
+        driver_signoff_at: signoffAt(driverSignature, { image: editing?.driver_signature, at: editing?.driver_signoff_at }),
         disposer_signature: isWasteOut ? disposerSignature : null,
         disposer_name: isWasteOut ? disposerName.trim() || null : null,
         disposer_signoff_at: isWasteOut && disposerSignature ? editing?.disposer_signoff_at ?? new Date().toISOString() : null,
@@ -996,7 +1001,7 @@ const WeighOnePage = () => {
           carrier_name: formData.carrier_name || OWN_CARRIER_NAME,
           weighbridge_transaction_id: txData.id,
           weighbridge_ticket_number: ticket,
-          ...wasteOutProducerSignature({ operator_signature: operatorSignature, operator_name: payload.operator_name, first_weigh_at: new Date().toISOString() }),
+          ...wasteOutProducerSignature({ operator_signature: operatorSignature, operator_name: payload.operator_name, operator_signoff_at: payload.operator_signoff_at, first_weigh_at: new Date().toISOString() }),
           driver_signature: driverSignature,
           driver_signoff_name: formData.driver_name || null,
           disposer_signature: payload.disposer_signature,
@@ -1440,9 +1445,9 @@ const WeighOnePage = () => {
       additional_items: additionalItems.map((i) => `${i.description} £${i.cost.toFixed(2)}`).join(" · "),
       operator_name: t.operator_name ?? "",
       vehicle_type: t.vehicle_type ?? "",
-      operator_signature: t.operator_signature ? `<img class="sig" src="${t.operator_signature}" alt="Weighbridge signature" />` : "",
-      driver_signature: t.driver_signature ? `<img class="sig" src="${t.driver_signature}" alt="Driver signature" />` : "",
-      disposer_signature: t.disposer_signature ? `<img class="sig" src="${t.disposer_signature}" alt="Disposal site signature" />` : "",
+      operator_signature: signaturePrintMarkup(t.operator_signature, t.operator_signoff_at ?? t.first_weigh_at, "Weighbridge signature"),
+      driver_signature: signaturePrintMarkup(t.driver_signature, t.driver_signoff_at, "Driver signature"),
+      disposer_signature: signaturePrintMarkup(t.disposer_signature, t.disposer_signoff_at, "Disposal site signature"),
       disposer_name: t.disposer_name ?? "",
       notes: t.notes ?? "",
       ...WTN_COMPANY_DETAILS,

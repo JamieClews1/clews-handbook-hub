@@ -82,10 +82,11 @@ export const WTN_PRINT_STYLES = `
   .wtn-weights .net td { font-size: 10pt; border-bottom: none; }
   .wtn-decl { flex: 1; border: 1px solid #000; padding: 1.5mm 2mm; font-size: 6.5pt; line-height: 1.3; }
   .wtn-signs { display: flex; gap: 3mm; margin-top: 2mm; }
-  .wtn-sign { flex: 1; min-width: 0; border: 1px solid #000; padding: 1.5mm 2mm; min-height: 20mm; }
-  .wtn-sign .k { font-size: 6.5pt; text-transform: uppercase; color: #444; }
-  .wtn-sign .name { font-size: 8pt; border-top: 1px solid #999; margin-top: 7mm; padding-top: .8mm; overflow-wrap: anywhere; }
-  .wtn-sign img.sig { display: block; height: 9mm; max-width: 100%; object-fit: contain; margin: .5mm 0 -9.5mm; }
+  .wtn-sign { flex: 1; min-width: 0; border: 1px solid #000; padding: 1.5mm 2mm; min-height: 32mm; display: flex; flex-direction: column; }
+  .wtn-sign .k { font-size: 6.5pt; text-transform: uppercase; color: #444; margin-bottom: auto; }
+  .wtn-sign .name { font-size: 8pt; border-top: 1px solid #999; margin-top: 1mm; padding-top: .8mm; overflow-wrap: anywhere; }
+  .wtn-sign img.sig { display: block; height: 18mm; max-width: 100%; object-fit: contain; }
+  .wtn-sign .when { font-size: 6pt; color: #444; margin-top: .6mm; }
   .wtn-test { position: absolute; top: 0; right: 0; left: 0; z-index: 2; background: #d00; color: #fff; text-align: center; font-size: 9pt; font-weight: bold; letter-spacing: .12em; padding: 1.2mm 0; }
   .wtn-copy--test { padding-top: 8mm !important; }
 `;
