@@ -1687,6 +1687,7 @@ const WeighOnePage = () => {
                         <span className="text-sm font-semibold text-foreground">1 · Vehicle & weight</span>
                       </div>
                       <div className="p-3 space-y-3">
+                      {!isWasteOut && <div className="text-xs font-semibold text-foreground">Waste producer · Customer site</div>}
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5 col-span-2">
                           <Label className="text-xs">Vehicle reg *</Label>
@@ -1850,8 +1851,8 @@ const WeighOnePage = () => {
                         </div>
                         )}
                         <div className="space-y-1.5">
-                          <Label className="text-xs">{isWasteOut ? "Destination (tipping site)" : "Site"}</Label>
-                          <Input className="h-9" list={isWasteOut ? "waste-out-destinations" : undefined} placeholder={isWasteOut ? "Search Duty of Care tipping sites..." : "Site name"} value={formData.site} onChange={(e) => setFormData((p) => ({ ...p, site: e.target.value }))} />
+                          <Label className="text-xs">{isWasteOut ? "Destination (tipping site)" : "Customer site address"}</Label>
+                          {isWasteOut ? <Input className="h-9" list="waste-out-destinations" placeholder="Search Duty of Care tipping sites..." value={formData.site} onChange={(e) => setFormData((p) => ({ ...p, site: e.target.value }))} /> : <Textarea aria-label="Customer site address" className="min-h-16 text-sm" placeholder="Site name, full address and postcode" value={formData.site} onChange={(e) => setFormData((p) => ({ ...p, site: e.target.value }))} />}
                           {isWasteOut && <datalist id="waste-out-destinations">{outgoingSites.map(o => <option key={o.site_name} value={o.site_name} />)}</datalist>}
                           {isWasteOut && (() => {
                             const sel = verifiedSites.find(v => v.site_name.trim().toLowerCase() === formData.site.trim().toLowerCase());
@@ -1874,15 +1875,27 @@ const WeighOnePage = () => {
                           })()}
                         </div>
                         <>
-                          <div className="space-y-1.5">
+                          <div className={cn("space-y-1.5", !isWasteOut && "col-span-2")}>
                             <Label className="text-xs">Producer SIC</Label>
                             <Input className="h-9 font-mono" placeholder={isWasteOut ? (ownSic || "e.g. 38110") : "From Customer Setup"} value={formData.producer_sic} onChange={(e) => setFormData((p) => ({ ...p, producer_sic: e.target.value }))} />
                           </div>
-                          <div className="space-y-1.5">
+                          {isWasteOut && <div className="space-y-1.5">
                             <Label className="text-xs">{isWasteOut ? "Disposal site SIC" : "Receiving site SIC"}</Label>
                             <Input className="h-9 font-mono" placeholder={isWasteOut ? (findVerifiedSite(formData.site)?.sic_code || "e.g. 38210") : (ownSic || "e.g. 38110")} value={formData.receiving_sic} onChange={(e) => setFormData((p) => ({ ...p, receiving_sic: e.target.value }))} />
-                          </div>
+                          </div>}
                         </>
+                        {!isWasteOut && <div className="col-span-2 border-y border-border bg-muted/30 px-3 py-3 space-y-2" aria-label="Receiving site">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-semibold text-foreground">Receiving site</span>
+                            <span className="text-xs text-muted-foreground">Home site</span>
+                          </div>
+                          <div className="text-sm font-semibold text-foreground">{WTN_COMPANY_DETAILS.company_name}</div>
+                          <div className="text-xs text-muted-foreground leading-relaxed">{WTN_COMPANY_DETAILS.company_address}</div>
+                          <div className="flex items-center justify-between gap-3 pt-1">
+                            <Label htmlFor="receiving-home-sic" className="text-xs shrink-0">Receiving site SIC</Label>
+                            <Input id="receiving-home-sic" className="h-8 w-28 font-mono text-xs" placeholder={ownSic || "SIC code"} value={formData.receiving_sic || ownSic} onChange={(e) => setFormData((p) => ({ ...p, receiving_sic: e.target.value }))} />
+                          </div>
+                        </div>}
                         <div className="col-span-2 rounded-md border bg-muted/30 p-3 space-y-3">
                           <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
                             <input type="checkbox" className="h-4 w-4 accent-primary" checked={formData.use_broker} onChange={(e) => setFormData((p) => ({ ...p, use_broker: e.target.checked }))} />
