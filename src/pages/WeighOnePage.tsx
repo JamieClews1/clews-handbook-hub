@@ -396,7 +396,37 @@ const WeighOnePage = () => {
       return data?.sic_code ?? "";
     },
   });
-  const brokerSites = verifiedSites.filter((v) => v.site_class === "broker");
+  // Brokers: Duty of Care broker sites + suppliers flagged as waste brokers in Customer Setup
+  const { data: supplierBrokers = [] } = useQuery({
+    queryKey: ["weighone-supplier-brokers"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("customers")
+        .select("id, customer_name, sic_code, customer_finance_details(billing_address_line1, billing_address_line2, billing_city, billing_postcode)")
+        .eq("is_waste_broker", true)
+        .order("customer_name");
+      return (data ?? []).map((c: any) => {
+        const f = Array.isArray(c.customer_finance_details) ? c.customer_finance_details[0] : c.customer_finance_details;
+        return {
+          id: `cust-${c.id}`,
+          name: c.customer_name as string,
+          address: f ? [f.billing_address_line1, f.billing_address_line2, f.billing_city, f.billing_postcode].filter(Boolean).join(", ") : "",
+          sic: (c.sic_code as string | null) ?? "",
+        };
+      });
+    },
+  });
+  const brokerSites = useMemo(() => {
+    const list = verifiedSites.filter((v) => v.site_class === "broker").map((b) => ({
+      id: b.id,
+      name: b.operator_name || b.site_name,
+      address: [b.address, b.postcode && !(b.address ?? "").includes(b.postcode) ? b.postcode : ""].filter(Boolean).join(", "),
+      sic: b.sic_code || "",
+    }));
+    const seen = new Set(list.map((b) => b.name.trim().toLowerCase()));
+    for (const b of supplierBrokers) if (!seen.has(b.name.trim().toLowerCase())) list.push(b);
+    return list.sort((a, b) => a.name.localeCompare(b.name));
+  }, [verifiedSites, supplierBrokers]);
   const findVerifiedSite = (name: string) => verifiedSites.find((v) => v.site_name.trim().toLowerCase() === (name || "").trim().toLowerCase());
 
   // Registered company name — Waste Out always leaves from our own site
@@ -1792,10 +1822,10 @@ const WeighOnePage = () => {
                             <div className="grid grid-cols-2 gap-3">
                               <Input className="col-span-2 h-9" list="weighone-brokers" placeholder="Broker company name" value={formData.broker_name} onChange={(e) => {
                                 const name = e.target.value;
-                                const b = brokerSites.find((v) => (v.operator_name || v.site_name).trim().toLowerCase() === name.trim().toLowerCase());
-                                setFormData((p) => ({ ...p, broker_name: name, ...(b ? { broker_address: [b.address, b.postcode && !(b.address ?? "").includes(b.postcode) ? b.postcode : ""].filter(Boolean).join(", "), broker_sic: b.sic_code || p.broker_sic } : {}) }));
+                                const b = brokerSites.find((v) => v.name.trim().toLowerCase() === name.trim().toLowerCase());
+                                setFormData((p) => ({ ...p, broker_name: name, ...(b ? { broker_address: b.address || p.broker_address, broker_sic: b.sic || p.broker_sic } : {}) }));
                               }} />
-                              <datalist id="weighone-brokers">{brokerSites.map((b) => <option key={b.id} value={b.operator_name || b.site_name} />)}</datalist>
+                              <datalist id="weighone-brokers">{brokerSites.map((b) => <option key={b.id} value={b.name} />)}</datalist>
                               <Input className="h-9" placeholder="Broker address" value={formData.broker_address} onChange={(e) => setFormData((p) => ({ ...p, broker_address: e.target.value }))} />
                               <Input className="h-9 font-mono" placeholder="Broker SIC code" value={formData.broker_sic} onChange={(e) => setFormData((p) => ({ ...p, broker_sic: e.target.value }))} />
                             </div>
