@@ -30,7 +30,7 @@ describe("Only overdue open skips and RoRos are chased", () => {
     assert.equal(result[0].lastJobNumber, "1");
     assert.equal(result[0].netOnSite, 1);
   });
-  it("ignores query and void movements", () => {
+  it("ignores queried deliveries and void movements", () => {
     assert.equal(bins([job("1", "2026-04-01", "Deliver", { rental_status: "Q" }), job("2", "2026-04-02", "Deliver", { rental_status: "V" })]).length, 0);
   });
   it("matches physical RoRo size without the included-weight pricing suffix", () => {
@@ -75,5 +75,22 @@ describe("Only overdue open skips and RoRos are chased", () => {
       job("2", "2026-10-01", "Collect", { site: "24 George Street" }),
     ])[0].lastJobNumber, "1");
     assert.equal(bins([job("1", "2026-04-01", "Deliver", { site: null }), job("2", "2026-10-01", "Collect", { site: null })])[0].lastJobNumber, "1");
+  });
+  it("clears a skip whose exchange swapped size (8yd out, 12yd in)", () => {
+    const result = bins([job("1", "2026-04-01", "Deliver", { container_type: "8 Yard" }), job("2", "2026-10-10", "Exchange", { container_type: "12 Yard Enc" })]);
+    assert.equal(result.length, 0);
+  });
+  it("counts a queried (Q) collection as collected, but not a queried delivery", () => {
+    assert.equal(bins([job("1", "2026-04-01", "Deliver"), job("2", "2026-10-01", "Collect", { rental_status: "Q" })]).length, 0);
+  });
+  it("matches customer name variants such as Ltd and branch suffixes", () => {
+    assert.equal(bins([
+      job("1", "2026-04-01", "Deliver", { customer: "IPR Environmental" }),
+      job("2", "2026-10-01", "Collect", { customer: "IPR Environmental Ltd" }),
+    ]).length, 0);
+    assert.equal(bins([
+      job("1", "2026-04-01", "Deliver", { customer: "Opticrealm (Newmarket) Limited" }),
+      job("2", "2026-10-20", "Exchange", { customer: "Opticrealm (Rugby) Limited" }),
+    ]).length, 0);
   });
 });
