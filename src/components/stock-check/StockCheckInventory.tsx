@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Settings as SettingsIcon } from "lucide-react";
 import { InventorySizesSettings } from "./InventorySizesSettings";
 import { InventoryValueSettings } from "./InventoryValueSettings";
@@ -269,17 +269,36 @@ const emptyForm = {
   office_verified: false,
 };
 
+/* A row opens its profile on click, but controls inside the row (tags, the
+   verification box, action buttons) keep their own behaviour. */
+const isInteractiveTarget = (target: EventTarget | null) =>
+  !!(target as HTMLElement | null)?.closest?.(
+    'button, a, input, select, textarea, label, [role="checkbox"], [role="menuitem"], [contenteditable="true"]',
+  );
+
 /* ─── Profile editor dialog ─── */
+
 const ProfileDialog = ({
   row,
   trigger,
   onSaved,
+  open: openProp,
+  onOpenChange,
 }: {
   row?: InventoryRow;
-  trigger: React.ReactNode;
+  trigger?: React.ReactNode;
   onSaved: () => void;
+  open?: boolean;
+  onOpenChange?: (o: boolean) => void;
 }) => {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const controlled = openProp !== undefined;
+  const open = controlled ? !!openProp : internalOpen;
+  const setOpen = (o: boolean) => {
+    if (controlled) onOpenChange?.(o);
+    else setInternalOpen(o);
+  };
+
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -387,6 +406,14 @@ const ProfileDialog = ({
     }
   };
 
+  // When the dialog is opened from a row click there is no trigger to fire
+  // onOpenChange, so load the row's values as soon as it opens.
+  useEffect(() => {
+    if (open) reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, row?.id]);
+
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
@@ -478,7 +505,8 @@ const ProfileDialog = ({
         if (o) reset();
       }}
     >
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
+
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{row ? "Edit profile" : "New skip / RoRo profile"}</DialogTitle>
@@ -1015,6 +1043,8 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
   const tagColour = (name: string) =>
     tagStyle[tagOptions.find((t) => t.name === name)?.colour || "amber"] || tagStyle.amber;
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [editingId, setEditingId] = useState<string | null>(null);
+
   const [visibleCols, setVisibleCols] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem(COLUMN_PREF_KEY);
@@ -1143,7 +1173,14 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
     },
   });
 
+  // The profile the click-to-edit dialog is currently open on.
+  const editingRow = useMemo(
+    () => allRows.find((r) => r.id === editingId) || null,
+    [allRows, editingId],
+  );
+
   // Yard Use / Scrapped bins live in their own tab — they aren't part of the
+
   // live stock calculation.
   const rows = useMemo(
     () =>
@@ -1758,8 +1795,27 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
               </TableHeader>
               <TableBody>
                 {sortedRows.map((r) => (
-                  <TableRow key={r.id} className={cn(isScrapped(r.condition) && "bg-red-500/10 text-red-700 hover:bg-red-500/15")}>
-                    <TableCell className="font-semibold whitespace-nowrap">#{r.asset_number}</TableCell>
+                  <TableRow
+                    key={r.id}
+                    onDoubleClick={(e) => {
+                      if (!isInteractiveTarget(e.target)) setEditingId(r.id);
+                    }}
+                    className={cn(
+                      "cursor-pointer",
+                      isScrapped(r.condition) && "bg-red-500/10 text-red-700 hover:bg-red-500/15",
+                    )}
+                  >
+                    <TableCell className="whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(r.id)}
+                        title="Click to change this profile"
+                        className="rounded-sm text-left font-semibold text-foreground underline-offset-4 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        #{r.asset_number}
+                      </button>
+                    </TableCell>
+
                     {visibleCols.type && (
                       <TableCell>
                         <Badge variant="outline" className="text-[10px] uppercase">
@@ -1887,14 +1943,29 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
           {filtered.map((r) => (
-            <Card key={r.id} className={cn("overflow-hidden", isScrapped(r.condition) && "border-red-500 bg-red-500/5")}>
+            <Card
+              key={r.id}
+              onDoubleClick={(e) => {
+                if (!isInteractiveTarget(e.target)) setEditingId(r.id);
+              }}
+              className={cn(
+                "overflow-hidden",
+                isScrapped(r.condition) && "border-red-500 bg-red-500/5",
+              )}
+            >
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <Boxes className="h-5 w-5 text-primary shrink-0" />
-                    <span className="font-bold text-foreground truncate">
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(r.id)}
+                      title="Click to change this profile"
+                      className="rounded-sm text-left font-bold text-foreground truncate underline-offset-4 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
                       #{r.asset_number}
-                    </span>
+                    </button>
+
                     <Badge variant="outline" className="text-[10px] uppercase shrink-0">
                       {r.asset_type === "roro" ? "RoRo" : "Skip"}
                     </Badge>
@@ -1997,8 +2068,19 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
           ))}
         </div>
       )}
+
+      {/* Opened by clicking a profile number, or double-clicking anywhere on its row. */}
+      <ProfileDialog
+        row={editingRow ?? undefined}
+        open={!!editingRow}
+        onOpenChange={(o) => {
+          if (!o) setEditingId(null);
+        }}
+        onSaved={refetch}
+      />
     </div>
   );
+
 };
 
 export const StockCheckInventory = () => {
