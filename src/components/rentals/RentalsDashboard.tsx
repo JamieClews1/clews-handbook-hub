@@ -34,6 +34,7 @@ import { loadSeenMap, notesBadgeLabel, unreadNoteCount, type NoteStamp, type See
 import { cleanEmail } from "@/lib/email-clean";
 import { loadRentalJobPages } from "@/lib/rental-job-loading";
 import { RENTAL_JOB_FIELDS, rentalCustomerKey } from "@/lib/rental-open-movements";
+import CustomerFilterSelect, { type CustomerOption } from "./CustomerFilterSelect";
 
 type Chase = {
   id: string;
@@ -309,9 +310,17 @@ export default function RentalsDashboard() {
     [allBins, agreements],
   );
 
-  // ── Filters: category (Skip/RoRo) then size (container type) ──
+  // ── Filters: customer, category (Skip/RoRo) then size (container type) ──
   const [categoryFilter, setCategoryFilter] = useState<"all" | "skip" | "roro">("all");
   const [sizeFilter, setSizeFilter] = useState<string>("all");
+  const [customerFilter, setCustomerFilter] = useState<string>("all");
+
+  // Customers with at least one over-rental bin, with how many bins each has.
+  const customerOptions = useMemo<CustomerOption[]>(() => {
+    const counts = new Map<string, number>();
+    for (const b of bins) counts.set(b.customer, (counts.get(b.customer) ?? 0) + 1);
+    return Array.from(counts, ([name, count]) => ({ name, count }));
+  }, [bins]);
 
   // Container types ("sizes") available for the chosen category
   const sizeOptions = useMemo(() => {
@@ -325,12 +334,24 @@ export default function RentalsDashboard() {
 
   const filteredBins = useMemo(() => {
     return bins.filter((b) => {
+      if (customerFilter !== "all" && b.customer !== customerFilter) return false;
       if (categoryFilter !== "all" && b.category !== categoryFilter) return false;
       if (sizeFilter !== "all" && b.containerType !== sizeFilter) return false;
       if (notesOnly && unreadFor(b.binKey) === 0) return false;
       return true;
     });
-  }, [bins, categoryFilter, sizeFilter, notesOnly, noteStamps, seenMap]);
+  }, [bins, customerFilter, categoryFilter, sizeFilter, notesOnly, noteStamps, seenMap]);
+
+  // The agreement and own-skip lists below follow the same customer filter, so
+  // picking a customer shows everything held for them.
+  const visibleCoveredBins = useMemo(
+    () => coveredBins.filter((b) => customerFilter === "all" || b.customer === customerFilter),
+    [coveredBins, customerFilter],
+  );
+  const visibleOwnSkipBins = useMemo(
+    () => ownSkipBins.filter((b) => customerFilter === "all" || b.customer === customerFilter),
+    [ownSkipBins, customerFilter],
+  );
 
   // Bins holding notes this person has not opened yet — drives the highlight and
   // the "notes to read" filter.
@@ -408,9 +429,10 @@ export default function RentalsDashboard() {
 
     const catLabel = categoryFilter === "all" ? "All types" : categoryFilter === "roro" ? "RoRo" : "Skip";
     const sizeLabel = sizeFilter === "all" ? "All sizes" : sizeFilter;
+    const customerLabel = customerFilter === "all" ? "All customers" : customerFilter;
     const aoa = [
       [`Over Rental Report — generated ${format(new Date(), "dd MMM yyyy HH:mm")}`],
-      [`Filters: ${catLabel} · ${sizeLabel}   |   Free rental period: ${freeDays} days   |   Rates/week: Skip £${settings.rental_skip_rate.toFixed(2)} + VAT, RoRo £${settings.rental_roro_rate.toFixed(2)} + VAT`],
+      [`Filters: ${customerLabel} · ${catLabel} · ${sizeLabel}   |   Free rental period: ${freeDays} days   |   Rates/week: Skip £${settings.rental_skip_rate.toFixed(2)} + VAT, RoRo £${settings.rental_roro_rate.toFixed(2)} + VAT`],
       [`Bins: ${filteredBins.length}   |   Est. total: £${totalEx.toFixed(2)} ex VAT  /  £${totalInc.toFixed(2)} inc VAT`],
       [],
       header,
