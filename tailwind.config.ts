@@ -43,6 +43,8 @@ export default {
         warning: {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
+          subtle: "hsl(var(--warning-subtle))",
+          text: "hsl(var(--warning-text))",
         },
         success: {
           DEFAULT: "hsl(var(--success))",
