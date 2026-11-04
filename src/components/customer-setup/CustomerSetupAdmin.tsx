@@ -1640,14 +1640,14 @@ export function CustomerSetupAdmin() {
                   <div className="rounded-md border border-border overflow-hidden">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>Site</TableHead>
-                          <TableHead>Load Report Type</TableHead>
-                          <TableHead>Owner contact</TableHead>
-                          <TableHead>Portal access</TableHead>
-                          <TableHead>Data Hub customer</TableHead>
-                          <TableHead>Rebate Set</TableHead>
-                          <TableHead className="w-[180px]">Actions</TableHead>
+                        <TableRow className="bg-muted/40">
+                          <TableHead className="text-xs uppercase tracking-wide">Site</TableHead>
+                          <TableHead className="text-xs uppercase tracking-wide">Linked Data Hub name</TableHead>
+                          <TableHead className="text-xs uppercase tracking-wide">Owner</TableHead>
+                          <TableHead className="text-xs uppercase tracking-wide">Rebate set</TableHead>
+                          <TableHead className="text-xs uppercase tracking-wide">Portal users</TableHead>
+                          <TableHead className="text-xs uppercase tracking-wide">Load report</TableHead>
+                          <TableHead className="w-[120px]"><span className="sr-only">Actions</span></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1664,91 +1664,98 @@ export function CustomerSetupAdmin() {
                           const priceSetId = sitePriceSets[s.id]?.price_set_id ?? "";
                           const priceSet = priceSets.find((ps) => ps.id === priceSetId);
                           const loadReportType = (s as any).load_report_type;
+                          const linkLabel = "text-sm font-semibold text-primary hover:underline text-left";
                           return (
                             <TableRow key={s.id}>
-                              <TableCell className="font-medium">
-                                {s.site_name}
-                                {s.is_archived && (
-                                  <Badge variant="outline" className="ml-2">Archived</Badge>
+                              <TableCell>
+                                <div className="font-semibold">
+                                  {s.site_name}
+                                  {s.is_archived && <Badge variant="outline" className="ml-2">Archived</Badge>}
+                                </div>
+                                {(s.data_hub_site || s.postcode) && (
+                                  <div className="text-xs text-muted-foreground">{s.data_hub_site ?? s.postcode}</div>
                                 )}
                               </TableCell>
                               <TableCell>
-                                {loadReportType ? (
-                                  <Badge variant="secondary">{loadReportType.toUpperCase()}</Badge>
-                                ) : (
-                                  <span className="text-muted-foreground">—</span>
-                                )}
+                                {s.data_hub_customer
+                                  ? <Badge variant="secondary" className="font-medium">{s.data_hub_customer}</Badge>
+                                  : <span className="text-muted-foreground">—</span>}
                               </TableCell>
-                              <TableCell>{owner ? owner.full_name : <span className="text-muted-foreground">—</span>}</TableCell>
+                              <TableCell>
+                                {owner
+                                  ? <span className="text-sm">{owner.full_name}</span>
+                                  : <button type="button" className={linkLabel} onClick={() => openEditSite(s)}>Assign owner</button>}
+                              </TableCell>
+                              <TableCell>
+                                {priceSet
+                                  ? <span className="text-sm">{priceSet.name}</span>
+                                  : <button type="button" className={linkLabel} onClick={() => openEditSite(s)}>Choose set</button>}
+                              </TableCell>
                               <TableCell>
                                 {(() => {
                                   const withAccess = memberships.filter((m) => siteAccessByMembershipId[m.id]?.has(s.id));
                                   const nameFor = (m: Membership) =>
                                     (m.contact_id && contactsById[m.contact_id]?.full_name) || profilesById[m.user_id]?.email || "User";
+                                  if (memberships.length === 0) {
+                                    return <button type="button" className={linkLabel} onClick={() => setCustomerTab("portal")}>Invite</button>;
+                                  }
                                   return (
                                     <Popover>
                                       <PopoverTrigger asChild>
-                                        <Button variant="outline" size="sm" className="h-auto min-h-8 max-w-[240px] justify-start whitespace-normal text-left font-normal">
-                                          <Users className="h-3.5 w-3.5 mr-1.5 shrink-0" />
-                                          {withAccess.length === 0
-                                            ? <span className="text-muted-foreground">No users</span>
-                                            : <span className="truncate">{withAccess.map(nameFor).join(", ")}</span>}
-                                        </Button>
+                                        {withAccess.length === 0 ? (
+                                          <button type="button" className={linkLabel}>Give access</button>
+                                        ) : (
+                                          <button type="button" className="max-w-[220px] truncate text-left text-sm hover:underline">
+                                            {withAccess.map(nameFor).join(", ")}
+                                          </button>
+                                        )}
                                       </PopoverTrigger>
                                       <PopoverContent className="w-72 p-3" align="start">
                                         <p className="text-sm font-medium mb-1">Who can see {s.site_name}?</p>
-                                        {memberships.length === 0 ? (
-                                          <p className="text-xs text-muted-foreground">No portal users yet — create a portal login for a contact first.</p>
-                                        ) : (
-                                          <div className="space-y-1 max-h-64 overflow-auto">
-                                            {memberships.map((m) => (
-                                              <label key={m.id} className="flex items-center gap-2 rounded px-1 py-1.5 hover:bg-muted cursor-pointer">
-                                                <Checkbox
-                                                  checked={!!siteAccessByMembershipId[m.id]?.has(s.id)}
-                                                  onCheckedChange={(v) => setSingleSiteAccess(m.id, s.id, Boolean(v))}
-                                                />
-                                                <span className="flex flex-col">
-                                                  <span className="text-sm">{nameFor(m)}</span>
-                                                  <span className="text-xs text-muted-foreground">{profilesById[m.user_id]?.email}</span>
-                                                </span>
-                                              </label>
-                                            ))}
-                                          </div>
-                                        )}
+                                        <div className="space-y-1 max-h-64 overflow-auto">
+                                          {memberships.map((m) => (
+                                            <label key={m.id} className="flex items-center gap-2 rounded px-1 py-1.5 hover:bg-muted cursor-pointer">
+                                              <Checkbox
+                                                checked={!!siteAccessByMembershipId[m.id]?.has(s.id)}
+                                                onCheckedChange={(v) => setSingleSiteAccess(m.id, s.id, Boolean(v))}
+                                              />
+                                              <span className="flex flex-col">
+                                                <span className="text-sm">{nameFor(m)}</span>
+                                                <span className="text-xs text-muted-foreground">{profilesById[m.user_id]?.email}</span>
+                                              </span>
+                                            </label>
+                                          ))}
+                                        </div>
                                       </PopoverContent>
                                     </Popover>
                                   );
                                 })()}
                               </TableCell>
-                              <TableCell>{s.data_hub_customer ?? <span className="text-muted-foreground">—</span>}</TableCell>
-                              <TableCell>
-                                {priceSet ? (
-                                  <span className="text-sm">{priceSet.name}</span>
-                                ) : (
-                                  <span className="text-muted-foreground">—</span>
-                                )}
+                              <TableCell className="text-sm text-muted-foreground">
+                                {loadReportType ? String(loadReportType).replace(/^\w/, (c) => c.toUpperCase()) : "Standard"}
                               </TableCell>
                               <TableCell>
-                                <div className="flex flex-wrap gap-2">
-                                  <Button variant="outline" size="sm" onClick={() => setHistorySite(s)}>
-                                    History
-                                  </Button>
-                                  <Button variant="outline" size="sm" onClick={() => openEditSite(s)}>
-                                    Edit
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setSiteArchived(s.id, !s.is_archived)}
-                                  >
-                                    {s.is_archived ? "Restore" : "Archive"}
-                                  </Button>
-                                  <Button variant="outline" size="sm" onClick={() => deleteSite(s.id)}>
-                                    Delete
-                                  </Button>
+                                <div className="flex justify-end gap-2">
+                                  <Button variant="outline" size="sm" onClick={() => openEditSite(s)}>Edit</Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="outline" size="sm" aria-label={`More actions for ${s.site_name}`}>
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => setHistorySite(s)}>History</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => setSiteArchived(s.id, !s.is_archived)}>
+                                        {s.is_archived ? "Restore" : "Archive"}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => deleteSite(s.id)}>
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               </TableCell>
-
                             </TableRow>
                           );
                         })}
@@ -1762,6 +1769,7 @@ export function CustomerSetupAdmin() {
                       </TableBody>
                     </Table>
                   </div>
+                  <p className="text-xs text-muted-foreground">History, Archive and Delete live in the ••• menu. Archive a site first rather than deleting it.</p>
                 </TabsContent>
 
                 <TabsContent value="midweigh" className="mt-4 space-y-4">
