@@ -1,0 +1,222 @@
+{
+ "source": "Midweigh export",
+ "from": "2025-10-01",
+ "to": "2026-10-29",
+ "direction": "IN",
+ "loads": 12035,
+ "tonnes": 19601.3,
+ "rows": [
+  {
+   "waste_type": "Mixed Municipal Waste",
+   "loads": 3800,
+   "tonnes": 3447.36,
+   "ewc": "20 03 01",
+   "recorded_as": [
+    "Mixed Municipal/ General Waste"
+   ]
+  },
+  {
+   "waste_type": "Low Grade Wood (Grade C)",
+   "loads": 640,
+   "tonnes": 766.97,
+   "ewc": "17 02 01",
+   "recorded_as": [
+    "Low Grade Wood (Grade C)"
+   ]
+  },
+  {
+   "waste_type": "Cardboard & Paper Packaging",
+   "loads": 587,
+   "tonnes": 806.08,
+   "ewc": "15 01 01",
+   "recorded_as": [
+    "Cardboard"
+   ]
+  },
+  {
+   "waste_type": "Clean Wood (Grade A - pallets only)",
+   "loads": 278,
+   "tonnes": 556.45,
+   "ewc": "15 01 03",
+   "recorded_as": [
+    "Clean Wood (Grade A)"
+   ]
+  },
+  {
+   "waste_type": "POPs (per tonne)",
+   "loads": 223,
+   "tonnes": 80.46,
+   "ewc": "20 03 07",
+   "recorded_as": [
+    "POPS Per tonne"
+   ]
+  },
+  {
+   "waste_type": "Green Waste",
+   "loads": 181,
+   "tonnes": 96.77,
+   "ewc": "20 02 01",
+   "recorded_as": [
+    "Green Waste/Biodegradable Waste"
+   ]
+  },
+  {
+   "waste_type": "WEEE",
+   "loads": 126,
+   "tonnes": 631.09,
+   "ewc": "20 01 35",
+   "recorded_as": [
+    "Commercial Fridges",
+    "Domestic Fridges",
+    "PC's, laptops, digi tv box,M/phone: NO Peripherals",
+    "TVs & Monitors",
+    "WEEE"
+   ]
+  },
+  {
+   "waste_type": "Hardcore (bricks, slate, ceramics, glass)",
+   "loads": 116,
+   "tonnes": 124.43,
+   "ewc": "17 01 07",
+   "recorded_as": [
+    "Hardcore/Bricks/Rubble/Tiles/Ceramics"
+   ]
+  },
+  {
+   "waste_type": "Mixed Construction & Demolition",
+   "loads": 82,
+   "tonnes": 100.72,
+   "ewc": "17 09 04",
+   "recorded_as": [
+    "Mixed Construction Demolition /Builders Waste"
+   ]
+  },
+  {
+   "waste_type": "General Waste",
+   "loads": 67,
+   "tonnes": 165.63,
+   "ewc": "20 03 01",
+   "recorded_as": [
+    "Non Recyclable waste"
+   ]
+  },
+  {
+   "waste_type": "Co-Mingled / DMR / Mixed Packaging",
+   "loads": 61,
+   "tonnes": 199.18,
+   "ewc": "15 01 06",
+   "recorded_as": [
+    "Mixed Packaging/ Co Mingled waste"
+   ]
+  },
+  {
+   "waste_type": "Plasterboard",
+   "loads": 53,
+   "tonnes": 218.4,
+   "ewc": "17 08 02",
+   "recorded_as": [
+    "Plasterboard"
+   ]
+  },
+  {
+   "waste_type": "Plastics",
+   "loads": 41,
+   "tonnes": 41.92,
+   "ewc": "20 01 39",
+   "recorded_as": [
+    "Plastics",
+    "Plastics Const"
+   ]
+  },
+  {
+   "waste_type": "Soil and Stone",
+   "loads": 41,
+   "tonnes": 58.49,
+   "ewc": "17 05 04",
+   "recorded_as": [
+    "Inert (Soil and Stones)"
+   ]
+  },
+  {
+   "waste_type": "Farmer's rinsed plastic containers & poly bags (FOC)",
+   "loads": 23,
+   "tonnes": 7.74,
+   "ewc": "02 01 09",
+   "recorded_as": [
+    "Farmers triple rinsed plastic containers & poly ba"
+   ]
+  },
+  {
+   "waste_type": "Glass",
+   "loads": 22,
+   "tonnes": 13.74,
+   "ewc": "20 01 02",
+   "recorded_as": [
+    "Glass"
+   ]
+  },
+  {
+   "waste_type": "Mattress",
+   "loads": 17,
+   "tonnes": 39.0,
+   "ewc": "20 03 07",
+   "recorded_as": [
+    "Mattress"
+   ]
+  },
+  {
+   "waste_type": "Mixed Ferrous Metal",
+   "loads": 7,
+   "tonnes": 12.18,
+   "ewc": "20 01 40",
+   "recorded_as": [
+    "Ferrous Metals (Shearing/Light Iorn/Cast/Frag)"
+   ]
+  },
+  {
+   "waste_type": "Mixed Metals",
+   "loads": 7,
+   "tonnes": 15.86,
+   "ewc": "17 04 07",
+   "recorded_as": [
+    "Mixed Metals ferrous and Non"
+   ]
+  },
+  {
+   "waste_type": "Mixed Non Ferrous Metal",
+   "loads": 4,
+   "tonnes": 0.92,
+   "ewc": "19 12 03",
+   "recorded_as": [
+    "Non Ferrous Metals (Ali,copper,brass,lead,cable)"
+   ]
+  },
+  {
+   "waste_type": "Batteries",
+   "loads": 1,
+   "tonnes": 0.3,
+   "ewc": "20 01 34",
+   "recorded_as": [
+    "Lead Acid Batteries Disposal"
+   ]
+  },
+  {
+   "waste_type": "Paper and Cardboard",
+   "loads": 1,
+   "tonnes": 0.34,
+   "ewc": "15 01 01",
+   "recorded_as": [
+    "Paper"
+   ]
+  },
+  {
+   "waste_type": "Tyres",
+   "loads": 1,
+   "tonnes": 13.0,
+   "ewc": "16 01 03",
+   "recorded_as": [
+    "Car Tyres"
+   ]
+  }
+ ]
+}
