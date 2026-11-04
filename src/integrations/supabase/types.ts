@@ -8757,6 +8757,9 @@ export type Database = {
           directions: string | null
           display_order: number
           disposal_site: string | null
+          disposer_name: string | null
+          disposer_signature: string | null
+          disposer_signoff_at: string | null
           driver_notes: string | null
           driver_signature: string | null
           driver_signoff_name: string | null
@@ -8831,6 +8834,9 @@ export type Database = {
           directions?: string | null
           display_order?: number
           disposal_site?: string | null
+          disposer_name?: string | null
+          disposer_signature?: string | null
+          disposer_signoff_at?: string | null
           driver_notes?: string | null
           driver_signature?: string | null
           driver_signoff_name?: string | null
@@ -8905,6 +8911,9 @@ export type Database = {
           directions?: string | null
           display_order?: number
           disposal_site?: string | null
+          disposer_name?: string | null
+          disposer_signature?: string | null
+          disposer_signoff_at?: string | null
           driver_notes?: string | null
           driver_signature?: string | null
           driver_signoff_name?: string | null
@@ -10573,6 +10582,9 @@ export type Database = {
           container_type: string | null
           created_at: string
           customer: string | null
+          disposer_name: string | null
+          disposer_signature: string | null
+          disposer_signoff_at: string | null
           driver_name: string | null
           driver_signature: string | null
           ewc_code: string | null
@@ -10624,6 +10636,9 @@ export type Database = {
           container_type?: string | null
           created_at?: string
           customer?: string | null
+          disposer_name?: string | null
+          disposer_signature?: string | null
+          disposer_signoff_at?: string | null
           driver_name?: string | null
           driver_signature?: string | null
           ewc_code?: string | null
@@ -10675,6 +10690,9 @@ export type Database = {
           container_type?: string | null
           created_at?: string
           customer?: string | null
+          disposer_name?: string | null
+          disposer_signature?: string | null
+          disposer_signoff_at?: string | null
           driver_name?: string | null
           driver_signature?: string | null
           ewc_code?: string | null
