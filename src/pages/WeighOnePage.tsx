@@ -1687,7 +1687,6 @@ const WeighOnePage = () => {
                         <span className="text-sm font-semibold text-foreground">1 · Vehicle & weight</span>
                       </div>
                       <div className="p-3 space-y-3">
-                      {!isWasteOut && <div className="text-xs font-semibold text-foreground">Waste producer · Customer site</div>}
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5 col-span-2">
                           <Label className="text-xs">Vehicle reg *</Label>
@@ -1801,6 +1800,7 @@ const WeighOnePage = () => {
                         <span className="text-sm font-semibold text-foreground">2 · Customer & waste</span>
                       </div>
                       <div className="p-3 space-y-3">
+                      {!isWasteOut && <div className="text-xs font-semibold text-foreground">Waste producer · Customer site</div>}
                       <div className="grid grid-cols-2 gap-3">
                         {isWasteOut ? (
                           <div className="space-y-1.5">
