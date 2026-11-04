@@ -35,6 +35,7 @@ import { cleanEmail } from "@/lib/email-clean";
 import { loadRentalJobPages } from "@/lib/rental-job-loading";
 import { RENTAL_JOB_FIELDS, rentalCustomerKey } from "@/lib/rental-open-movements";
 import CustomerFilterSelect, { type CustomerOption } from "./CustomerFilterSelect";
+import { ALL_RENTAL_FILTERS, customerBinCounts, filterRentalBins } from "@/lib/rental-bin-filters";
 
 type Chase = {
   id: string;
@@ -316,11 +317,7 @@ export default function RentalsDashboard() {
   const [customerFilter, setCustomerFilter] = useState<string>("all");
 
   // Customers with at least one over-rental bin, with how many bins each has.
-  const customerOptions = useMemo<CustomerOption[]>(() => {
-    const counts = new Map<string, number>();
-    for (const b of bins) counts.set(b.customer, (counts.get(b.customer) ?? 0) + 1);
-    return Array.from(counts, ([name, count]) => ({ name, count }));
-  }, [bins]);
+  const customerOptions = useMemo<CustomerOption[]>(() => customerBinCounts(bins), [bins]);
 
   // Container types ("sizes") available for the chosen category
   const sizeOptions = useMemo(() => {
@@ -333,23 +330,23 @@ export default function RentalsDashboard() {
   }, [bins, categoryFilter]);
 
   const filteredBins = useMemo(() => {
-    return bins.filter((b) => {
-      if (customerFilter !== "all" && b.customer !== customerFilter) return false;
-      if (categoryFilter !== "all" && b.category !== categoryFilter) return false;
-      if (sizeFilter !== "all" && b.containerType !== sizeFilter) return false;
-      if (notesOnly && unreadFor(b.binKey) === 0) return false;
-      return true;
+    const matched = filterRentalBins(bins, {
+      customer: customerFilter,
+      category: categoryFilter,
+      size: sizeFilter,
     });
+    if (!notesOnly) return matched;
+    return matched.filter((b) => unreadFor(b.binKey) > 0);
   }, [bins, customerFilter, categoryFilter, sizeFilter, notesOnly, noteStamps, seenMap]);
 
   // The agreement and own-skip lists below follow the same customer filter, so
   // picking a customer shows everything held for them.
   const visibleCoveredBins = useMemo(
-    () => coveredBins.filter((b) => customerFilter === "all" || b.customer === customerFilter),
+    () => filterRentalBins(coveredBins, { ...ALL_RENTAL_FILTERS, customer: customerFilter }),
     [coveredBins, customerFilter],
   );
   const visibleOwnSkipBins = useMemo(
-    () => ownSkipBins.filter((b) => customerFilter === "all" || b.customer === customerFilter),
+    () => filterRentalBins(ownSkipBins, { ...ALL_RENTAL_FILTERS, customer: customerFilter }),
     [ownSkipBins, customerFilter],
   );
 
