@@ -44,6 +44,7 @@ import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib
 import { wtnHtmlToPdf, downloadBlob } from "@/lib/wtn-ticket-pdf";
 import { wasteOutProducerSignature } from "@/lib/waste-out-signatures";
 import { signaturePrintMarkup, signoffAt } from "@/lib/weighone-signature-times";
+import { routeOneSkipDetails } from "@/lib/routeone-skip-ticket";
 import { format, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { SignatureField } from "@/components/SignatureField";
@@ -267,6 +268,7 @@ const WeighOnePage = () => {
     site: "",
     driver_name: "",
     waste_type_id: "",
+    waste_description: "",
     ewc_code: "",
     container_type: "",
     vehicle_type: "",
@@ -308,6 +310,7 @@ const WeighOnePage = () => {
   /** Prefill the weigh-in from a RouteOne job so nothing is retyped. */
   const applyRouteOneJob = (job: ArrivingJob) => {
     setArrivingJob(job);
+    const details = routeOneSkipDetails(job);
     const wt = activeWasteTypes.find(w => (w.waste_type || "").toLowerCase() === (job.waste_type || "").toLowerCase());
     setFormData(p => ({
       ...p,
@@ -316,12 +319,13 @@ const WeighOnePage = () => {
       linked_job_source: "routeone",
       linked_job_date: job.scheduled_date,
       customer: job.customer_name || p.customer,
-      site: job.site_name || p.site,
+      site: job.job_type === "waste_out_skip" ? (job.site_name || p.site) : details.site,
+      waste_description: details.waste_description,
       driver_name: job.driver_name || p.driver_name,
       vehicle_reg: (job.vehicle_reg || p.vehicle_reg || "").toUpperCase(),
       container_type: bookingContainerLabel(job.container_type, job.container_size) || p.container_type,
-      waste_type_id: wt?.id ?? p.waste_type_id,
-      ewc_code: job.ewc_code || wt?.ewc_code || p.ewc_code,
+      waste_type_id: wt?.id ?? "",
+      ewc_code: details.ewc_code || wt?.ewc_code || "",
       notes: job.po_number && !p.notes ? `PO ${job.po_number}` : p.notes,
       carrier_name: p.carrier_name || OWN_CARRIER_NAME,
       carrier_registration: p.carrier_registration || ownCarrierLicence,
@@ -878,8 +882,8 @@ const WeighOnePage = () => {
         customer: isWasteOut ? (ownCompanyName || null) : (formData.customer || null),
         site: formData.site || null,
         driver_name: formData.driver_name || null,
-        waste_description: wasteType?.waste_type || null,
-        ewc_code: wasteType?.ewc_code || formData.ewc_code || null,
+        waste_description: (!isWasteOut && formData.waste_description) || wasteType?.waste_type || null,
+        ewc_code: formData.ewc_code || wasteType?.ewc_code || null,
         waste_classification: classification,
         container_type: formData.container_type || null,
         vehicle_type: formData.vehicle_type || null,
@@ -1205,6 +1209,7 @@ const WeighOnePage = () => {
       site: t.site ?? "",
       driver_name: t.driver_name ?? "",
       waste_type_id: isOut ? "" : (t.waste_type_id ?? ""),
+      waste_description: t.waste_description ?? "",
       ewc_code: t.ewc_code ?? "",
       container_type: t.container_type ?? "",
       vehicle_type: t.vehicle_type ?? "",
@@ -1936,9 +1941,14 @@ const WeighOnePage = () => {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                           <Label className="text-xs">Waste Type</Label>
-                          <Select value={formData.waste_type_id} onValueChange={(val) => setFormData((p) => ({ ...p, waste_type_id: val }))}>
+                          <Select value={formData.waste_description && !formData.waste_type_id ? "booked-waste" : formData.waste_type_id} onValueChange={(val) => {
+                            if (val === "booked-waste") return;
+                            const wt = activeWasteTypes.find(w => w.id === val);
+                            setFormData((p) => ({ ...p, waste_type_id: val, waste_description: wt?.waste_type ?? "", ewc_code: wt?.ewc_code ?? "" }));
+                          }}>
                             <SelectTrigger className="h-9"><SelectValue placeholder="Select waste type..." /></SelectTrigger>
                             <SelectContent>
+                              {formData.waste_description && !formData.waste_type_id && <SelectItem value="booked-waste">{formData.waste_description}</SelectItem>}
                               {activeWasteTypes.map((wt) => (
                                 <SelectItem key={wt.id} value={wt.id}>{wt.waste_type}</SelectItem>
                               ))}
