@@ -414,6 +414,13 @@
       "when": 1793810652885,
       "tag": "0058_waste_out_disposal_signatures",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1793810712963,
+      "tag": "0059_sync_waste_out_disposal_evidence",
+      "breakpoints": true
     }
   ]
 }

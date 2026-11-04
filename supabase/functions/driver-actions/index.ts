@@ -17,6 +17,7 @@ const JOB_UPDATE_FIELDS = new Set([
   "contamination_type", "query_reason", "vehicle_reg",
   "customer_signature", "customer_signoff_name", "customer_signoff_at",
   "driver_signature", "driver_signoff_name",
+  "disposer_signature", "disposer_name", "disposer_signoff_at",
 ]);
 
 // Columns a driver may write on a contamination report
@@ -188,6 +189,18 @@ Deno.serve(async (req) => {
         if (!jobId) return json({ error: "job_id required" }, 400);
         if (!(await ownsJob(jobId))) return json({ error: "This job is not assigned to you" }, 403);
         const updates = pick({ status: body?.status, ...(body?.extra || {}) }, JOB_UPDATE_FIELDS);
+        const { data: signatureJob, error: signatureError } = await supabase.from("route_one_jobs").select("job_type").eq("id", jobId).single();
+        if (signatureError) throw signatureError;
+        if (signatureJob.job_type === "waste_out_skip") {
+          // Producer evidence belongs to the weighbridge operator, not the receiving driver flow.
+          delete updates.customer_signature;
+          delete updates.customer_signoff_name;
+          delete updates.customer_signoff_at;
+        } else {
+          delete updates.disposer_signature;
+          delete updates.disposer_name;
+          delete updates.disposer_signoff_at;
+        }
         if (body?.status === "completed" && body?.extra?.waste_classification) {
           const { data: existing, error: readError } = await supabase.from("route_one_jobs").select("waste_classification").eq("id", jobId).single();
           if (readError) throw readError;
