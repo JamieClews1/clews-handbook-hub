@@ -92,20 +92,23 @@ export function openRentalBins(
   if (!todayDate) return [];
   const bins: OverRentalBin[] = [];
   for (const { category, slots } of groups.values()) {
-    const overdue = slots.filter(s => {
+    const overdueBySize = new Map<string, Slot[]>();
+    for (const s of slots) {
       const date = parseLoadReportDate(s.date);
-      return date && s.date >= windowStart && (todayDate.getTime() - date.getTime()) / 86400000 > settings.rental_free_days;
-    });
-    const oldest = overdue[0];
-    if (!oldest) continue;
-    const date = parseLoadReportDate(oldest.date);
-    if (!date) continue;
-    const job = oldest.job;
-    const site = job.site ?? "Unknown";
-    const containerType = job.container_type ?? "";
-    bins.push({ binKey: `${site.toLowerCase().trim()}|||${containerType.toLowerCase().trim()}`, customer: job.customer ?? "Unknown", site, category, containerType,
-      netOnSite: overdue.length, daysSinceActivity: (todayDate.getTime() - date.getTime()) / 86400000,
-      lastActivityDate: oldest.date, lastJobNumber: job.job_number });
+      if (!date || s.date < windowStart || (todayDate.getTime() - date.getTime()) / 86400000 <= settings.rental_free_days) continue;
+      overdueBySize.set(s.size, [...(overdueBySize.get(s.size) ?? []), s]);
+    }
+    for (const overdue of overdueBySize.values()) {
+      const oldest = overdue[0];
+      const date = parseLoadReportDate(oldest.date);
+      if (!date) continue;
+      const job = oldest.job;
+      const site = job.site ?? "Unknown";
+      const containerType = job.container_type ?? "";
+      bins.push({ binKey: `${site.toLowerCase().trim()}|||${containerType.toLowerCase().trim()}`, customer: job.customer ?? "Unknown", site, category, containerType,
+        netOnSite: overdue.length, daysSinceActivity: (todayDate.getTime() - date.getTime()) / 86400000,
+        lastActivityDate: oldest.date, lastJobNumber: job.job_number });
+    }
   }
   return bins.sort((a, b) => (b.daysSinceActivity ?? 0) - (a.daysSinceActivity ?? 0));
 }
