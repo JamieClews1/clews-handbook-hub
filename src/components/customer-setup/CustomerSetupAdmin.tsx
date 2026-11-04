@@ -39,6 +39,25 @@ import { cleanEmail } from "@/lib/email-clean";
 import { publicUrl } from "@/lib/public-url";
 import { allAccessSiteIds } from "@/lib/portal-site-access";
 import { PortalAccessDirectory } from "./PortalAccessDirectory";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Plus } from "lucide-react";
+import { summariseAccountFacts, type AccountFacts } from "@/lib/customer-account-facts";
+
+const UNDERLINE_LIST = "h-auto w-full justify-start gap-6 overflow-x-auto rounded-none border-0 border-b border-border bg-transparent p-0";
+const UNDERLINE_TRIGGER = "rounded-none border-b-2 border-transparent bg-transparent px-0 pb-2.5 pt-1 text-base font-medium text-muted-foreground shadow-none hover:bg-transparent hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=active]:ring-0";
+
+function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${active ? "border-foreground bg-foreground text-background" : "border-border bg-background text-foreground hover:bg-muted"}`}
+    >
+      {children}
+    </button>
+  );
+}
 
 
 
@@ -166,6 +185,7 @@ export function CustomerSetupAdmin() {
   const [showArchived, setShowArchived] = useState(false);
   const [setupTab, setSetupTab] = useState("customers");
   const [customerTab, setCustomerTab] = useState("sites");
+  const [listFilter, setListFilter] = useState<"all" | "brokers" | "hauliers" | "both" | "archived">("all");
 
   const [sites, setSites] = useState<CustomerSite[]>([]);
   const [contacts, setContacts] = useState<CustomerContact[]>([]);
@@ -432,19 +452,83 @@ export function CustomerSetupAdmin() {
   );
 
   const listView = setupTab === "suppliers" ? "suppliers" : "customers";
+  const inView = (c: Customer, view: "customers" | "suppliers") => {
+    const type = c.account_type ?? "customer";
+    return view === "suppliers" ? type !== "customer" : type !== "supplier";
+  };
+  const accountCounts = useMemo(() => ({
+    customers: customers.filter((c) => c.is_active && inView(c, "customers")).length,
+    suppliers: customers.filter((c) => c.is_active && inView(c, "suppliers")).length,
+    archived: customers.filter((c) => !c.is_active && inView(c, listView)).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [customers, listView]);
   const filteredCustomers = useMemo(() => {
     const q = customerSearch.trim().toLowerCase();
     return customers.filter((c) => {
-      if (!showArchived && !c.is_active) return false;
-      const type = c.account_type ?? "customer";
-      if (listView === "suppliers" ? type === "customer" : type === "supplier") return false;
+      if (!inView(c, listView)) return false;
+      if (listFilter === "archived" ? c.is_active : !c.is_active) return false;
+      if (listFilter === "brokers" && !c.is_waste_broker) return false;
+      if (listFilter === "hauliers" && !c.is_haulier) return false;
+      if (listFilter === "both" && c.account_type !== "both") return false;
       if (!q) return true;
       const code = c.customer_code.toLowerCase();
       const name = c.customer_name.toLowerCase();
       const dataHubCustomer = (c.data_hub_customer ?? "").toLowerCase();
       return code.includes(q) || name.includes(q) || dataHubCustomer.includes(q);
     });
-  }, [customers, customerSearch, showArchived, listView]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customers, customerSearch, listFilter, listView]);
+
+  useEffect(() => { setListFilter("all"); }, [listView]);
+
+  // Read-only facts for the selected account: loads/tonnes this year and duty of care status.
+  const [accountFacts, setAccountFacts] = useState<AccountFacts | null>(null);
+  useEffect(() => {
+    const c = selectedCustomer;
+    setAccountFacts(null);
+    if (!c) return;
+    let cancelled = false;
+    (async () => {
+      const year = new Date().getFullYear();
+      const name = c.data_hub_customer || c.customer_name;
+      const supplierView = listView === "suppliers";
+      const rows: { job_date: string | null; weight_t: number | null; waste_description: string | null; source?: string | null; product?: string | null }[] = [];
+      for (let from = 0; from < 20000; from += 1000) {
+        let q = supabase
+          .from("data_hub_jobs")
+          .select("job_date, weight_t, waste_description, source, product:raw->>Product" as string)
+          .eq("customer", name)
+          .gte("job_date", `${year}-01-01`)
+          .lte("job_date", `${year}-12-31`)
+          .range(from, from + 999);
+        q = supplierView ? q.eq("job_type", "WASTEOUT") : q.neq("job_type", "WASTEOUT");
+        const { data, error } = await q;
+        if (error || !data) break;
+        rows.push(...(data as any[]));
+        if (data.length < 1000) break;
+      }
+      const { data: doc } = await supabase
+        .from("customers")
+        .select("waste_carrier_licence, waste_carrier_licence_expiry")
+        .eq("id", c.id)
+        .maybeSingle();
+      if (cancelled) return;
+      setAccountFacts(summariseAccountFacts(rows, doc as any));
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCustomer?.id, listView]);
+
+  const setCustomerActive = async (c: Customer, active: boolean) => {
+    if (!active && !confirm(`Archive ${c.customer_name}? It will be hidden from the list until restored.`)) return;
+    const { error } = await supabase.from("customers").update({ is_active: active }).eq("id", c.id);
+    if (error) {
+      toast({ title: "Could not update", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: active ? "Restored" : "Archived", description: c.customer_name });
+    setCustomers((prev) => prev.map((x) => (x.id === c.id ? { ...x, is_active: active } : x)));
+  };
 
   const sourceCustomerMatches = useMemo(() => {
     const q = customerSearch.trim().toLowerCase();
@@ -1457,146 +1541,236 @@ export function CustomerSetupAdmin() {
 
   return (
     <Tabs value={setupTab} onValueChange={setSetupTab} className="w-full">
-      <TabsList className="flex-wrap h-auto">
-        <TabsTrigger value="customers">Customers</TabsTrigger>
-        <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
-        <TabsTrigger value="portal-directory">Portal access</TabsTrigger>
-        <TabsTrigger value="new-customers">New customers</TabsTrigger>
-        <TabsTrigger value="gdpr">GDPR cleanup</TabsTrigger>
-
-      </TabsList>
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border">
+        <TabsList className={`${UNDERLINE_LIST} border-b-0 w-auto`}>
+          <TabsTrigger className={UNDERLINE_TRIGGER} value="customers">
+            Customers <span className="ml-1 text-xs text-muted-foreground">{accountCounts.customers}</span>
+          </TabsTrigger>
+          <TabsTrigger className={UNDERLINE_TRIGGER} value="suppliers">
+            Suppliers <span className="ml-1 text-xs text-muted-foreground">{accountCounts.suppliers}</span>
+          </TabsTrigger>
+          <TabsTrigger className={UNDERLINE_TRIGGER} value="portal-directory">Portal users</TabsTrigger>
+          <TabsTrigger className={UNDERLINE_TRIGGER} value="new-customers">New sign-ups</TabsTrigger>
+          <TabsTrigger className={UNDERLINE_TRIGGER} value="gdpr">Data clean-up</TabsTrigger>
+        </TabsList>
+        {listView === setupTab && (
+          <Button className="mb-2" onClick={() => setCreateCustomerOpen(true)}>
+            <Plus className="h-4 w-4" /> New {listView === "suppliers" ? "supplier" : "customer"}
+          </Button>
+        )}
+      </div>
 
       {listView === setupTab && (
-      <div className="mt-4">
+      <div className="mt-5">
         <div className="grid lg:grid-cols-[360px_1fr] gap-6">
-      <Card className="h-fit">
-        <CardHeader>
-          <CardTitle>{listView === "suppliers" ? "Suppliers" : "Customers"}</CardTitle>
-          <CardDescription>{listView === "suppliers" ? "Companies we send Waste Out loads to. Accounts marked Both also appear under Customers." : "Select a customer to manage sites, contacts, and portal access."}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex gap-2">
-            <Input
-              value={customerSearch}
-              onFocus={loadSkiptrakOptions}
-              onChange={(e) => {
-                setCustomerSearch(e.target.value);
-                if (e.target.value.trim().length >= 3) void loadSkiptrakOptions();
-              }}
-              placeholder="Search customers..."
-            />
-            <Button variant="outline" onClick={() => setCreateCustomerOpen(true)}>
-              New
-            </Button>
+      <Card className="h-fit overflow-hidden">
+        <div className="space-y-3 p-4">
+          <Input
+            value={customerSearch}
+            onFocus={loadSkiptrakOptions}
+            onChange={(e) => {
+              setCustomerSearch(e.target.value);
+              if (e.target.value.trim().length >= 3) void loadSkiptrakOptions();
+            }}
+            placeholder={listView === "suppliers" ? "Search suppliers" : "Search customers"}
+            aria-label={listView === "suppliers" ? "Search suppliers" : "Search customers"}
+          />
+          <div className="flex flex-wrap gap-2">
+            <FilterChip active={listFilter === "all"} onClick={() => setListFilter("all")}>All {listView === "suppliers" ? accountCounts.suppliers : accountCounts.customers}</FilterChip>
+            {listView === "suppliers" && (
+              <>
+                <FilterChip active={listFilter === "brokers"} onClick={() => setListFilter("brokers")}>Brokers</FilterChip>
+                <FilterChip active={listFilter === "hauliers"} onClick={() => setListFilter("hauliers")}>Hauliers</FilterChip>
+              </>
+            )}
+            <FilterChip active={listFilter === "both"} onClick={() => setListFilter("both")}>
+              {listView === "suppliers" ? "Also customers" : "Also suppliers"}
+            </FilterChip>
+            {accountCounts.archived > 0 && (
+              <FilterChip active={listFilter === "archived"} onClick={() => setListFilter("archived")}>Archived</FilterChip>
+            )}
           </div>
-
-          <div className="flex items-center gap-2 text-sm">
-            <Switch checked={showArchived} onCheckedChange={setShowArchived} id="show-archived" />
-            <Label htmlFor="show-archived" className="text-muted-foreground cursor-pointer">Show archived</Label>
-            <span className="ml-auto text-xs text-muted-foreground">{filteredCustomers.length} {listView}</span>
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>Sorted by name</span>
+            <span>{filteredCustomers.length} shown</span>
           </div>
+        </div>
 
-          <div className="rounded-md border border-border overflow-hidden">
-            <div className="max-h-[420px] overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCustomers.map((c) => (
-                    <TableRow
-                      key={c.id}
-                      className={c.id === selectedCustomerId ? "bg-muted/40" : ""}
-                      onClick={() => setSelectedCustomerId(c.id)}
-                      role="button"
-                    >
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          {c.customer_name}
-                          {c.is_waste_broker && <Badge variant="outline" className="text-xs">Broker</Badge>}
-                          {c.is_haulier && <Badge variant="outline" className="text-xs">Haulier</Badge>}
-                          {c.account_type === "both" && <Badge variant="outline" className="text-xs">{listView === "suppliers" ? "Also customer" : "Also supplier"}</Badge>}
-                          {!c.is_active && <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">Archived</Badge>}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {filteredCustomers.length === 0 && (
-                    <TableRow>
-                      <TableCell className="text-muted-foreground">
-                        {loadingSkiptrak ? "Checking Data Hub customers…" : "No customer setup records found."}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {sourceCustomerMatches.map((name) => (
-                    <TableRow key={`source-${name}`}>
-                      <TableCell>
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <div className="font-medium">{name}</div>
-                            <div className="text-xs text-muted-foreground">Found in Data Hub, not yet set up</div>
-                          </div>
-                          <Button size="sm" variant="outline" disabled={savingCustomer} onClick={() => createCustomerFromSource(name)}>
-                            Add
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-
-          <Button variant="ghost" onClick={refreshAll} disabled={isLoading} className="w-full">
-            {isLoading ? "Refreshing..." : "Refresh"}
-          </Button>
-        </CardContent>
+        <div className="max-h-[640px] overflow-auto border-t border-border">
+          <ul>
+            {filteredCustomers.map((c) => {
+              const selected = c.id === selectedCustomerId;
+              const tags = [
+                c.is_waste_broker ? "Broker" : null,
+                c.is_haulier ? "Haulier" : null,
+                c.data_hub_customer && c.data_hub_customer.toLowerCase() !== c.customer_name.toLowerCase() ? `Linked as ${c.data_hub_customer}` : null,
+              ].filter(Boolean);
+              return (
+                <li key={c.id} className="border-b border-border last:border-b-0">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCustomerId(c.id)}
+                    aria-current={selected ? "true" : undefined}
+                    className={`flex w-full items-start gap-2 border-l-4 px-4 py-3 text-left transition-colors ${selected ? "border-primary bg-primary/10" : "border-transparent hover:bg-muted/50"}`}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2 font-semibold">
+                        {c.customer_name}
+                        {c.account_type === "both" && (
+                          <Badge variant="outline" className="border-info/30 bg-info/10 text-xs text-info">
+                            {listView === "suppliers" ? "Also customer" : "Also supplier"}
+                          </Badge>
+                        )}
+                        {!c.is_active && <Badge variant="outline" className="text-xs text-muted-foreground">Archived</Badge>}
+                      </span>
+                      <span className="mt-0.5 block truncate text-sm text-muted-foreground">
+                        {[c.customer_code, ...tags].join(" · ")}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+            {filteredCustomers.length === 0 && (
+              <li className="px-4 py-3 text-sm text-muted-foreground">
+                {loadingSkiptrak ? "Checking Data Hub customers…" : "No matching accounts."}
+              </li>
+            )}
+            {sourceCustomerMatches.map((name) => (
+              <li key={`source-${name}`} className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
+                <div>
+                  <div className="font-medium">{name}</div>
+                  <div className="text-xs text-muted-foreground">Found in Data Hub, not yet set up</div>
+                </div>
+                <Button size="sm" variant="outline" disabled={savingCustomer} onClick={() => createCustomerFromSource(name)}>
+                  Add
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
       </Card>
 
       <div className="space-y-6">
-        <Card>
-          <CardHeader className="flex flex-row items-start justify-between gap-2">
-            <div>
-              <CardTitle>Customer</CardTitle>
-              <CardDescription>
-                {selectedCustomer ? (
-                  <span>
-                    Managing <span className="font-medium text-foreground">{selectedCustomer.customer_name}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">({selectedCustomer.customer_code})</span>
-                  </span>
-                ) : (
-                  "Select a customer to begin."
-                )}
-              </CardDescription>
+        {selectedCustomer && (() => {
+          const isSupplierView = listView === "suppliers";
+          const roleLabel = selectedCustomer.account_type === "both" ? "Customer and supplier" : isSupplierView ? "Supplier" : "Customer";
+          const noun = isSupplierView ? "supplier" : "customer";
+          const sitesWithSet = sites.filter((s) => !s.is_archived && sitePriceSets[s.id]?.price_set_id);
+          const setNames = Array.from(new Set(sitesWithSet.map((s) => priceSets.find((p) => p.id === sitePriceSets[s.id]?.price_set_id)?.name).filter(Boolean)));
+          const doc = accountFacts?.dutyOfCare;
+          const Fact = ({ label, value, sub, tone, action, onAction }: { label: string; value: string; sub?: string; tone?: "muted" | "warn"; action?: string; onAction?: () => void }) => (
+            <div className="min-w-0 border-border p-4 [&:not(:first-child)]:border-l">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
+              <div title={value} className={`mt-1 line-clamp-2 break-words text-lg leading-snug font-bold tabular-nums ${tone === "muted" ? "text-muted-foreground" : tone === "warn" ? "text-warning-text" : "text-foreground"}`}>{value}</div>
+              {action ? (
+                <button type="button" onClick={onAction} className="mt-0.5 text-sm font-semibold text-primary hover:underline">{action}</button>
+              ) : (
+                <div className="mt-0.5 text-sm text-muted-foreground">{sub ?? "\u00a0"}</div>
+              )}
             </div>
-            {selectedCustomer && (
-              <Button variant="outline" size="sm" onClick={() => openEditCustomer(selectedCustomer)}>
-                Edit customer
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
+          );
+          return (
+            <Card>
+              <CardContent className="space-y-4 p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h2 className="text-2xl font-bold tracking-tight">{selectedCustomer.customer_name}</h2>
+                      <span className="text-sm uppercase tracking-wide text-muted-foreground">{selectedCustomer.customer_code}</span>
+                      <Badge variant="secondary">{roleLabel}</Badge>
+                      {!selectedCustomer.is_active && <Badge variant="outline">Archived</Badge>}
+                    </div>
+                    {accountFacts?.topStreams.length ? (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {isSupplierView ? "Outgoing destination for our " : "Sends us "}
+                        {accountFacts.topStreams.slice(0, 3).join(", ")}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => openEditCustomer(selectedCustomer)}>Edit {noun}</Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon" aria-label={`More actions for ${selectedCustomer.customer_name}`}>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={refreshAll}>Refresh</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setCustomerActive(selectedCustomer, !selectedCustomer.is_active)}>
+                          {selectedCustomer.is_active ? `Archive ${noun}` : `Restore ${noun}`}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-border md:grid-cols-5">
+                  <Fact
+                    label={isSupplierView ? "Sent this year" : "Received this year"}
+                    value={accountFacts ? `${accountFacts.tonnes.toLocaleString("en-GB", { maximumFractionDigits: 1 })} t` : "…"}
+                    sub={accountFacts ? `${accountFacts.loads} loads · ${accountFacts.range}` : "Reading loads"}
+                    tone={accountFacts && accountFacts.loads === 0 ? "muted" : undefined}
+                  />
+                  <Fact
+                    label="Streams"
+                    value={accountFacts?.topStreams[0] ?? (accountFacts ? "None" : "…")}
+                    sub={accountFacts ? `${accountFacts.topStreams.length} stream${accountFacts.topStreams.length === 1 ? "" : "s"}` : undefined}
+                    tone={accountFacts && !accountFacts.topStreams.length ? "muted" : undefined}
+                  />
+                  <Fact
+                    label="Rebate set"
+                    value={setNames.length ? String(setNames[0]) : "None"}
+                    sub={setNames.length > 1 ? `+${setNames.length - 1} more` : setNames.length ? `${sitesWithSet.length} site${sitesWithSet.length === 1 ? "" : "s"}` : undefined}
+                    tone={setNames.length ? undefined : "muted"}
+                    action={setNames.length ? undefined : "Assign"}
+                    onAction={() => setCustomerTab("sites")}
+                  />
+                  <Fact
+                    label="Duty of care"
+                    value={!doc ? "…" : doc.state === "ok" ? "On file" : doc.state === "expired" ? "Expired" : doc.state === "no-expiry" ? "No expiry" : "Not on file"}
+                    sub={doc?.licence ?? undefined}
+                    tone={doc && doc.state !== "ok" ? "warn" : undefined}
+                    action={doc && doc.state !== "ok" ? "Update" : undefined}
+                    onAction={() => setCustomerTab("duty-of-care")}
+                  />
+                  <Fact
+                    label="Portal users"
+                    value={String(memberships.length)}
+                    sub={memberships.length ? "with access" : undefined}
+                    tone={memberships.length ? undefined : "muted"}
+                    action={memberships.length ? undefined : "Invite"}
+                    onAction={() => setCustomerTab("portal")}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
+        <Card>
+          <CardContent className="p-5">
             {!selectedCustomer ? (
-              <div className="text-sm text-muted-foreground">No customer selected.</div>
+              <div className="text-sm text-muted-foreground">Select an account from the list to begin.</div>
             ) : (
               <Tabs value={customerTab} onValueChange={setCustomerTab} className="w-full">
-                <TabsList className="flex-wrap h-auto">
-                  <TabsTrigger value="sites">Sites</TabsTrigger>
-                  <TabsTrigger value="midweigh">Midweigh Rebates</TabsTrigger>
+                <TabsList className={UNDERLINE_LIST}>
+                  <TabsTrigger className={UNDERLINE_TRIGGER} value="sites">
+                    Sites <span className="ml-1 text-xs text-muted-foreground">{sites.filter((s) => !s.is_archived).length}</span>
+                  </TabsTrigger>
+                  <TabsTrigger className={UNDERLINE_TRIGGER} value="midweigh">Rebates</TabsTrigger>
                   {selectedCustomer.customer_name.toLowerCase().includes("staci") && (
-                    <TabsTrigger value="staci-rates">Staci Rates</TabsTrigger>
+                    <TabsTrigger className={UNDERLINE_TRIGGER} value="staci-rates">Staci rates</TabsTrigger>
                   )}
-                   <TabsTrigger value="contacts">Contacts</TabsTrigger>
-                   <TabsTrigger value="finance">Finance Details</TabsTrigger>
-                   <TabsTrigger value="duty-of-care">Duty Of Care</TabsTrigger>
-                   <TabsTrigger value="portal">Portal access</TabsTrigger>
-
-                   {selectedCustomer.custom_reporting_periods_enabled && (
-                     <TabsTrigger value="reporting-periods">Reporting Periods</TabsTrigger>
-                   )}
+                  <TabsTrigger className={UNDERLINE_TRIGGER} value="contacts">Contacts</TabsTrigger>
+                  <TabsTrigger className={UNDERLINE_TRIGGER} value="finance">Finance</TabsTrigger>
+                  <TabsTrigger className={UNDERLINE_TRIGGER} value="duty-of-care">Duty of care</TabsTrigger>
+                  <TabsTrigger className={UNDERLINE_TRIGGER} value="portal">Portal users</TabsTrigger>
+                  {selectedCustomer.custom_reporting_periods_enabled && (
+                    <TabsTrigger className={UNDERLINE_TRIGGER} value="reporting-periods">Reporting periods</TabsTrigger>
+                  )}
                 </TabsList>
 
                 <TabsContent value="duty-of-care" className="mt-4">
@@ -1605,31 +1779,21 @@ export function CustomerSetupAdmin() {
 
                 <TabsContent value="sites" className="mt-4 space-y-4">
                   <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold">Sites</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Create sites, manually attach Data Hub identifiers, set an owner contact, and pick a rebate price-set template.
-                      </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Input
+                        placeholder={showArchivedSites ? "Search archived sites" : "Search sites"}
+                        value={siteSearch}
+                        onChange={(e) => setSiteSearch(e.target.value)}
+                        className="w-full sm:w-80"
+                      />
+                      {(showArchivedSites || sites.some((s) => s.is_archived)) && (
+                        <FilterChip active={showArchivedSites} onClick={() => setShowArchivedSites((v) => !v)}>
+                          Archived {sites.filter((s) => s.is_archived).length}
+                        </FilterChip>
+                      )}
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant={showArchivedSites ? "default" : "outline"}
-                        onClick={() => setShowArchivedSites((v) => !v)}
-                      >
-                        {showArchivedSites
-                          ? `Showing archived (${sites.filter((s) => s.is_archived).length})`
-                          : `Show archived (${sites.filter((s) => s.is_archived).length})`}
-                      </Button>
-                      <Button onClick={openCreateSite}>New site</Button>
-                    </div>
+                    <Button onClick={openCreateSite}><Plus className="h-4 w-4" /> New site</Button>
                   </div>
-
-                  <Input
-                    placeholder={showArchivedSites ? "Search archived sites…" : "Search sites…"}
-                    value={siteSearch}
-                    onChange={(e) => setSiteSearch(e.target.value)}
-                    className="max-w-sm"
-                  />
 
                   {loadingDataHubSites && (
                     <p className="text-sm text-muted-foreground">Reading sites from this customer's jobs…</p>
@@ -1640,14 +1804,14 @@ export function CustomerSetupAdmin() {
                   <div className="rounded-md border border-border overflow-hidden">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>Site</TableHead>
-                          <TableHead>Load Report Type</TableHead>
-                          <TableHead>Owner contact</TableHead>
-                          <TableHead>Portal access</TableHead>
-                          <TableHead>Data Hub customer</TableHead>
-                          <TableHead>Rebate Set</TableHead>
-                          <TableHead className="w-[180px]">Actions</TableHead>
+                        <TableRow className="bg-muted/40">
+                          <TableHead className="text-xs uppercase tracking-wide">Site</TableHead>
+                          <TableHead className="text-xs uppercase tracking-wide">Linked Data Hub name</TableHead>
+                          <TableHead className="text-xs uppercase tracking-wide">Owner</TableHead>
+                          <TableHead className="text-xs uppercase tracking-wide">Rebate set</TableHead>
+                          <TableHead className="text-xs uppercase tracking-wide">Portal users</TableHead>
+                          <TableHead className="text-xs uppercase tracking-wide">Load report</TableHead>
+                          <TableHead className="w-[120px]"><span className="sr-only">Actions</span></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1664,91 +1828,98 @@ export function CustomerSetupAdmin() {
                           const priceSetId = sitePriceSets[s.id]?.price_set_id ?? "";
                           const priceSet = priceSets.find((ps) => ps.id === priceSetId);
                           const loadReportType = (s as any).load_report_type;
+                          const linkLabel = "text-sm font-semibold text-primary hover:underline text-left";
                           return (
                             <TableRow key={s.id}>
-                              <TableCell className="font-medium">
-                                {s.site_name}
-                                {s.is_archived && (
-                                  <Badge variant="outline" className="ml-2">Archived</Badge>
+                              <TableCell>
+                                <div className="font-semibold">
+                                  {s.site_name}
+                                  {s.is_archived && <Badge variant="outline" className="ml-2">Archived</Badge>}
+                                </div>
+                                {(s.data_hub_site || s.postcode) && (
+                                  <div className="text-xs text-muted-foreground">{s.data_hub_site ?? s.postcode}</div>
                                 )}
                               </TableCell>
                               <TableCell>
-                                {loadReportType ? (
-                                  <Badge variant="secondary">{loadReportType.toUpperCase()}</Badge>
-                                ) : (
-                                  <span className="text-muted-foreground">—</span>
-                                )}
+                                {s.data_hub_customer
+                                  ? <Badge variant="secondary" className="font-medium">{s.data_hub_customer}</Badge>
+                                  : <span className="text-muted-foreground">—</span>}
                               </TableCell>
-                              <TableCell>{owner ? owner.full_name : <span className="text-muted-foreground">—</span>}</TableCell>
+                              <TableCell>
+                                {owner
+                                  ? <span className="text-sm">{owner.full_name}</span>
+                                  : <button type="button" className={linkLabel} onClick={() => openEditSite(s)}>Assign owner</button>}
+                              </TableCell>
+                              <TableCell>
+                                {priceSet
+                                  ? <span className="text-sm">{priceSet.name}</span>
+                                  : <button type="button" className={linkLabel} onClick={() => openEditSite(s)}>Choose set</button>}
+                              </TableCell>
                               <TableCell>
                                 {(() => {
                                   const withAccess = memberships.filter((m) => siteAccessByMembershipId[m.id]?.has(s.id));
                                   const nameFor = (m: Membership) =>
                                     (m.contact_id && contactsById[m.contact_id]?.full_name) || profilesById[m.user_id]?.email || "User";
+                                  if (memberships.length === 0) {
+                                    return <button type="button" className={linkLabel} onClick={() => setCustomerTab("portal")}>Invite</button>;
+                                  }
                                   return (
                                     <Popover>
                                       <PopoverTrigger asChild>
-                                        <Button variant="outline" size="sm" className="h-auto min-h-8 max-w-[240px] justify-start whitespace-normal text-left font-normal">
-                                          <Users className="h-3.5 w-3.5 mr-1.5 shrink-0" />
-                                          {withAccess.length === 0
-                                            ? <span className="text-muted-foreground">No users</span>
-                                            : <span className="truncate">{withAccess.map(nameFor).join(", ")}</span>}
-                                        </Button>
+                                        {withAccess.length === 0 ? (
+                                          <button type="button" className={linkLabel}>Give access</button>
+                                        ) : (
+                                          <button type="button" className="max-w-[220px] truncate text-left text-sm hover:underline">
+                                            {withAccess.map(nameFor).join(", ")}
+                                          </button>
+                                        )}
                                       </PopoverTrigger>
                                       <PopoverContent className="w-72 p-3" align="start">
                                         <p className="text-sm font-medium mb-1">Who can see {s.site_name}?</p>
-                                        {memberships.length === 0 ? (
-                                          <p className="text-xs text-muted-foreground">No portal users yet — create a portal login for a contact first.</p>
-                                        ) : (
-                                          <div className="space-y-1 max-h-64 overflow-auto">
-                                            {memberships.map((m) => (
-                                              <label key={m.id} className="flex items-center gap-2 rounded px-1 py-1.5 hover:bg-muted cursor-pointer">
-                                                <Checkbox
-                                                  checked={!!siteAccessByMembershipId[m.id]?.has(s.id)}
-                                                  onCheckedChange={(v) => setSingleSiteAccess(m.id, s.id, Boolean(v))}
-                                                />
-                                                <span className="flex flex-col">
-                                                  <span className="text-sm">{nameFor(m)}</span>
-                                                  <span className="text-xs text-muted-foreground">{profilesById[m.user_id]?.email}</span>
-                                                </span>
-                                              </label>
-                                            ))}
-                                          </div>
-                                        )}
+                                        <div className="space-y-1 max-h-64 overflow-auto">
+                                          {memberships.map((m) => (
+                                            <label key={m.id} className="flex items-center gap-2 rounded px-1 py-1.5 hover:bg-muted cursor-pointer">
+                                              <Checkbox
+                                                checked={!!siteAccessByMembershipId[m.id]?.has(s.id)}
+                                                onCheckedChange={(v) => setSingleSiteAccess(m.id, s.id, Boolean(v))}
+                                              />
+                                              <span className="flex flex-col">
+                                                <span className="text-sm">{nameFor(m)}</span>
+                                                <span className="text-xs text-muted-foreground">{profilesById[m.user_id]?.email}</span>
+                                              </span>
+                                            </label>
+                                          ))}
+                                        </div>
                                       </PopoverContent>
                                     </Popover>
                                   );
                                 })()}
                               </TableCell>
-                              <TableCell>{s.data_hub_customer ?? <span className="text-muted-foreground">—</span>}</TableCell>
-                              <TableCell>
-                                {priceSet ? (
-                                  <span className="text-sm">{priceSet.name}</span>
-                                ) : (
-                                  <span className="text-muted-foreground">—</span>
-                                )}
+                              <TableCell className="text-sm text-muted-foreground">
+                                {loadReportType ? String(loadReportType).replace(/^\w/, (c) => c.toUpperCase()) : "Standard"}
                               </TableCell>
                               <TableCell>
-                                <div className="flex flex-wrap gap-2">
-                                  <Button variant="outline" size="sm" onClick={() => setHistorySite(s)}>
-                                    History
-                                  </Button>
-                                  <Button variant="outline" size="sm" onClick={() => openEditSite(s)}>
-                                    Edit
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setSiteArchived(s.id, !s.is_archived)}
-                                  >
-                                    {s.is_archived ? "Restore" : "Archive"}
-                                  </Button>
-                                  <Button variant="outline" size="sm" onClick={() => deleteSite(s.id)}>
-                                    Delete
-                                  </Button>
+                                <div className="flex justify-end gap-2">
+                                  <Button variant="outline" size="sm" onClick={() => openEditSite(s)}>Edit</Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="outline" size="sm" aria-label={`More actions for ${s.site_name}`}>
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => setHistorySite(s)}>History</DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => setSiteArchived(s.id, !s.is_archived)}>
+                                        {s.is_archived ? "Restore" : "Archive"}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => deleteSite(s.id)}>
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               </TableCell>
-
                             </TableRow>
                           );
                         })}
@@ -1762,6 +1933,7 @@ export function CustomerSetupAdmin() {
                       </TableBody>
                     </Table>
                   </div>
+                  <p className="text-xs text-muted-foreground">History, Archive and Delete live in the ••• menu. Archive a site first rather than deleting it.</p>
                 </TabsContent>
 
                 <TabsContent value="midweigh" className="mt-4 space-y-4">

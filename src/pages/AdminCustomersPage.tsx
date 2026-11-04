@@ -29,8 +29,8 @@ const AdminCustomersPage = () => {
 
   return (
     <AdminPageLayout
-      title="Customer Setup"
-      description="Manage customers, sites, contacts, and portal access (site-scoped)"
+      title="Customer setup"
+      description="Who we work with, their sites, contacts and portal access"
     >
       <CustomerSetupAdmin />
     </AdminPageLayout>
