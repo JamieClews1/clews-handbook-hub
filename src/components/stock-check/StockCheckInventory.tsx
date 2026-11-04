@@ -1970,7 +1970,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
                       {r.asset_type === "roro" ? "RoRo" : "Skip"}
                     </Badge>
                     {r.size && (
-                      <Badge variant="secondary" className="text-[10px] uppercase shrink-0">
+                      <Badge variant="secondary" className="text-[10px] uppercase min-w-0 truncate">
                         {r.size}
                       </Badge>
                     )}
