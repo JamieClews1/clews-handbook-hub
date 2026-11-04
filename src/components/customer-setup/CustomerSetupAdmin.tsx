@@ -166,6 +166,7 @@ export function CustomerSetupAdmin() {
   const [showArchived, setShowArchived] = useState(false);
   const [setupTab, setSetupTab] = useState("customers");
   const [customerTab, setCustomerTab] = useState("sites");
+  const [listFilter, setListFilter] = useState<"all" | "brokers" | "hauliers" | "both" | "archived">("all");
 
   const [sites, setSites] = useState<CustomerSite[]>([]);
   const [contacts, setContacts] = useState<CustomerContact[]>([]);
@@ -432,19 +433,83 @@ export function CustomerSetupAdmin() {
   );
 
   const listView = setupTab === "suppliers" ? "suppliers" : "customers";
+  const inView = (c: Customer, view: "customers" | "suppliers") => {
+    const type = c.account_type ?? "customer";
+    return view === "suppliers" ? type !== "customer" : type !== "supplier";
+  };
+  const accountCounts = useMemo(() => ({
+    customers: customers.filter((c) => c.is_active && inView(c, "customers")).length,
+    suppliers: customers.filter((c) => c.is_active && inView(c, "suppliers")).length,
+    archived: customers.filter((c) => !c.is_active && inView(c, listView)).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [customers, listView]);
   const filteredCustomers = useMemo(() => {
     const q = customerSearch.trim().toLowerCase();
     return customers.filter((c) => {
-      if (!showArchived && !c.is_active) return false;
-      const type = c.account_type ?? "customer";
-      if (listView === "suppliers" ? type === "customer" : type === "supplier") return false;
+      if (!inView(c, listView)) return false;
+      if (listFilter === "archived" ? c.is_active : !c.is_active) return false;
+      if (listFilter === "brokers" && !c.is_waste_broker) return false;
+      if (listFilter === "hauliers" && !c.is_haulier) return false;
+      if (listFilter === "both" && c.account_type !== "both") return false;
       if (!q) return true;
       const code = c.customer_code.toLowerCase();
       const name = c.customer_name.toLowerCase();
       const dataHubCustomer = (c.data_hub_customer ?? "").toLowerCase();
       return code.includes(q) || name.includes(q) || dataHubCustomer.includes(q);
     });
-  }, [customers, customerSearch, showArchived, listView]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customers, customerSearch, listFilter, listView]);
+
+  useEffect(() => { setListFilter("all"); }, [listView]);
+
+  // Read-only facts for the selected account: loads/tonnes this year and duty of care status.
+  const [accountFacts, setAccountFacts] = useState<AccountFacts | null>(null);
+  useEffect(() => {
+    const c = selectedCustomer;
+    setAccountFacts(null);
+    if (!c) return;
+    let cancelled = false;
+    (async () => {
+      const year = new Date().getFullYear();
+      const name = c.data_hub_customer || c.customer_name;
+      const supplierView = listView === "suppliers";
+      const rows: { job_date: string | null; weight_t: number | null; waste_description: string | null }[] = [];
+      for (let from = 0; from < 20000; from += 1000) {
+        let q = supabase
+          .from("data_hub_jobs")
+          .select("job_date, weight_t, waste_description")
+          .eq("customer", name)
+          .gte("job_date", `${year}-01-01`)
+          .lte("job_date", `${year}-12-31`)
+          .range(from, from + 999);
+        q = supabase ? (supplierView ? q.eq("job_type", "WASTEOUT") : q.neq("job_type", "WASTEOUT")) : q;
+        const { data, error } = await q;
+        if (error || !data) break;
+        rows.push(...(data as any[]));
+        if (data.length < 1000) break;
+      }
+      const { data: doc } = await supabase
+        .from("customers")
+        .select("waste_carrier_licence, waste_carrier_licence_expiry")
+        .eq("id", c.id)
+        .maybeSingle();
+      if (cancelled) return;
+      setAccountFacts(summariseAccountFacts(rows, doc as any));
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCustomer?.id, listView]);
+
+  const setCustomerActive = async (c: Customer, active: boolean) => {
+    if (!active && !confirm(`Archive ${c.customer_name}? It will be hidden from the list until restored.`)) return;
+    const { error } = await supabase.from("customers").update({ is_active: active }).eq("id", c.id);
+    if (error) {
+      toast({ title: "Could not update", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: active ? "Restored" : "Archived", description: c.customer_name });
+    setCustomers((prev) => prev.map((x) => (x.id === c.id ? { ...x, is_active: active } : x)));
+  };
 
   const sourceCustomerMatches = useMemo(() => {
     const q = customerSearch.trim().toLowerCase();
