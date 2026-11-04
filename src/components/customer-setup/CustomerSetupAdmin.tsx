@@ -65,6 +65,7 @@ type Customer = {
   is_broker: boolean;
   account_type?: "customer" | "supplier" | "both" | null;
   is_waste_broker?: boolean | null;
+  is_haulier?: boolean | null;
   all_data_hub_sites: boolean;
   midweigh_rebates_enabled: boolean;
   midweigh_rebate_contact_id: string | null;
@@ -181,7 +182,7 @@ export function CustomerSetupAdmin() {
 
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", pod_email: "", auto_pod_emails_enabled: false, custom_reporting_periods_enabled: false, po_spans_periods: false, is_broker: false, all_data_hub_sites: false, midweigh_rebates_enabled: false, midweigh_rebate_contact_id: "", account_type: "customer" as "customer" | "supplier" | "both", is_waste_broker: false });
+  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", pod_email: "", auto_pod_emails_enabled: false, custom_reporting_periods_enabled: false, po_spans_periods: false, is_broker: false, all_data_hub_sites: false, midweigh_rebates_enabled: false, midweigh_rebate_contact_id: "", account_type: "customer" as "customer" | "supplier" | "both", is_waste_broker: false, is_haulier: false });
   const [editCustomerContacts, setEditCustomerContacts] = useState<CustomerContact[]>([]);
 
   const customerCreateSchema = useMemo(
