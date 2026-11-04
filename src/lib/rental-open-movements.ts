@@ -4,7 +4,7 @@ import type { OverRentalBin, OverRentalJob } from "./overRental";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
 // Read the one status scalar rather than transferring every upload's raw row.
-export const RENTAL_JOB_FIELDS: string = "id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration,ewc,rental_status:raw->>Status";
+export const RENTAL_JOB_FIELDS: string = "id,job_number,job_date,customer,site,container_type,movement_type,waste_description,vehicle_registration,ewc,postcode,rental_status:raw->>Status";
 
 /** Match physical sizes, not spelling or a pricing 'Inc 3t' suffix. */
 export function rentalContainerKey(value: string): string {
@@ -105,7 +105,7 @@ export function openRentalBins(
       const job = oldest.job;
       const site = job.site ?? "Unknown";
       const containerType = job.container_type ?? "";
-      bins.push({ binKey: `${site.toLowerCase().trim()}|||${containerType.toLowerCase().trim()}`, customer: job.customer ?? "Unknown", site, category, containerType,
+      bins.push({ binKey: `${site.toLowerCase().trim()}|||${containerType.toLowerCase().trim()}`, customer: job.customer ?? "Unknown", site, postcode: job.postcode ?? null, category, containerType,
         netOnSite: overdue.length, daysSinceActivity: (todayDate.getTime() - date.getTime()) / 86400000,
         lastActivityDate: oldest.date, lastJobNumber: job.job_number });
     }

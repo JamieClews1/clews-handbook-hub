@@ -69,6 +69,13 @@ function rentalRateLabel(bin: OverRentalBin, skipRate: number, roroRate: number)
   return `£${rate.toFixed(2)} + VAT per week`;
 }
 
+// Site name followed by its postcode, e.g. "Solutions Ltd, NN11 7HJ".
+function siteWithPostcode(bin: OverRentalBin): string {
+  const pc = (bin.postcode ?? "").trim().toUpperCase();
+  if (!pc || bin.site.toUpperCase().replace(/\s/g, "").includes(pc.replace(/\s/g, ""))) return bin.site;
+  return `${bin.site}, ${pc}`;
+}
+
 // Fill the chase email template placeholders with this bin's details.
 function renderChaseTemplate(
   template: string,
@@ -78,7 +85,7 @@ function renderChaseTemplate(
 ): string {
   return (template || DEFAULT_CHASE_EMAIL_TEMPLATE)
     .split("{customer}").join(bin.customer)
-    .split("{site}").join(bin.site)
+    .split("{site}").join(siteWithPostcode(bin))
     .split("{containerType}").join(bin.containerType)
     .split("{days}").join(String(bin.daysSinceActivity ?? ""))
     .split("{freeDays}").join(String(freeDays))
@@ -1221,7 +1228,7 @@ function EmailDialog({ bin, chase, defaultEmail, customerId, freeDays, draftBody
   onClose: () => void; onSent: () => void; toast: ReturnType<typeof useToast>["toast"];
 }) {
   const [to, setTo] = useState(defaultEmail);
-  const [subject, setSubject] = useState(`Container rental notice — ${bin.site}`);
+  const [subject, setSubject] = useState(`Container rental notice — ${siteWithPostcode(bin)}`);
   const [body, setBody] = useState(draftBody);
   const [sending, setSending] = useState(false);
 
@@ -1248,13 +1255,13 @@ function EmailDialog({ bin, chase, defaultEmail, customerId, freeDays, draftBody
       // offered next time. Saving it must never undo a sent email, so failures only warn.
       let savedNote = "";
       const sentTo = cleanEmail(to);
-      if (customerId && sentTo && sentTo.toLowerCase() !== defaultEmail.trim().toLowerCase()) {
+      if (customerId && sentTo) {
         const { data: existing } = await supabase.from("customer_contacts").select("id").eq("customer_id", customerId).ilike("email", sentTo).limit(1);
         if (!existing?.length) {
           const { error: contactError } = await supabase.from("customer_contacts").insert({ customer_id: customerId, full_name: sentTo.split("@")[0], email: sentTo });
-          savedNote = contactError ? " — couldn't save the address to the customer" : " — address saved to the customer's contacts";
+          savedNote = contactError ? " — couldn't save the address to the customer" : " — address saved to the customer's contacts in Customer Setup";
         }
-      } else if (!customerId && sentTo.toLowerCase() !== defaultEmail.trim().toLowerCase()) {
+      } else if (!customerId && sentTo) {
         savedNote = " — no matching customer profile to save the address to";
       }
       toast({ title: "Chase email sent", description: `Sent to ${to.trim()}${savedNote}` });

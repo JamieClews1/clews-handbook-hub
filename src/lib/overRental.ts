@@ -19,6 +19,7 @@ export type OverRentalJob = {
   waste_description: string | null;
   vehicle_registration: string | null;
   ewc: string | null;
+  postcode?: string | null;
 };
 
 export type ContainerCategory = "skip" | "roro" | "artic";
@@ -27,6 +28,7 @@ export type OverRentalBin = {
   binKey: string;
   customer: string;
   site: string;
+  postcode?: string | null;
   category: ContainerCategory;
   containerType: string;
   netOnSite: number;
