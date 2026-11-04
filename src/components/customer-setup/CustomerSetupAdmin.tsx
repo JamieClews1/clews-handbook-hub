@@ -1496,6 +1496,7 @@ export function CustomerSetupAdmin() {
                         <div className="flex items-center gap-2">
                           {c.customer_name}
                           {c.is_waste_broker && <Badge variant="outline" className="text-xs">Broker</Badge>}
+                          {c.is_haulier && <Badge variant="outline" className="text-xs">Haulier</Badge>}
                           {c.account_type === "both" && <Badge variant="outline" className="text-xs">{listView === "suppliers" ? "Also customer" : "Also supplier"}</Badge>}
                           {!c.is_active && <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">Archived</Badge>}
                         </div>
@@ -2261,12 +2262,21 @@ export function CustomerSetupAdmin() {
               </Select>
             </div>
             {editCustomerForm.account_type !== "customer" && (
-              <div className="flex items-center justify-between gap-4 rounded-md bg-muted/40 p-3">
-                <div className="space-y-0.5">
-                  <Label>Waste broker</Label>
-                  <p className="text-xs text-muted-foreground">Turn on if this supplier acts as a waste broker. They will then appear in the Broker list when creating a WeighOne ticket.</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-4 rounded-md bg-muted/40 p-3">
+                  <div className="space-y-0.5">
+                    <Label>Waste broker</Label>
+                    <p className="text-xs text-muted-foreground">Turn on if this supplier acts as a waste broker. They will then appear in the Broker list when creating a WeighOne ticket.</p>
+                  </div>
+                  <Switch checked={editCustomerForm.is_waste_broker} onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, is_waste_broker: v }))} />
                 </div>
-                <Switch checked={editCustomerForm.is_waste_broker} onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, is_waste_broker: v }))} />
+                <div className="flex items-center justify-between gap-4 rounded-md bg-muted/40 p-3">
+                  <div className="space-y-0.5">
+                    <Label>Haulier</Label>
+                    <p className="text-xs text-muted-foreground">Turn on if this supplier is a haulier (e.g. Baxters). They will then appear in the Haulier list when creating a WeighOne ticket, with their carrier licence filled in.</p>
+                  </div>
+                  <Switch checked={editCustomerForm.is_haulier} onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, is_haulier: v }))} />
+                </div>
               </div>
             )}
             <Separator />
