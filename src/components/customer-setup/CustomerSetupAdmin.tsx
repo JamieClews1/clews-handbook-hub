@@ -472,7 +472,7 @@ export function CustomerSetupAdmin() {
     for (let from = 0; ; from += pageSize) {
       const { data, error } = await supabase
         .from("customers")
-        .select("id,customer_code,customer_name,po_notification_email,pod_email,auto_pod_emails_enabled,custom_reporting_periods_enabled,po_spans_periods,is_broker,account_type,is_waste_broker,all_data_hub_sites,midweigh_rebates_enabled,midweigh_rebate_contact_id,is_active,data_hub_customer,created_at,updated_at")
+        .select("id,customer_code,customer_name,po_notification_email,pod_email,auto_pod_emails_enabled,custom_reporting_periods_enabled,po_spans_periods,is_broker,account_type,is_waste_broker,is_haulier,all_data_hub_sites,midweigh_rebates_enabled,midweigh_rebate_contact_id,is_active,data_hub_customer,created_at,updated_at")
         .order("customer_name", { ascending: true })
         .range(from, from + pageSize - 1);
       if (error) throw error;
@@ -995,6 +995,7 @@ export function CustomerSetupAdmin() {
       is_broker: customer.is_broker ?? false,
       account_type: (customer.account_type ?? "customer") as "customer" | "supplier" | "both",
       is_waste_broker: customer.is_waste_broker ?? false,
+      is_haulier: customer.is_haulier ?? false,
       all_data_hub_sites: customer.all_data_hub_sites ?? false,
       midweigh_rebates_enabled: customer.midweigh_rebates_enabled ?? false,
       midweigh_rebate_contact_id: customer.midweigh_rebate_contact_id ?? "",
@@ -1035,6 +1036,7 @@ export function CustomerSetupAdmin() {
           is_broker: editCustomerForm.is_broker,
           account_type: editCustomerForm.account_type,
           is_waste_broker: editCustomerForm.account_type !== "customer" && editCustomerForm.is_waste_broker,
+          is_haulier: editCustomerForm.account_type !== "customer" && editCustomerForm.is_haulier,
           all_data_hub_sites: editCustomerForm.all_data_hub_sites,
           midweigh_rebates_enabled: editCustomerForm.midweigh_rebates_enabled,
           midweigh_rebate_contact_id: editCustomerForm.midweigh_rebates_enabled && editCustomerForm.midweigh_rebate_contact_id ? editCustomerForm.midweigh_rebate_contact_id : null,
