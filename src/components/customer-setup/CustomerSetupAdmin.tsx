@@ -98,6 +98,10 @@ type CustomerSite = {
   sic_code?: string | null;
   site_contact_name?: string | null;
   site_contact_phone?: string | null;
+  site_contact_2_name?: string | null;
+  site_contact_2_phone?: string | null;
+  sic_description?: string | null;
+  what3words?: string | null;
   is_archived?: boolean | null;
   archived_at?: string | null;
   created_at: string;
@@ -223,6 +227,10 @@ export function CustomerSetupAdmin() {
     sic_code: "",
     site_contact_name: "",
     site_contact_phone: "",
+    site_contact_2_name: "",
+    site_contact_2_phone: "",
+    sic_description: "",
+    what3words: "",
   });
   const [savingSite, setSavingSite] = useState(false);
   // Human-readable window (e.g. "01/05/2026 → ongoing") of the period whose rebate values are shown below.
@@ -542,7 +550,7 @@ export function CustomerSetupAdmin() {
       await Promise.all([
         supabase
           .from("customer_sites")
-          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,broker_subclient,owner_contact_id,pod_email,load_report_type,is_archived,archived_at,created_at,updated_at,address_1,address_2,address_3,address_4,address_5,area,postcode,sic_code,site_contact_name,site_contact_phone")
+          .select("id,customer_id,site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,broker_subclient,owner_contact_id,pod_email,load_report_type,is_archived,archived_at,created_at,updated_at,address_1,address_2,address_3,address_4,address_5,area,postcode,sic_code,site_contact_name,site_contact_phone,site_contact_2_name,site_contact_2_phone,sic_description,what3words")
           .eq("customer_id", customerId)
           .order("site_name", { ascending: true }),
         supabase
@@ -755,6 +763,14 @@ export function CustomerSetupAdmin() {
       sic_code: "",
       site_contact_name: "",
       site_contact_phone: "",
+      site_contact_2_name: "",
+      site_contact_2_phone: "",
+      sic_description: "",
+      what3words: "",
+    site_contact_2_name: "",
+    site_contact_2_phone: "",
+    sic_description: "",
+    what3words: "",
     });
     setNewRebateSetInline("");
     setSelectedPeriodLabel(null);
@@ -788,6 +804,10 @@ export function CustomerSetupAdmin() {
       sic_code: site.sic_code ?? "",
       site_contact_name: site.site_contact_name ?? "",
       site_contact_phone: site.site_contact_phone ?? "",
+      site_contact_2_name: site.site_contact_2_name ?? "",
+      site_contact_2_phone: site.site_contact_2_phone ?? "",
+      sic_description: site.sic_description ?? "",
+      what3words: site.what3words ?? "",
     });
     setNewRebateSetInline("");
     setSelectedPeriodLabel(null);
@@ -827,6 +847,10 @@ export function CustomerSetupAdmin() {
         sic_code: siteForm.sic_code.trim() || null,
         site_contact_name: siteForm.site_contact_name.trim() || null,
         site_contact_phone: siteForm.site_contact_phone.trim() || null,
+        site_contact_2_name: siteForm.site_contact_2_name.trim() || null,
+        site_contact_2_phone: siteForm.site_contact_2_phone.trim() || null,
+        sic_description: siteForm.sic_description.trim() || null,
+        what3words: siteForm.what3words.trim().replace(/^\/+/, "").toLowerCase() || null,
       };
 
       let siteId: string;
@@ -2496,8 +2520,11 @@ export function CustomerSetupAdmin() {
                   ["postcode", "Postcode"],
                   ["area", "Area code"],
                   ["sic_code", "SIC code"],
-                  ["site_contact_name", "Site contact name"],
-                  ["site_contact_phone", "Site contact phone"],
+                  ["sic_description", "SIC description"],
+                  ["site_contact_name", "Contact 1 name"],
+                  ["site_contact_phone", "Contact 1 mobile"],
+                  ["site_contact_2_name", "Contact 2 name (optional)"],
+                  ["site_contact_2_phone", "Contact 2 mobile (optional)"],
                 ] as const).map(([field, label]) => (
                   <div className="grid gap-2" key={field}>
                     <Label htmlFor={`site_${field}`}>{label}</Label>
@@ -2508,6 +2535,22 @@ export function CustomerSetupAdmin() {
                     />
                   </div>
                 ))}
+                <div className="grid gap-2 sm:col-span-2">
+                  <Label htmlFor="site_what3words">what3words (optional)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="site_what3words"
+                      value={siteForm.what3words}
+                      placeholder="e.g. filled.count.soap"
+                      onChange={(e) => setSiteForm((p) => ({ ...p, what3words: e.target.value }))}
+                    />
+                    {/^\/*[a-zA-Z]+\.[a-zA-Z]+\.[a-zA-Z]+$/.test(siteForm.what3words.trim()) && (
+                      <Button asChild variant="outline" type="button">
+                        <a href={`https://what3words.com/${siteForm.what3words.trim().replace(/^\/+/, "").toLowerCase()}`} target="_blank" rel="noreferrer">Open map</a>
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
