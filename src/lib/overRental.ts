@@ -1,5 +1,6 @@
 import { differenceInDays, format, startOfMonth, subMonths } from "date-fns";
 import { openRentalBins } from "./rental-open-movements";
+import { londonCalendarKey } from "./ui-calendar";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
 // Faithful copy of the over-rental detection used by the Live Jobs dashboard, so
@@ -197,11 +198,15 @@ export function computeOverRentalBins(
   // long-standing RoRo serviced only by exchanges). This gate then excludes ancient
   // "ghost" deliveries that were never collected and have had no activity since.
   // Format: yyyy-MM-dd. Defaults to 11 calendar months ago.
-  activityWindowStart?: string
+  activityWindowStart?: string,
+  // Collections/exchanges booked for today or later. Those containers are already
+  // being attended, so they are dropped from the over-rental result. Pass the same
+  // job list: booked rows are ignored by the physical replay itself.
+  plannedJobs: OverRentalJob[] = []
 ): OverRentalBin[] {
   const windowStart =
     activityWindowStart ?? format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
-  return openRentalBins(jobs, settings, windowStart, categoriseContainer);
+  return openRentalBins(jobs, settings, windowStart, categoriseContainer, londonCalendarKey(), plannedJobs);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

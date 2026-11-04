@@ -28,6 +28,36 @@ export function isCompletedRentalMovement(job: OverRentalJob, today = londonCale
   return status === "Q" && (job.movement_type === "Collect" || job.movement_type === "Exchange");
 }
 
+/** A collection or exchange already booked for today or later. The truck is on its
+ * way, so that container must never be chased as over-rental even though its ticket
+ * is not completed yet. */
+export function isPlannedRentalService(job: OverRentalJob, today = londonCalendarKey()): boolean {
+  if (!job.job_date || !parseLoadReportDate(job.job_date)) return false;
+  if (job.job_date < today) return false;
+  return job.movement_type === "Collect" || job.movement_type === "Exchange";
+}
+
+/** Booked services per site + container category, counted by physical size. */
+export function plannedServiceIndex(
+  jobs: OverRentalJob[],
+  categorise: (container: string | null, reg: string | null, settings: LiveJobsSettings) => OverRentalBin["category"] | null,
+  settings: LiveJobsSettings,
+  today = londonCalendarKey(),
+): Map<string, Map<string, number>> {
+  const index = new Map<string, Map<string, number>>();
+  for (const job of jobs) {
+    if (!isPlannedRentalService(job, today)) continue;
+    const category = categorise(job.container_type, job.vehicle_registration, settings);
+    if (!category || category === "artic" || !job.container_type) continue;
+    const key = `${rentalSiteKey(job)}|||${category}`;
+    const size = rentalContainerKey(job.container_type);
+    const bySize = index.get(key) ?? new Map<string, number>();
+    bySize.set(size, (bySize.get(size) ?? 0) + 1);
+    index.set(key, bySize);
+  }
+  return index;
+}
+
 type Slot = { job: OverRentalJob; date: string; ewc: string; size: string };
 
 /** Remove only a non-address contact prefix before an explicit numbered street.
@@ -62,6 +92,7 @@ export function openRentalBins(
   jobs: OverRentalJob[], settings: LiveJobsSettings, windowStart: string,
   categorise: (container: string | null, reg: string | null, settings: LiveJobsSettings) => OverRentalBin["category"] | null,
   today = londonCalendarKey(),
+  plannedJobs: OverRentalJob[] = [],
 ): OverRentalBin[] {
   const groups = new Map<string, { category: OverRentalBin["category"]; slots: Slot[] }>();
   const movements = jobs.filter(j => isCompletedRentalMovement(j, today))
@@ -91,12 +122,42 @@ export function openRentalBins(
   const todayDate = parseLoadReportDate(today);
   if (!todayDate) return [];
   const bins: OverRentalBin[] = [];
-  for (const { category, slots } of groups.values()) {
+  const planned = plannedServiceIndex(plannedJobs, categorise, settings, today);
+  for (const [groupKey, { category, slots }] of groups) {
     const overdueBySize = new Map<string, Slot[]>();
     for (const s of slots) {
       const date = parseLoadReportDate(s.date);
       if (!date || s.date < windowStart || (todayDate.getTime() - date.getTime()) / 86400000 <= settings.rental_free_days) continue;
       overdueBySize.set(s.size, [...(overdueBySize.get(s.size) ?? []), s]);
+    }
+    // A collection or exchange already booked for this site attends those bins, so
+    // staff must never be chased for a container that is already on order. Exact
+    // physical sizes match first; a booking for a size that is not sitting on site
+    // at all (a swap that changes size) still sends a truck there, so it clears the
+    // oldest open bins — the same fallback the physical replay uses.
+    const booked = planned.get(groupKey);
+    if (booked) {
+      for (const [size, bucket] of [...overdueBySize]) {
+        const n = booked.get(size) ?? 0;
+        if (!n) continue;
+        if (n >= bucket.length) overdueBySize.delete(size);
+        else overdueBySize.set(size, bucket.slice(n));
+      }
+      const openSizes = new Set(slots.map(s => s.size));
+      let spare = [...booked]
+        .filter(([size]) => !openSizes.has(size))
+        .reduce((total, [, n]) => total + n, 0);
+      if (spare > 0) {
+        const oldestFirst = [...overdueBySize.entries()]
+          .sort((a, b) => a[1][0].date.localeCompare(b[1][0].date));
+        for (const [size, bucket] of oldestFirst) {
+          if (spare <= 0) break;
+          const take = Math.min(spare, bucket.length);
+          spare -= take;
+          if (take >= bucket.length) overdueBySize.delete(size);
+          else overdueBySize.set(size, bucket.slice(take));
+        }
+      }
     }
     for (const overdue of overdueBySize.values()) {
       const oldest = overdue[0];

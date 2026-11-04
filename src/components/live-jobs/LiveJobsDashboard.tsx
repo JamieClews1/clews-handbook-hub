@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import * as XLSX from "xlsx";
 import { format, startOfMonth, subMonths, differenceInDays } from "date-fns";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
-import { isCompletedRentalMovement, RENTAL_JOB_FIELDS } from "@/lib/rental-open-movements";
+import { isCompletedRentalMovement, isPlannedRentalService, RENTAL_JOB_FIELDS } from "@/lib/rental-open-movements";
 import { computeOverRentalBins, containerTypeCap } from "@/lib/overRental";
 import { loadRentalJobPages } from "@/lib/rental-job-loading";
 import { agreementCoversBin, type RentalCoverage } from "@/lib/rental-agreements";
@@ -132,6 +132,10 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
   // Customer-owned skips we service regularly (flagged in Rentals). These sites are
   // treated as live in the lookup even when deliveries/collections don't balance.
   const [ownSkipSites, setOwnSkipSites] = useState<{ key: string; site: string | null; customer: string | null; containerType: string | null }[]>([]);
+  // Collections/exchanges booked for today or later. `jobs` only holds completed
+  // movements, so the bookings are kept separately and passed to the shared
+  // over-rental calculator, which drops the bins they attend.
+  const [plannedJobs, setPlannedJobs] = useState<Job[]>([]);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -150,6 +154,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           .order("id", { ascending: true })
           .range(from, to).returns<Job[]>());
         setJobs(allJobs.filter(job => isCompletedRentalMovement(job)));
+        setPlannedJobs(allJobs.filter(job => isPlannedRentalService(job)));
       } catch (error) {
         console.error("Failed to load live jobs", error);
         setJobsError(true);
@@ -414,7 +419,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
     // Uses the shared computeOverRentalBins so the Rentals section produces IDENTICAL
     // results (same data window, same logic). Do not reimplement inline.
     // Also hide bins staff manually confirmed as collected in Rentals, so both views match.
-    const overRental = computeOverRentalBins(jobs, settings).filter(b =>
+    const overRental = computeOverRentalBins(jobs, settings, undefined, plannedJobs).filter(b =>
       !collectedBinKeys.has(b.binKey) && !ownBinKeys.has(b.binKey)
       && !agreements.some(agreement => agreementCoversBin(agreement, b)));
 
@@ -426,7 +431,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       recentActivity: recentJobs.slice(0, 100),
       overRentalSites: overRental,
     };
-  }, [jobs, settings, collectedBinKeys, ownBinKeys, agreements]);
+  }, [jobs, settings, collectedBinKeys, ownBinKeys, agreements, plannedJobs]);
 
   const skipSites = useMemo(() => liveSites.filter(s => s.category === "skip"), [liveSites]);
   const roroSites = useMemo(() => liveSites.filter(s => s.category === "roro"), [liveSites]);

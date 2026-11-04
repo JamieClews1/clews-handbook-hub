@@ -102,3 +102,4 @@
 
 - [x] Make test-mode tickets obvious: TEST mark on the WeighOne yard list, ticket popup, transaction log and ticket editor, RouteOne job cards and job dialogs, and on printed/downloaded tickets; verified on WB000002.
 - [x] Rentals: searchable filter by customer over the over-rental, rental-agreement and own-skip lists (shared filterRentalBins helper + tests); rows keyed by bin key + customer so filtered lists stop showing stale bins; verified live (Conectiv 1 row, Clear back to 34/21/9).
+- [x] Rentals/Live Jobs: a container with a collection or exchange booked for today or later is dropped from Over Rental (shared planned-service rule in the container replay; 10 new tests, 35 pass). Signed-in check: chase list 30 → 24 rows, matching the on-screen table exactly; six bins each had a booked Collect/Exchange in November. Under Rental Agreement and Customer Own Skip lists unchanged; Tip/Return bookings not treated as planned service.

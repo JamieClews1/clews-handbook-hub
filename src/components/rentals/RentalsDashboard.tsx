@@ -285,8 +285,10 @@ export default function RentalsDashboard() {
     if (settingsLoading) return [];
     // Exclude bins that staff have confirmed as collected (a real collection ticket
     // exists but the raw data couldn't be auto-matched — e.g. blank or mismatched site)
-    // and bins where the customer supplies their own skip.
-    return computeOverRentalBins(jobs, settings)
+    // and bins where the customer supplies their own skip. Containers with a
+    // collection or exchange already booked for today or later are dropped too:
+    // the truck is coming, so there is nothing to chase.
+    return computeOverRentalBins(jobs, settings, undefined, jobs)
       .filter((b) => !chases[b.binKey]?.collected && !chases[b.binKey]?.own_skip);
   }, [jobs, settings, settingsLoading, chases]);
 
