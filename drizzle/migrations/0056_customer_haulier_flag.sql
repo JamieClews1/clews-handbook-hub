@@ -1,0 +1,2 @@
+ALTER TABLE public.customers ADD COLUMN is_haulier boolean NOT NULL DEFAULT false;
+COMMENT ON COLUMN public.customers.is_haulier IS 'Supplier acts as a haulier; appears in the WeighOne ticket haulier list.';

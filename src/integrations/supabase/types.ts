@@ -2920,6 +2920,7 @@ export type Database = {
           is_active: boolean
           is_broker: boolean
           is_container_load_customer: boolean
+          is_haulier: boolean
           is_waste_broker: boolean
           midweigh_rebate_contact_id: string | null
           midweigh_rebates_enabled: boolean
@@ -2944,6 +2945,7 @@ export type Database = {
           is_active?: boolean
           is_broker?: boolean
           is_container_load_customer?: boolean
+          is_haulier?: boolean
           is_waste_broker?: boolean
           midweigh_rebate_contact_id?: string | null
           midweigh_rebates_enabled?: boolean
@@ -2968,6 +2970,7 @@ export type Database = {
           is_active?: boolean
           is_broker?: boolean
           is_container_load_customer?: boolean
+          is_haulier?: boolean
           is_waste_broker?: boolean
           midweigh_rebate_contact_id?: string | null
           midweigh_rebates_enabled?: boolean
