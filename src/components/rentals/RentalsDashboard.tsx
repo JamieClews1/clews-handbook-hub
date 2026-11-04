@@ -33,7 +33,7 @@ import { eligibleRentalAssignees } from "@/lib/rental-assignees";
 import { loadSeenMap, notesBadgeLabel, unreadNoteCount, type NoteStamp, type SeenMap } from "@/lib/rental-notes-unread";
 import { cleanEmail } from "@/lib/email-clean";
 import { loadRentalJobPages } from "@/lib/rental-job-loading";
-import { RENTAL_JOB_FIELDS } from "@/lib/rental-open-movements";
+import { RENTAL_JOB_FIELDS, rentalCustomerKey } from "@/lib/rental-open-movements";
 
 type Chase = {
   id: string;
@@ -268,9 +268,11 @@ export default function RentalsDashboard() {
       for (const name of [c.customer_name, c.data_hub_customer]) {
         if (!name) continue;
         const key = name.toLowerCase().trim();
+        const fuzzy = `~${rentalCustomerKey(name)}`;
         ids[key] = c.id;
+        ids[fuzzy] ??= c.id;
         const email = emailByCustomerId[c.id] || c.po_notification_email || "";
-        if (email) map[key] = email;
+        if (email) { map[key] = email; map[fuzzy] ??= email; }
       }
     }
     setEmailMap(map);
@@ -758,8 +760,8 @@ export default function RentalsDashboard() {
         <EmailDialog
           bin={emailBin}
           chase={chases[emailBin.binKey]}
-          defaultEmail={emailMap[emailBin.customer.toLowerCase().trim()] ?? ""}
-          customerId={customerIdMap[emailBin.customer.toLowerCase().trim()]}
+          defaultEmail={emailMap[emailBin.customer.toLowerCase().trim()] ?? emailMap[`~${rentalCustomerKey(emailBin.customer)}`] ?? ""}
+          customerId={customerIdMap[emailBin.customer.toLowerCase().trim()] ?? customerIdMap[`~${rentalCustomerKey(emailBin.customer)}`]}
           freeDays={settings.rental_free_days}
           draftBody={renderChaseTemplate(
             settings.rental_chase_email_template,
