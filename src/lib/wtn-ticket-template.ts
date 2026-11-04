@@ -44,6 +44,8 @@ export const WTN_PLACEHOLDERS: { key: string; label: string }[] = [
   { key: "receiving_name", label: "Receiving site name" },
   { key: "receiving_address", label: "Receiving site address" },
   { key: "driver_signature", label: "Driver signature (image)" },
+  { key: "producer_signature", label: "Producer signature (image)" },
+  { key: "producer_signoff_name", label: "Producer signatory" },
   { key: "operator_signature", label: "Weighbridge signature (image)" },
   { key: "disposer_signature", label: "Disposal site signature (image)" },
   { key: "disposer_name", label: "Disposal site signatory" },
@@ -227,6 +229,9 @@ export function renderWtnSheet(
     preparedTemplate = preparedTemplate.replace(/\{\{\s*receiving_address\s*\}\}/, "{{receiving_address}}\nSIC: {{receiving_sic}}");
   }
   // Saved designs may pre-date signature placeholders: place them in the sign boxes.
+  if (vars.producer_signature) {
+    preparedTemplate = preparedTemplate.replace(/(<div class="k">\s*Producer Sign\s*<\/div>)[\s\S]*?(<div class="name">)[\s\S]*?(<\/div>)/i, "$1{{producer_signature}}$2{{producer_signoff_name}}$3");
+  }
   if (!/\{\{\s*driver_signature\s*\}\}/.test(preparedTemplate)) {
     preparedTemplate = preparedTemplate.replace(/(<div class="k">\s*Driver Sign\s*<\/div>)/i, "$1{{driver_signature}}");
   }
