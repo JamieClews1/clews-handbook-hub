@@ -101,3 +101,4 @@
 - [x] Container load photos save one-by-one with retries; warn before deleting loads with photos
 
 - [x] Make test-mode tickets obvious: TEST mark on the WeighOne yard list, ticket popup, transaction log and ticket editor, RouteOne job cards and job dialogs, and on printed/downloaded tickets; verified on WB000002.
+- [x] Rentals: searchable filter by customer over the over-rental, rental-agreement and own-skip lists (shared filterRentalBins helper + tests); rows keyed by bin key + customer so filtered lists stop showing stale bins; verified live (Conectiv 1 row, Clear back to 34/21/9).
