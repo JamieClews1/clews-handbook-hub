@@ -55,7 +55,7 @@ export default function CustomerFilterSelect({ value, onChange, options }: Props
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[320px] p-0" align="start">
+      <PopoverContent className="w-[380px] p-0" align="start">
         <Command>
           <CommandInput
             placeholder="Search customers…"
@@ -69,9 +69,9 @@ export default function CustomerFilterSelect({ value, onChange, options }: Props
                 value="__all__"
                 onSelect={() => { onChange("all"); setOpen(false); }}
               >
-                <Check className={cn("mr-2 h-4 w-4", value === "all" ? "opacity-100" : "opacity-0")} />
-                All Customers
-                <span className="ml-auto pl-3 text-xs text-muted-foreground">
+                <Check className={cn("mr-2 h-4 w-4 shrink-0", value === "all" ? "opacity-100" : "opacity-0")} />
+                <span className="min-w-0 flex-1 truncate">All Customers</span>
+                <span className="shrink-0 whitespace-nowrap pl-3 text-xs text-muted-foreground">
                   {options.reduce((total, o) => total + o.count, 0)} bins
                 </span>
               </CommandItem>
@@ -81,9 +81,9 @@ export default function CustomerFilterSelect({ value, onChange, options }: Props
                   value={o.name}
                   onSelect={() => { onChange(o.name); setOpen(false); }}
                 >
-                  <Check className={cn("mr-2 h-4 w-4", value === o.name ? "opacity-100" : "opacity-0")} />
-                  <span className="truncate">{o.name}</span>
-                  <span className="ml-auto pl-3 text-xs text-muted-foreground">
+                  <Check className={cn("mr-2 h-4 w-4 shrink-0", value === o.name ? "opacity-100" : "opacity-0")} />
+                  <span className="min-w-0 flex-1 truncate">{o.name}</span>
+                  <span className="shrink-0 whitespace-nowrap pl-3 text-xs text-muted-foreground">
                     {o.count} {o.count === 1 ? "bin" : "bins"}
                   </span>
                 </CommandItem>
