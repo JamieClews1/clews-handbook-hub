@@ -39,6 +39,25 @@ import { cleanEmail } from "@/lib/email-clean";
 import { publicUrl } from "@/lib/public-url";
 import { allAccessSiteIds } from "@/lib/portal-site-access";
 import { PortalAccessDirectory } from "./PortalAccessDirectory";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Plus } from "lucide-react";
+import { summariseAccountFacts, type AccountFacts } from "@/lib/customer-account-facts";
+
+const UNDERLINE_LIST = "h-auto w-full justify-start gap-6 overflow-x-auto rounded-none border-0 border-b border-border bg-transparent p-0";
+const UNDERLINE_TRIGGER = "rounded-none border-b-2 border-transparent bg-transparent px-0 pb-2.5 pt-1 text-base font-medium text-muted-foreground shadow-none hover:bg-transparent hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=active]:ring-0";
+
+function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${active ? "border-foreground bg-foreground text-background" : "border-border bg-background text-foreground hover:bg-muted"}`}
+    >
+      {children}
+    </button>
+  );
+}
 
 
 
@@ -482,7 +501,7 @@ export function CustomerSetupAdmin() {
           .gte("job_date", `${year}-01-01`)
           .lte("job_date", `${year}-12-31`)
           .range(from, from + 999);
-        q = supabase ? (supplierView ? q.eq("job_type", "WASTEOUT") : q.neq("job_type", "WASTEOUT")) : q;
+        q = supplierView ? q.eq("job_type", "WASTEOUT") : q.neq("job_type", "WASTEOUT");
         const { data, error } = await q;
         if (error || !data) break;
         rows.push(...(data as any[]));
