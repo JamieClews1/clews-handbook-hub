@@ -1247,6 +1247,14 @@ function EmailDialog({ bin, chase, defaultEmail, customerId, freeDays, draftBody
           await supabase.from("rental_chases").update({ chase_status: "chased" }).eq("id", chaseId);
         }
       }
+      // Record the sent chase on the container's notes so the history shows what was said and when.
+      // The author/date are stamped server-side; a failure here must not undo the sent email.
+      const sentAt = new Date().toLocaleString("en-GB", { timeZone: "Europe/London", dateStyle: "medium", timeStyle: "short" });
+      const { error: noteError } = await supabase.from("rental_notes").insert({
+        bin_key: bin.binKey,
+        agreement_id: null,
+        body: `Chase email sent ${sentAt} to ${to.trim()}\nSubject: ${subject}\n\n${body}`,
+      });
       // A changed address is kept on the customer's profile as a contact, so it is
       // offered next time. Saving it must never undo a sent email, so failures only warn.
       let savedNote = "";
