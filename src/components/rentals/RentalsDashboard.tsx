@@ -34,6 +34,8 @@ import { loadSeenMap, notesBadgeLabel, unreadNoteCount, type NoteStamp, type See
 import { cleanEmail } from "@/lib/email-clean";
 import { loadRentalJobPages } from "@/lib/rental-job-loading";
 import { RENTAL_JOB_FIELDS, rentalCustomerKey } from "@/lib/rental-open-movements";
+import CustomerFilterSelect, { type CustomerOption } from "./CustomerFilterSelect";
+import { ALL_RENTAL_FILTERS, customerBinCounts, filterRentalBins } from "@/lib/rental-bin-filters";
 
 type Chase = {
   id: string;
@@ -309,9 +311,13 @@ export default function RentalsDashboard() {
     [allBins, agreements],
   );
 
-  // ── Filters: category (Skip/RoRo) then size (container type) ──
+  // ── Filters: customer, category (Skip/RoRo) then size (container type) ──
   const [categoryFilter, setCategoryFilter] = useState<"all" | "skip" | "roro">("all");
   const [sizeFilter, setSizeFilter] = useState<string>("all");
+  const [customerFilter, setCustomerFilter] = useState<string>("all");
+
+  // Customers with at least one over-rental bin, with how many bins each has.
+  const customerOptions = useMemo<CustomerOption[]>(() => customerBinCounts(bins), [bins]);
 
   // Container types ("sizes") available for the chosen category
   const sizeOptions = useMemo(() => {
@@ -324,13 +330,25 @@ export default function RentalsDashboard() {
   }, [bins, categoryFilter]);
 
   const filteredBins = useMemo(() => {
-    return bins.filter((b) => {
-      if (categoryFilter !== "all" && b.category !== categoryFilter) return false;
-      if (sizeFilter !== "all" && b.containerType !== sizeFilter) return false;
-      if (notesOnly && unreadFor(b.binKey) === 0) return false;
-      return true;
+    const matched = filterRentalBins(bins, {
+      customer: customerFilter,
+      category: categoryFilter,
+      size: sizeFilter,
     });
-  }, [bins, categoryFilter, sizeFilter, notesOnly, noteStamps, seenMap]);
+    if (!notesOnly) return matched;
+    return matched.filter((b) => unreadFor(b.binKey) > 0);
+  }, [bins, customerFilter, categoryFilter, sizeFilter, notesOnly, noteStamps, seenMap]);
+
+  // The agreement and own-skip lists below follow the same customer filter, so
+  // picking a customer shows everything held for them.
+  const visibleCoveredBins = useMemo(
+    () => filterRentalBins(coveredBins, { ...ALL_RENTAL_FILTERS, customer: customerFilter }),
+    [coveredBins, customerFilter],
+  );
+  const visibleOwnSkipBins = useMemo(
+    () => filterRentalBins(ownSkipBins, { ...ALL_RENTAL_FILTERS, customer: customerFilter }),
+    [ownSkipBins, customerFilter],
+  );
 
   // Bins holding notes this person has not opened yet — drives the highlight and
   // the "notes to read" filter.
@@ -408,9 +426,10 @@ export default function RentalsDashboard() {
 
     const catLabel = categoryFilter === "all" ? "All types" : categoryFilter === "roro" ? "RoRo" : "Skip";
     const sizeLabel = sizeFilter === "all" ? "All sizes" : sizeFilter;
+    const customerLabel = customerFilter === "all" ? "All customers" : customerFilter;
     const aoa = [
       [`Over Rental Report — generated ${format(new Date(), "dd MMM yyyy HH:mm")}`],
-      [`Filters: ${catLabel} · ${sizeLabel}   |   Free rental period: ${freeDays} days   |   Rates/week: Skip £${settings.rental_skip_rate.toFixed(2)} + VAT, RoRo £${settings.rental_roro_rate.toFixed(2)} + VAT`],
+      [`Filters: ${customerLabel} · ${catLabel} · ${sizeLabel}   |   Free rental period: ${freeDays} days   |   Rates/week: Skip £${settings.rental_skip_rate.toFixed(2)} + VAT, RoRo £${settings.rental_roro_rate.toFixed(2)} + VAT`],
       [`Bins: ${filteredBins.length}   |   Est. total: £${totalEx.toFixed(2)} ex VAT  /  £${totalInc.toFixed(2)} inc VAT`],
       [],
       header,
@@ -484,6 +503,7 @@ export default function RentalsDashboard() {
           <LatestDataDate />
           <div className="flex flex-wrap items-center gap-2 pt-3">
             <Filter className="h-4 w-4 text-muted-foreground" />
+            <CustomerFilterSelect value={customerFilter} onChange={setCustomerFilter} options={customerOptions} />
             <Select
               value={categoryFilter}
               onValueChange={(v) => { setCategoryFilter(v as "all" | "skip" | "roro"); setSizeFilter("all"); }}
@@ -518,8 +538,8 @@ export default function RentalsDashboard() {
                 {unreadNotesBins} with notes to read
               </Button>
             )}
-            {(categoryFilter !== "all" || sizeFilter !== "all" || notesOnly) && (
-              <Button variant="ghost" size="sm" onClick={() => { setCategoryFilter("all"); setSizeFilter("all"); setNotesOnly(false); }}>
+            {(customerFilter !== "all" || categoryFilter !== "all" || sizeFilter !== "all" || notesOnly) && (
+              <Button variant="ghost" size="sm" onClick={() => { setCustomerFilter("all"); setCategoryFilter("all"); setSizeFilter("all"); setNotesOnly(false); }}>
                 Clear
               </Button>
             )}
@@ -564,7 +584,7 @@ export default function RentalsDashboard() {
                   const assigneeColour = assignee ? staffColours.get(assignee.id) ?? null : null;
                   return (
                     <TableRow
-                      key={b.binKey}
+                      key={`${b.binKey}::${b.customer}`}
                       className="bg-destructive/5"
                       style={assigneeColour ? { boxShadow: `inset 4px 0 0 ${assigneeColour}` } : undefined}
                     >
@@ -638,12 +658,12 @@ export default function RentalsDashboard() {
         </CardContent>
       </Card>
 
-      {coveredBins.length > 0 && (
+      {visibleCoveredBins.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2 text-primary">
               <FileCheck className="h-5 w-5" />
-              Under Rental Agreement ({coveredBins.length})
+              Under Rental Agreement ({visibleCoveredBins.length})
             </CardTitle>
             <p className="text-sm text-muted-foreground">
               These bins are over the {settings.rental_free_days}-day free period but covered by an active rental agreement, so they are excluded from chasing. Time on site is still tracked below, including No Rental agreements.
@@ -664,8 +684,8 @@ export default function RentalsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {coveredBins.map((b) => (
-                  <TableRow key={b.binKey} className="bg-primary/5">
+                {visibleCoveredBins.map((b) => (
+                  <TableRow key={`${b.binKey}::${b.customer}`} className="bg-primary/5">
                     <TableCell className="font-medium">{b.customer}</TableCell>
                     <TableCell>{b.site}</TableCell>
                     <TableCell><Badge variant="outline" className="text-xs">{b.containerType}</Badge></TableCell>
@@ -682,12 +702,12 @@ export default function RentalsDashboard() {
         </Card>
       )}
 
-      {ownSkipBins.length > 0 && (
+      {visibleOwnSkipBins.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2 text-muted-foreground">
               <Package className="h-5 w-5" />
-              Customer Own Skip ({ownSkipBins.length})
+              Customer Own Skip ({visibleOwnSkipBins.length})
             </CardTitle>
             <p className="text-sm text-muted-foreground">
               These bins are the customer's own container, so they're excluded from the chase list. Undo to move a bin back into Over Rental.
@@ -707,10 +727,10 @@ export default function RentalsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ownSkipBins.map((b) => {
+                {visibleOwnSkipBins.map((b) => {
                   const c = chases[b.binKey];
                   return (
-                    <TableRow key={b.binKey}>
+                    <TableRow key={`${b.binKey}::${b.customer}`}>
                       <TableCell className="font-medium">{b.customer}</TableCell>
                       <TableCell>{b.site}</TableCell>
                       <TableCell><Badge variant="outline" className="text-xs">{b.containerType}</Badge></TableCell>
