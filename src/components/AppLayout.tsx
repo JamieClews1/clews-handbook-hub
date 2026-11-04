@@ -8,7 +8,7 @@ import { PortalAssistantWidget } from "@/components/PortalAssistantWidget";
 import { PageCommandPalette } from "@/components/PageCommandPalette";
 import { UrgentContaminationPopup } from "@/components/banksman/UrgentContaminationPopup";
 import { FullScreenToggle } from "@/components/FullScreenToggle";
-import { TestModeToggle } from "@/lib/test-mode";
+import { TestModeToggle, TestModeStrip } from "@/lib/test-mode";
 import { Button } from "@/components/ui/button";
 import { LogOut, User, Bell, Plus, CircleHelp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -113,6 +113,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               </DropdownMenu>
             </div>
           </header>
+          <TestModeStrip />
 
           {/* Main Content */}
           <main id="main-content" tabIndex={-1} className="flex-1 overflow-auto">

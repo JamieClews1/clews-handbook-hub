@@ -119,3 +119,16 @@ export function TestModeBanner({ label = "Test ticket" }: { label?: string }) {
   );
 }
 
+
+/** Full-width amber strip under the top bar while test mode is on, with a way to leave it. */
+export function TestModeStrip() {
+  const active = useTestModeActive();
+  if (!active) return null;
+  return (
+    <div role="status" className="flex items-center gap-3 border-b border-warning/40 bg-warning-subtle px-4 py-2 text-sm text-warning-text">
+      <FlaskConical className="h-4 w-4 shrink-0" />
+      <span><strong className="font-semibold">Test mode</strong> <span className="ml-1">New tickets and jobs are marked as test and never sent to DWT.</span></span>
+      <button type="button" onClick={() => setLocal(false)} className="ml-auto font-semibold hover:underline">Turn off</button>
+    </div>
+  );
+}
