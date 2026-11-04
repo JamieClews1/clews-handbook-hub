@@ -11,6 +11,7 @@ import { INBOUND_CONTAINER_GROUPS, isPickedContainer } from "@/lib/weighone-cont
 
 import { ContainerAccordion } from "@/components/weighone/ContainerAccordion";
 import { WasteOutProductPicker, type WasteOutProductOption } from "@/components/weighone/WasteOutProductPicker";
+import { WasteInTypePicker } from "@/components/weighone/WasteInTypePicker";
 import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
 import { BanksmanSettings } from "@/components/banksman/BanksmanSettings";
 import { CombinedTicketList } from "@/components/weighone/CombinedTicketList";
@@ -1981,19 +1982,17 @@ const WeighOnePage = () => {
                       <div className="grid grid-cols-2 gap-3">
                         <div className={cn("space-y-1.5", !hasPricing && "col-span-2")}>
                           <Label className="text-xs">Waste Type</Label>
-                          <Select value={formData.waste_description && !formData.waste_type_id ? "booked-waste" : formData.waste_type_id} onValueChange={(val) => {
-                            if (val === "booked-waste") return;
-                            const wt = activeWasteTypes.find(w => w.id === val);
-                            setFormData((p) => ({ ...p, waste_type_id: val, waste_description: wt?.waste_type ?? "", ewc_code: wt?.ewc_code ?? "" }));
-                          }}>
-                            <SelectTrigger className="h-9"><SelectValue placeholder="Select waste type..." /></SelectTrigger>
-                            <SelectContent>
-                              {formData.waste_description && !formData.waste_type_id && <SelectItem value="booked-waste">{formData.waste_description}</SelectItem>}
-                              {activeWasteTypes.map((wt) => (
-                                <SelectItem key={wt.id} value={wt.id}>{wt.waste_type}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <WasteInTypePicker
+                            types={activeWasteTypes}
+                            value={formData.waste_type_id ?? ""}
+                            bookedWaste={formData.waste_description && !formData.waste_type_id ? formData.waste_description : null}
+                            onChange={(id, wt) => setFormData((p) => ({
+                              ...p,
+                              waste_type_id: id,
+                              waste_description: wt?.waste_type ?? p.waste_description,
+                              ewc_code: wt?.ewc_code ?? p.ewc_code,
+                            }))}
+                          />
                         </div>
                         {hasPricing && <div className="space-y-1.5">
                           <Label className="text-xs">Rate Group</Label>
