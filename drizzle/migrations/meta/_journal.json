@@ -393,6 +393,13 @@
       "when": 1793778983030,
       "tag": "0055_supplier_waste_broker_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1793779805637,
+      "tag": "0056_customer_haulier_flag",
+      "breakpoints": true
     }
   ]
 }
