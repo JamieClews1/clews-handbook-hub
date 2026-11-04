@@ -1268,6 +1268,7 @@ function EmailDialog({ bin, chase, defaultEmail, customerId, freeDays, draftBody
       } else if (!customerId && sentTo) {
         savedNote = " — no matching customer profile to save the address to";
       }
+      if (noteError) savedNote += " — couldn't add the note to the container";
       toast({ title: "Chase email sent", description: `Sent to ${to.trim()}${savedNote}` });
       onSent();
     } catch (e: any) {
