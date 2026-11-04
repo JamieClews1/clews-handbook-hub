@@ -533,6 +533,15 @@ const WeighOnePage = () => {
       const { data } = await supabase.from("verified_tipping_sites").select("site_name, operator_name, registration_number, site_class").eq("site_class", "haulage");
       const rows = (data ?? []) as { site_name: string | null; operator_name: string | null; registration_number: string | null }[];
       const list = rows.map(r => ({ name: (r.operator_name || r.site_name || "").trim(), registration: r.registration_number || "" })).filter(h => h.name);
+      // Suppliers flagged as hauliers in Customer Setup
+      const { data: supplierHauliers } = await supabase.from("customers").select("customer_name, waste_carrier_licence").eq("is_haulier", true);
+      for (const s of (supplierHauliers ?? []) as { customer_name: string | null; waste_carrier_licence: string | null }[]) {
+        const name = (s.customer_name || "").trim();
+        if (name && !list.some(h => h.name.toLowerCase() === name.toLowerCase())) {
+          list.push({ name, registration: s.waste_carrier_licence || "" });
+        }
+      }
+      list.sort((a, b) => a.name.localeCompare(b.name));
       return [{ name: OWN_CARRIER_NAME, registration: "" }, ...list];
     },
   });
