@@ -1557,46 +1557,125 @@ export function CustomerSetupAdmin() {
       </Card>
 
       <div className="space-y-6">
-        <Card>
-          <CardHeader className="flex flex-row items-start justify-between gap-2">
-            <div>
-              <CardTitle>Customer</CardTitle>
-              <CardDescription>
-                {selectedCustomer ? (
-                  <span>
-                    Managing <span className="font-medium text-foreground">{selectedCustomer.customer_name}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">({selectedCustomer.customer_code})</span>
-                  </span>
-                ) : (
-                  "Select a customer to begin."
-                )}
-              </CardDescription>
+        {selectedCustomer && (() => {
+          const isSupplierView = listView === "suppliers";
+          const roleLabel = selectedCustomer.account_type === "both" ? "Customer and supplier" : isSupplierView ? "Supplier" : "Customer";
+          const noun = isSupplierView ? "supplier" : "customer";
+          const sitesWithSet = sites.filter((s) => !s.is_archived && sitePriceSets[s.id]?.price_set_id);
+          const setNames = Array.from(new Set(sitesWithSet.map((s) => priceSets.find((p) => p.id === sitePriceSets[s.id]?.price_set_id)?.name).filter(Boolean)));
+          const doc = accountFacts?.dutyOfCare;
+          const Fact = ({ label, value, sub, tone, action, onAction }: { label: string; value: string; sub?: string; tone?: "muted" | "warn"; action?: string; onAction?: () => void }) => (
+            <div className="min-w-0 border-border p-4 [&:not(:first-child)]:border-l">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
+              <div className={`mt-1 truncate text-xl font-bold tabular-nums ${tone === "muted" ? "text-muted-foreground" : tone === "warn" ? "text-warning-text" : "text-foreground"}`}>{value}</div>
+              {action ? (
+                <button type="button" onClick={onAction} className="mt-0.5 text-sm font-semibold text-primary hover:underline">{action}</button>
+              ) : (
+                <div className="mt-0.5 truncate text-sm text-muted-foreground">{sub ?? "\u00a0"}</div>
+              )}
             </div>
-            {selectedCustomer && (
-              <Button variant="outline" size="sm" onClick={() => openEditCustomer(selectedCustomer)}>
-                Edit customer
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
+          );
+          return (
+            <Card>
+              <CardContent className="space-y-4 p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h2 className="text-2xl font-bold tracking-tight">{selectedCustomer.customer_name}</h2>
+                      <span className="text-sm uppercase tracking-wide text-muted-foreground">{selectedCustomer.customer_code}</span>
+                      <Badge variant="secondary">{roleLabel}</Badge>
+                      {!selectedCustomer.is_active && <Badge variant="outline">Archived</Badge>}
+                    </div>
+                    {accountFacts?.topStreams.length ? (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {isSupplierView ? "Outgoing destination for our " : "Sends us "}
+                        {accountFacts.topStreams.slice(0, 3).join(", ")}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => openEditCustomer(selectedCustomer)}>Edit {noun}</Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon" aria-label={`More actions for ${selectedCustomer.customer_name}`}>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={refreshAll}>Refresh</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setCustomerActive(selectedCustomer, !selectedCustomer.is_active)}>
+                          {selectedCustomer.is_active ? `Archive ${noun}` : `Restore ${noun}`}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-border md:grid-cols-5">
+                  <Fact
+                    label={isSupplierView ? "Sent this year" : "Received this year"}
+                    value={accountFacts ? `${accountFacts.tonnes.toLocaleString("en-GB", { maximumFractionDigits: 1 })} t` : "…"}
+                    sub={accountFacts ? `${accountFacts.loads} loads · ${accountFacts.range}` : "Reading loads"}
+                    tone={accountFacts && accountFacts.loads === 0 ? "muted" : undefined}
+                  />
+                  <Fact
+                    label="Streams"
+                    value={accountFacts?.topStreams[0] ?? (accountFacts ? "None" : "…")}
+                    sub={accountFacts ? `${accountFacts.topStreams.length} stream${accountFacts.topStreams.length === 1 ? "" : "s"}` : undefined}
+                    tone={accountFacts && !accountFacts.topStreams.length ? "muted" : undefined}
+                  />
+                  <Fact
+                    label="Rebate set"
+                    value={setNames.length ? String(setNames[0]) : "None"}
+                    sub={setNames.length > 1 ? `+${setNames.length - 1} more` : setNames.length ? `${sitesWithSet.length} site${sitesWithSet.length === 1 ? "" : "s"}` : undefined}
+                    tone={setNames.length ? undefined : "muted"}
+                    action={setNames.length ? undefined : "Assign"}
+                    onAction={() => setCustomerTab("sites")}
+                  />
+                  <Fact
+                    label="Duty of care"
+                    value={!doc ? "…" : doc.state === "ok" ? "On file" : doc.state === "expired" ? "Expired" : doc.state === "no-expiry" ? "No expiry" : "Not on file"}
+                    sub={doc?.licence ?? undefined}
+                    tone={doc && doc.state !== "ok" ? "warn" : undefined}
+                    action={doc && doc.state !== "ok" ? "Update" : undefined}
+                    onAction={() => setCustomerTab("duty-of-care")}
+                  />
+                  <Fact
+                    label="Portal users"
+                    value={String(memberships.length)}
+                    sub={memberships.length ? "with access" : undefined}
+                    tone={memberships.length ? undefined : "muted"}
+                    action={memberships.length ? undefined : "Invite"}
+                    onAction={() => setCustomerTab("portal")}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
+        <Card>
+          <CardContent className="p-5">
             {!selectedCustomer ? (
-              <div className="text-sm text-muted-foreground">No customer selected.</div>
+              <div className="text-sm text-muted-foreground">Select an account from the list to begin.</div>
             ) : (
               <Tabs value={customerTab} onValueChange={setCustomerTab} className="w-full">
-                <TabsList className="flex-wrap h-auto">
-                  <TabsTrigger value="sites">Sites</TabsTrigger>
-                  <TabsTrigger value="midweigh">Midweigh Rebates</TabsTrigger>
+                <TabsList className={UNDERLINE_LIST}>
+                  <TabsTrigger className={UNDERLINE_TRIGGER} value="sites">
+                    Sites <span className="ml-1 text-xs text-muted-foreground">{sites.filter((s) => !s.is_archived).length}</span>
+                  </TabsTrigger>
+                  <TabsTrigger className={UNDERLINE_TRIGGER} value="midweigh">Rebates</TabsTrigger>
                   {selectedCustomer.customer_name.toLowerCase().includes("staci") && (
-                    <TabsTrigger value="staci-rates">Staci Rates</TabsTrigger>
+                    <TabsTrigger className={UNDERLINE_TRIGGER} value="staci-rates">Staci rates</TabsTrigger>
                   )}
-                   <TabsTrigger value="contacts">Contacts</TabsTrigger>
-                   <TabsTrigger value="finance">Finance Details</TabsTrigger>
-                   <TabsTrigger value="duty-of-care">Duty Of Care</TabsTrigger>
-                   <TabsTrigger value="portal">Portal access</TabsTrigger>
-
-                   {selectedCustomer.custom_reporting_periods_enabled && (
-                     <TabsTrigger value="reporting-periods">Reporting Periods</TabsTrigger>
-                   )}
+                  <TabsTrigger className={UNDERLINE_TRIGGER} value="contacts">Contacts</TabsTrigger>
+                  <TabsTrigger className={UNDERLINE_TRIGGER} value="finance">Finance</TabsTrigger>
+                  <TabsTrigger className={UNDERLINE_TRIGGER} value="duty-of-care">Duty of care</TabsTrigger>
+                  <TabsTrigger className={UNDERLINE_TRIGGER} value="portal">Portal users</TabsTrigger>
+                  {selectedCustomer.custom_reporting_periods_enabled && (
+                    <TabsTrigger className={UNDERLINE_TRIGGER} value="reporting-periods">Reporting periods</TabsTrigger>
+                  )}
                 </TabsList>
 
                 <TabsContent value="duty-of-care" className="mt-4">
