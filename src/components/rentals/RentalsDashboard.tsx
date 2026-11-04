@@ -661,12 +661,12 @@ export default function RentalsDashboard() {
         </CardContent>
       </Card>
 
-      {coveredBins.length > 0 && (
+      {visibleCoveredBins.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2 text-primary">
               <FileCheck className="h-5 w-5" />
-              Under Rental Agreement ({coveredBins.length})
+              Under Rental Agreement ({visibleCoveredBins.length})
             </CardTitle>
             <p className="text-sm text-muted-foreground">
               These bins are over the {settings.rental_free_days}-day free period but covered by an active rental agreement, so they are excluded from chasing. Time on site is still tracked below, including No Rental agreements.
@@ -687,7 +687,7 @@ export default function RentalsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {coveredBins.map((b) => (
+                {visibleCoveredBins.map((b) => (
                   <TableRow key={b.binKey} className="bg-primary/5">
                     <TableCell className="font-medium">{b.customer}</TableCell>
                     <TableCell>{b.site}</TableCell>
@@ -705,12 +705,12 @@ export default function RentalsDashboard() {
         </Card>
       )}
 
-      {ownSkipBins.length > 0 && (
+      {visibleOwnSkipBins.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2 text-muted-foreground">
               <Package className="h-5 w-5" />
-              Customer Own Skip ({ownSkipBins.length})
+              Customer Own Skip ({visibleOwnSkipBins.length})
             </CardTitle>
             <p className="text-sm text-muted-foreground">
               These bins are the customer's own container, so they're excluded from the chase list. Undo to move a bin back into Over Rental.
@@ -730,7 +730,7 @@ export default function RentalsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ownSkipBins.map((b) => {
+                {visibleOwnSkipBins.map((b) => {
                   const c = chases[b.binKey];
                   return (
                     <TableRow key={b.binKey}>
