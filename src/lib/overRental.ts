@@ -36,7 +36,19 @@ export type OverRentalBin = {
   daysSinceActivity: number | null;
   lastActivityDate: string | null;
   lastJobNumber: string | null;
+  // Waste recorded on the open tickets for this bin: descriptions where the upload
+  // carries them, otherwise EWC codes. Never invented — an empty list means the
+  // movement history holds no waste type for this container.
+  wasteTypes: string[];
 };
+
+// Customer-facing wording for a bin's waste type. States plainly when nothing was
+// recorded rather than guessing a product.
+export function binWasteTypeLabel(bin: OverRentalBin): string {
+  const types = bin.wasteTypes.filter(Boolean);
+  if (!types.length) return "waste (type not recorded)";
+  return types.join(" / ");
+}
 
 // "Days Over" as shown on the Rentals tables: days beyond the free rental period.
 // daysSinceActivity is the total days since the bin's last movement, so the free
@@ -280,7 +292,7 @@ export function computeOverRentalBinsFromPositions(
     siteLastKeep: string | null;
     siteLastCollection: string | null;
     netOnSite: number;
-    byContainer: Record<string, { net: number; lastKeep: string | null; lastJobNumber: string | null }>;
+    byContainer: Record<string, { net: number; lastKeep: string | null; lastJobNumber: string | null; wasteTypes: Set<string> }>;
   };
   const siteMap: Record<string, Agg> = {};
 
@@ -318,7 +330,7 @@ export function computeOverRentalBinsFromPositions(
     agg.netOnSite += posNet;
 
     if (!agg.byContainer[r.container_type]) {
-      agg.byContainer[r.container_type] = { net: 0, lastKeep: null, lastJobNumber: null };
+      agg.byContainer[r.container_type] = { net: 0, lastKeep: null, lastJobNumber: null, wasteTypes: new Set() };
     }
     agg.byContainer[r.container_type].net += posNet;
     // Only let positions that actually contribute open stock drive the displayed
@@ -331,6 +343,9 @@ export function computeOverRentalBinsFromPositions(
       if (newKeep && (!prevKeep || newKeep > prevKeep)) {
         agg.byContainer[r.container_type].lastJobNumber = r.last_job_number;
       }
+      // The position's own EWC is the only waste evidence the aggregate carries.
+      const ewc = (r.ewc ?? "").trim();
+      if (ewc) agg.byContainer[r.container_type].wasteTypes.add(`EWC ${ewc}`);
     }
   }
 
@@ -371,6 +386,7 @@ export function computeOverRentalBinsFromPositions(
         daysSinceActivity: days,
         lastActivityDate: ctbLastKeep,
         lastJobNumber: ctb.lastJobNumber,
+        wasteTypes: [...ctb.wasteTypes],
       });
     }
   }

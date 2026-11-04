@@ -94,3 +94,29 @@ describe("Only overdue open skips and RoRos are chased", () => {
     ]).length, 0);
   });
 });
+
+describe("Open bins carry the waste type they hold", () => {
+  it("uses the waste description recorded on the open ticket", () => {
+    const bin = bins([job("1", "2026-04-01", "Deliver", { waste_description: "Mixed general waste" })])[0];
+    assert.deepEqual(bin.wasteTypes, ["Mixed general waste"]);
+  });
+
+  it("falls back to the EWC code when no description was recorded", () => {
+    const bin = bins([job("1", "2026-04-01", "Deliver", { ewc: "17 09 04" })])[0];
+    assert.deepEqual(bin.wasteTypes, ["EWC 17 09 04"]);
+  });
+
+  it("lists every waste type once when one bin holds several", () => {
+    const bin = bins([
+      job("1", "2026-04-01", "Deliver", { waste_description: "Plasterboard" }),
+      job("2", "2026-04-02", "Deliver", { waste_description: "Plasterboard" }),
+      job("3", "2026-04-03", "Deliver", { ewc: "20 03 01" }),
+    ])[0];
+    assert.deepEqual(bin.wasteTypes, ["Plasterboard", "EWC 20 03 01"]);
+  });
+
+  it("records nothing when the movement history holds neither description nor code", () => {
+    const bin = bins([job("1", "2026-04-01", "Deliver", { waste_description: null, ewc: null })])[0];
+    assert.deepEqual(bin.wasteTypes, []);
+  });
+});
