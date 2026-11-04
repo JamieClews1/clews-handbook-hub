@@ -1457,103 +1457,114 @@ export function CustomerSetupAdmin() {
 
   return (
     <Tabs value={setupTab} onValueChange={setSetupTab} className="w-full">
-      <TabsList className="flex-wrap h-auto">
-        <TabsTrigger value="customers">Customers</TabsTrigger>
-        <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
-        <TabsTrigger value="portal-directory">Portal access</TabsTrigger>
-        <TabsTrigger value="new-customers">New customers</TabsTrigger>
-        <TabsTrigger value="gdpr">GDPR cleanup</TabsTrigger>
-
-      </TabsList>
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border">
+        <TabsList className={`${UNDERLINE_LIST} border-b-0 w-auto`}>
+          <TabsTrigger className={UNDERLINE_TRIGGER} value="customers">
+            Customers <span className="ml-1 text-xs text-muted-foreground">{accountCounts.customers}</span>
+          </TabsTrigger>
+          <TabsTrigger className={UNDERLINE_TRIGGER} value="suppliers">
+            Suppliers <span className="ml-1 text-xs text-muted-foreground">{accountCounts.suppliers}</span>
+          </TabsTrigger>
+          <TabsTrigger className={UNDERLINE_TRIGGER} value="portal-directory">Portal users</TabsTrigger>
+          <TabsTrigger className={UNDERLINE_TRIGGER} value="new-customers">New sign-ups</TabsTrigger>
+          <TabsTrigger className={UNDERLINE_TRIGGER} value="gdpr">Data clean-up</TabsTrigger>
+        </TabsList>
+        {listView === setupTab && (
+          <Button className="mb-2" onClick={() => setCreateCustomerOpen(true)}>
+            <Plus className="h-4 w-4" /> New {listView === "suppliers" ? "supplier" : "customer"}
+          </Button>
+        )}
+      </div>
 
       {listView === setupTab && (
-      <div className="mt-4">
+      <div className="mt-5">
         <div className="grid lg:grid-cols-[360px_1fr] gap-6">
-      <Card className="h-fit">
-        <CardHeader>
-          <CardTitle>{listView === "suppliers" ? "Suppliers" : "Customers"}</CardTitle>
-          <CardDescription>{listView === "suppliers" ? "Companies we send Waste Out loads to. Accounts marked Both also appear under Customers." : "Select a customer to manage sites, contacts, and portal access."}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex gap-2">
-            <Input
-              value={customerSearch}
-              onFocus={loadSkiptrakOptions}
-              onChange={(e) => {
-                setCustomerSearch(e.target.value);
-                if (e.target.value.trim().length >= 3) void loadSkiptrakOptions();
-              }}
-              placeholder="Search customers..."
-            />
-            <Button variant="outline" onClick={() => setCreateCustomerOpen(true)}>
-              New
-            </Button>
+      <Card className="h-fit overflow-hidden">
+        <div className="space-y-3 p-4">
+          <Input
+            value={customerSearch}
+            onFocus={loadSkiptrakOptions}
+            onChange={(e) => {
+              setCustomerSearch(e.target.value);
+              if (e.target.value.trim().length >= 3) void loadSkiptrakOptions();
+            }}
+            placeholder={listView === "suppliers" ? "Search suppliers" : "Search customers"}
+            aria-label={listView === "suppliers" ? "Search suppliers" : "Search customers"}
+          />
+          <div className="flex flex-wrap gap-2">
+            <FilterChip active={listFilter === "all"} onClick={() => setListFilter("all")}>All {listView === "suppliers" ? accountCounts.suppliers : accountCounts.customers}</FilterChip>
+            {listView === "suppliers" && (
+              <>
+                <FilterChip active={listFilter === "brokers"} onClick={() => setListFilter("brokers")}>Brokers</FilterChip>
+                <FilterChip active={listFilter === "hauliers"} onClick={() => setListFilter("hauliers")}>Hauliers</FilterChip>
+              </>
+            )}
+            <FilterChip active={listFilter === "both"} onClick={() => setListFilter("both")}>
+              {listView === "suppliers" ? "Also customers" : "Also suppliers"}
+            </FilterChip>
+            {accountCounts.archived > 0 && (
+              <FilterChip active={listFilter === "archived"} onClick={() => setListFilter("archived")}>Archived</FilterChip>
+            )}
           </div>
-
-          <div className="flex items-center gap-2 text-sm">
-            <Switch checked={showArchived} onCheckedChange={setShowArchived} id="show-archived" />
-            <Label htmlFor="show-archived" className="text-muted-foreground cursor-pointer">Show archived</Label>
-            <span className="ml-auto text-xs text-muted-foreground">{filteredCustomers.length} {listView}</span>
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>Sorted by name</span>
+            <span>{filteredCustomers.length} shown</span>
           </div>
+        </div>
 
-          <div className="rounded-md border border-border overflow-hidden">
-            <div className="max-h-[420px] overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCustomers.map((c) => (
-                    <TableRow
-                      key={c.id}
-                      className={c.id === selectedCustomerId ? "bg-muted/40" : ""}
-                      onClick={() => setSelectedCustomerId(c.id)}
-                      role="button"
-                    >
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          {c.customer_name}
-                          {c.is_waste_broker && <Badge variant="outline" className="text-xs">Broker</Badge>}
-                          {c.is_haulier && <Badge variant="outline" className="text-xs">Haulier</Badge>}
-                          {c.account_type === "both" && <Badge variant="outline" className="text-xs">{listView === "suppliers" ? "Also customer" : "Also supplier"}</Badge>}
-                          {!c.is_active && <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">Archived</Badge>}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {filteredCustomers.length === 0 && (
-                    <TableRow>
-                      <TableCell className="text-muted-foreground">
-                        {loadingSkiptrak ? "Checking Data Hub customers…" : "No customer setup records found."}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {sourceCustomerMatches.map((name) => (
-                    <TableRow key={`source-${name}`}>
-                      <TableCell>
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <div className="font-medium">{name}</div>
-                            <div className="text-xs text-muted-foreground">Found in Data Hub, not yet set up</div>
-                          </div>
-                          <Button size="sm" variant="outline" disabled={savingCustomer} onClick={() => createCustomerFromSource(name)}>
-                            Add
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-
-          <Button variant="ghost" onClick={refreshAll} disabled={isLoading} className="w-full">
-            {isLoading ? "Refreshing..." : "Refresh"}
-          </Button>
-        </CardContent>
+        <div className="max-h-[640px] overflow-auto border-t border-border">
+          <ul>
+            {filteredCustomers.map((c) => {
+              const selected = c.id === selectedCustomerId;
+              const tags = [
+                c.is_waste_broker ? "Broker" : null,
+                c.is_haulier ? "Haulier" : null,
+                c.data_hub_customer && c.data_hub_customer.toLowerCase() !== c.customer_name.toLowerCase() ? `Linked as ${c.data_hub_customer}` : null,
+              ].filter(Boolean);
+              return (
+                <li key={c.id} className="border-b border-border last:border-b-0">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCustomerId(c.id)}
+                    aria-current={selected ? "true" : undefined}
+                    className={`flex w-full items-start gap-2 border-l-4 px-4 py-3 text-left transition-colors ${selected ? "border-primary bg-primary/10" : "border-transparent hover:bg-muted/50"}`}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2 font-semibold">
+                        {c.customer_name}
+                        {c.account_type === "both" && (
+                          <Badge variant="outline" className="border-info/30 bg-info/10 text-xs text-info">
+                            {listView === "suppliers" ? "Also customer" : "Also supplier"}
+                          </Badge>
+                        )}
+                        {!c.is_active && <Badge variant="outline" className="text-xs text-muted-foreground">Archived</Badge>}
+                      </span>
+                      <span className="mt-0.5 block truncate text-sm text-muted-foreground">
+                        {[c.customer_code, ...tags].join(" · ")}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+            {filteredCustomers.length === 0 && (
+              <li className="px-4 py-3 text-sm text-muted-foreground">
+                {loadingSkiptrak ? "Checking Data Hub customers…" : "No matching accounts."}
+              </li>
+            )}
+            {sourceCustomerMatches.map((name) => (
+              <li key={`source-${name}`} className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
+                <div>
+                  <div className="font-medium">{name}</div>
+                  <div className="text-xs text-muted-foreground">Found in Data Hub, not yet set up</div>
+                </div>
+                <Button size="sm" variant="outline" disabled={savingCustomer} onClick={() => createCustomerFromSource(name)}>
+                  Add
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
       </Card>
 
       <div className="space-y-6">
