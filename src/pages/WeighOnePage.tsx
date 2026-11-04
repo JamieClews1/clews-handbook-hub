@@ -44,7 +44,8 @@ import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib
 import { wtnHtmlToPdf, downloadBlob } from "@/lib/wtn-ticket-pdf";
 import { wasteOutProducerSignature } from "@/lib/waste-out-signatures";
 import { signaturePrintMarkup, signoffAt } from "@/lib/weighone-signature-times";
-import { routeOneSkipDetails } from "@/lib/routeone-skip-ticket";
+import { routeOneSkipDetails, importedSkipWaste } from "@/lib/routeone-skip-ticket";
+import { hasWeighbridgePricing } from "@/lib/weighone-pricing-policy";
 import { format, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { SignatureField } from "@/components/SignatureField";
@@ -298,6 +299,7 @@ const WeighOnePage = () => {
   const [formData, setFormData] = useState(emptyForm);
   const [arrivingJob, setArrivingJob] = useState<ArrivingJob | null>(null);
   const isWasteOut = formData.job_type === "waste_out";
+  const hasPricing = hasWeighbridgePricing(formData.job_type);
   const [containerGroupOpen, setContainerGroupOpen] = useState<string | null>(null);
   useEffect(() => {
     if (formData.vehicle_type) setContainerGroupOpen(formData.vehicle_type);
@@ -566,7 +568,7 @@ const WeighOnePage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("data_hub_jobs")
-        .select("job_number, job_date, customer, site, driver, vehicle_registration, container_type, waste_description, movement_type")
+        .select("job_number, job_date, customer, site, postcode, driver, vehicle_registration, container_type, waste_description, ewc, movement_type")
         .eq("source", "skiptrak")
         .eq("job_date", todayIso)
         .order("job_number", { ascending: true });
@@ -574,7 +576,7 @@ const WeighOnePage = () => {
       return (data ?? []) as {
         job_number: string; job_date: string; customer: string | null; site: string | null;
         driver: string | null; vehicle_registration: string | null; container_type: string | null;
-        waste_description: string | null; movement_type: string | null;
+        waste_description: string | null; ewc: string | null; postcode: string | null; movement_type: string | null;
       }[];
     },
   });
@@ -591,13 +593,17 @@ const WeighOnePage = () => {
   const applySkiptrakJob = (jobNumber: string) => {
     const job = skiptrakJobs.find((j) => j.job_number === jobNumber);
     if (!job) return;
+    const waste = importedSkipWaste(job);
+    const wt = activeWasteTypes.find(w => w.waste_type.toLowerCase() === waste.waste_description.toLowerCase());
     setFormData((p) => ({
       ...p,
+      ...waste,
+      waste_type_id: wt?.id ?? "",
       linked_job_number: job.job_number,
       linked_job_source: "skiptrak",
       linked_job_date: job.job_date,
       customer: job.customer || p.customer,
-      site: job.site || p.site,
+      site: [job.site, job.postcode && !(job.site ?? "").includes(job.postcode) ? job.postcode : ""].filter(Boolean).join(", ") || p.site,
       driver_name: job.driver || p.driver_name,
       vehicle_reg: (job.vehicle_registration || p.vehicle_reg || "").toUpperCase(),
       container_type: job.container_type || p.container_type,
@@ -746,7 +752,7 @@ const WeighOnePage = () => {
   const chargeFor = (netKg: number, price: number, minCharge: number) =>
     Math.max((netKg / 1000) * price, price > 0 ? minCharge : 0);
 
-  const selectedRate = formData.waste_type_id
+  const selectedRate = hasPricing && formData.waste_type_id
     ? rateFor(formData.waste_type_id, formData.rate_group_id)
     : null;
 
@@ -854,9 +860,9 @@ const WeighOnePage = () => {
         ? (outProduct ? { waste_type: outProduct.display_name, ewc_code: formData.ewc_code || outProduct.ewc_code } : undefined)
         : activeWasteTypes.find(wt => wt.id === formData.waste_type_id);
 
-      const tableRate = !isWasteOut && formData.waste_type_id ? rateFor(formData.waste_type_id, formData.rate_group_id) : null;
+      const tableRate = hasPricing && formData.waste_type_id ? rateFor(formData.waste_type_id, formData.rate_group_id) : null;
       // A RouteOne job's booked £/t wins over the weighbridge rate table. Waste Out carries no rates.
-      const rate = isWasteOut ? null : arrivingJob?.charge_per_tonne != null
+      const rate = !hasPricing ? null : arrivingJob?.charge_per_tonne != null
         ? { price_per_tonne: Number(arrivingJob.charge_per_tonne), min_charge: tableRate?.min_charge ?? 0 }
         : tableRate;
 
@@ -869,7 +875,7 @@ const WeighOnePage = () => {
       const itemsTotal = newAdditionalItems
         .filter((i) => i.description && i.cost)
         .reduce((sum, i) => sum + (parseFloat(i.cost) || 0) * Math.max(1, parseInt(i.qty || "1", 10) || 1), 0);
-      const weightCharge = hasTare
+      const weightCharge = hasPricing && hasTare
         ? chargeFor(netKg as number, rate?.price_per_tonne ?? 0, rate?.min_charge ?? 0)
         : null;
 
@@ -898,7 +904,7 @@ const WeighOnePage = () => {
         waste_type_id: isWasteOut ? null : (formData.waste_type_id || null),
         price_per_tonne: rate?.price_per_tonne ?? null,
         min_charge: rate?.min_charge ?? null,
-        rate_group_id: isWasteOut ? null : effectiveRateGroupId(formData.rate_group_id),
+        rate_group_id: hasPricing ? effectiveRateGroupId(formData.rate_group_id) : null,
         operator_name: operatorName || formData.operator_name || null,
         notes: formData.notes || null,
         carrier_registration: formData.carrier_registration || null,
@@ -917,7 +923,7 @@ const WeighOnePage = () => {
         broker_sic: formData.use_broker ? (formData.broker_sic.trim() || null) : null,
         net_weight_kg: netKg,
         weight_charge: weightCharge,
-        total_price: hasTare ? (weightCharge ?? 0) + itemsTotal : null,
+        total_price: hasPricing && hasTare ? (weightCharge ?? 0) + itemsTotal : null,
         second_weigh_at: hasTare ? editing?.second_weigh_at ?? new Date().toISOString() : null,
         status: nextStatus,
       };
@@ -1054,9 +1060,9 @@ const WeighOnePage = () => {
       if (tareKg <= 0) throw new Error("Enter a weight above zero");
       const netKg = Math.abs(grossKg - tareKg);
       const ppt = selectedTransaction.price_per_tonne ?? 0;
-      const weightCharge = chargeFor(netKg, ppt, selectedTransaction.min_charge ?? 0);
+      const weightCharge = hasWeighbridgePricing(selectedTransaction.job_type) ? chargeFor(netKg, ppt, selectedTransaction.min_charge ?? 0) : null;
       const additionalTotal = selectedTransaction.additional_items_total ?? 0;
-      const totalPrice = weightCharge + additionalTotal;
+      const totalPrice = weightCharge === null ? null : weightCharge + additionalTotal;
 
       const { data: completedRow, error } = await supabase
         .from("weighbridge_transactions")
@@ -1458,7 +1464,7 @@ const WeighOnePage = () => {
       ...WTN_COMPANY_DETAILS,
       ...ticketParties(t),
     };
-    return renderWtnSheet(wtnTemplate?.html || DEFAULT_WTN_TEMPLATE, vars, `WTN ${t.ticket_number}`, { includePrices, testMode: t.is_test === true });
+    return renderWtnSheet(wtnTemplate?.html || DEFAULT_WTN_TEMPLATE, vars, `WTN ${t.ticket_number}`, { includePrices: includePrices && hasWeighbridgePricing(t.job_type), testMode: t.is_test === true });
   };
 
   const printTicket = (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
@@ -1952,7 +1958,7 @@ const WeighOnePage = () => {
                         </div>
                       ) : (
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
+                        <div className={cn("space-y-1.5", !hasPricing && "col-span-2")}>
                           <Label className="text-xs">Waste Type</Label>
                           <Select value={formData.waste_description && !formData.waste_type_id ? "booked-waste" : formData.waste_type_id} onValueChange={(val) => {
                             if (val === "booked-waste") return;
@@ -1968,7 +1974,7 @@ const WeighOnePage = () => {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-1.5">
+                        {hasPricing && <div className="space-y-1.5">
                           <Label className="text-xs">Rate Group</Label>
                           <Select
                             value={formData.rate_group_id || defaultRateGroup?.id || ""}
@@ -1981,14 +1987,14 @@ const WeighOnePage = () => {
                               ))}
                             </SelectContent>
                           </Select>
-                        </div>
+                        </div>}
                       </div>
                       )}
                       <details className="rounded-md bg-muted px-3 py-2 text-xs">
                         <summary className="cursor-pointer flex justify-between gap-2"><span>EWC <strong className="font-mono">{formData.ewc_code || selectedWasteType?.ewc_code || "—"}</strong></span><span className="text-primary">Override</span></summary>
                         <Input aria-label="EWC override" className="mt-2 h-9 font-mono" value={formData.ewc_code} placeholder={selectedWasteType?.ewc_code || "EWC code"} onChange={e => setFormData(p => ({ ...p, ewc_code: e.target.value }))} />
                       </details>
-                      {!isWasteOut && (() => {
+                      {hasPricing && (() => {
                         const extras = newAdditionalItems.reduce((s, i) => s + (parseFloat(i.cost) || 0) * Math.max(1, parseInt(i.qty || "1", 10) || 1), 0);
                         const weightCharge = selectedRate && netPreviewKg !== null ? chargeFor(netPreviewKg, selectedRate.price_per_tonne, selectedRate.min_charge) : null;
                         return (
@@ -2060,7 +2066,7 @@ const WeighOnePage = () => {
                     </div>
 
                     {/* Additional Items */}
-                    <div className="weigh-in-panel">
+                    {formData.job_type !== "skip" && <div className="weigh-in-panel">
                       <div className="weigh-in-section-heading flex items-center justify-between">
                         <span className="text-sm font-semibold text-foreground">Additional Items</span>
                         <Button
@@ -2176,6 +2182,7 @@ const WeighOnePage = () => {
                       </div>
                     </div>
 
+                    }
                     {/* Documents & Photos */}
                     <div className="weigh-in-panel">
                       <div className="weigh-in-section-heading">
@@ -2213,7 +2220,7 @@ const WeighOnePage = () => {
                           )}
                           {isWasteOut && <><Input aria-label="Disposal site signatory name" placeholder="Disposal site signatory" value={disposerName} onChange={(e) => setDisposerName(e.target.value)} className="w-44" /><SignatureField compact label="Disposal site signature" value={disposerSignature} onChange={setDisposerSignature} /></>}
 
-                <div className="ml-auto flex items-center gap-3">{editingTicket && (<><Button variant="outline" size="sm" className="gap-1.5" title="Download the saved ticket as PDF" onClick={() => downloadTicket(editingTicket, formItemsForPrint(), editingTicket.job_type !== "waste_out")}><Download className="h-4 w-4" /> PDF</Button><Button variant="outline" size="sm" className="gap-1.5" title="Print the saved ticket" onClick={() => printTicket(editingTicket, formItemsForPrint(), editingTicket.job_type !== "waste_out")}><Printer className="h-4 w-4" /> Print</Button><Button variant="outline" size="sm" className="gap-1.5" title="Start a new ticket with these details" onClick={() => duplicateTicket(editingTicket)}><Copy className="h-4 w-4" /> Duplicate</Button></>)}<Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>{editingTicket ? "Close" : "Cancel"}</Button><Button variant="outline" onClick={() => createMutation.mutate({ keepOpen: true })} disabled={!formData.vehicle_reg || createMutation.isPending}>Save</Button><Button onClick={() => createMutation.mutate(undefined)} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? (editingTicket ? "Saving…" : "Recording…") : editingTicket ? "Save & close" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
+                <div className="ml-auto flex items-center gap-3">{editingTicket && (<><Button variant="outline" size="sm" className="gap-1.5" title="Download the saved ticket as PDF" onClick={() => downloadTicket(editingTicket, formItemsForPrint(), hasWeighbridgePricing(editingTicket.job_type))}><Download className="h-4 w-4" /> PDF</Button><Button variant="outline" size="sm" className="gap-1.5" title="Print the saved ticket" onClick={() => printTicket(editingTicket, formItemsForPrint(), hasWeighbridgePricing(editingTicket.job_type))}><Printer className="h-4 w-4" /> Print</Button><Button variant="outline" size="sm" className="gap-1.5" title="Start a new ticket with these details" onClick={() => duplicateTicket(editingTicket)}><Copy className="h-4 w-4" /> Duplicate</Button></>)}<Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>{editingTicket ? "Close" : "Cancel"}</Button><Button variant="outline" onClick={() => createMutation.mutate({ keepOpen: true })} disabled={!formData.vehicle_reg || createMutation.isPending}>Save</Button><Button onClick={() => createMutation.mutate(undefined)} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? (editingTicket ? "Saving…" : "Recording…") : editingTicket ? "Save & close" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
               </div>
             </DialogContent>
           </Dialog>
@@ -2241,7 +2248,7 @@ const WeighOnePage = () => {
                 <div><span className="text-muted-foreground">Vehicle:</span> <span className="font-mono font-bold">{selectedTransaction.vehicle_reg}</span></div>
                 <div><span className="text-muted-foreground">Customer:</span> {selectedTransaction.customer ?? "-"}</div>
                 <div><span className="text-muted-foreground">Waste:</span> {selectedTransaction.waste_description ?? "-"}</div>
-                <div><span className="text-muted-foreground">Price/t:</span> {selectedTransaction.price_per_tonne != null ? `£${selectedTransaction.price_per_tonne.toFixed(2)}` : "-"}</div>
+                {hasWeighbridgePricing(selectedTransaction.job_type) && <div><span className="text-muted-foreground">Price/t:</span> {selectedTransaction.price_per_tonne != null ? `£${selectedTransaction.price_per_tonne.toFixed(2)}` : "-"}</div>}
               </div>
 
               {/* Weight display */}
@@ -2267,7 +2274,7 @@ const WeighOnePage = () => {
               </div>
 
               {/* Pricing preview */}
-              {secondWeighNetKg != null && (
+              {hasWeighbridgePricing(selectedTransaction.job_type) && secondWeighNetKg != null && (
                 <div className="p-3 rounded-lg border border-border space-y-1 text-sm">
                   {selectedTransaction.price_per_tonne != null && (
                     <div className="flex justify-between">
@@ -2378,7 +2385,7 @@ const WeighOnePage = () => {
                             <TableCell className="text-right tabular-nums">{fmtWeight(t.tare_weight_kg)}</TableCell>
                             <TableCell className="text-right tabular-nums font-bold">{fmtWeight(t.net_weight_kg)}</TableCell>
                             <TableCell className="text-right tabular-nums">{t.price_per_tonne != null ? t.price_per_tonne.toFixed(2) : "-"}</TableCell>
-                            <TableCell className="text-right tabular-nums font-bold">{fmtPrice(t.total_price)}</TableCell>
+                            <TableCell className="text-right tabular-nums font-bold">{hasWeighbridgePricing(t.job_type) ? fmtPrice(t.total_price) : "—"}</TableCell>
                             <TableCell>
                               <Badge variant="outline" className={cfg.color}>{cfg.label}</Badge>
                             </TableCell>
@@ -2558,7 +2565,7 @@ const WeighOnePage = () => {
               </div>
 
               {/* Pricing (not used on Waste Out tickets) */}
-              {selectedTransaction.job_type !== "waste_out" && (<>
+              {hasWeighbridgePricing(selectedTransaction.job_type) && (<>
               <div className="p-3 rounded-lg border border-border space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Price per tonne</span>
@@ -2587,13 +2594,13 @@ const WeighOnePage = () => {
                 </div>
               </div>
               </>)}
-              {selectedTransaction.job_type !== "waste_out" && (
+              {hasWeighbridgePricing(selectedTransaction.job_type) && (
               <WeighOnePaymentPanel
                 transaction={selectedTransaction as any}
                 onSaved={(patch) => setSelectedTransaction({ ...selectedTransaction, ...patch } as WeighbridgeTransaction)}
               />
               )}
-              {selectedTransaction.job_type !== "waste_out" && selectedTransaction.status === "completed" && !(selectedTransaction as any).payment_paid && (
+              {hasWeighbridgePricing(selectedTransaction.job_type) && selectedTransaction.status === "completed" && !(selectedTransaction as any).payment_paid && (
                 <Button variant="secondary" className="w-full gap-2" onClick={() => invoiceFromSource({ transactionId: selectedTransaction.id })}>
                   <PoundSterling className="h-4 w-4" /> Create invoice (account customer)
                 </Button>
@@ -2615,10 +2622,10 @@ const WeighOnePage = () => {
               )}
               {selectedTransaction.status !== "completed" && (
                 <div className="grid gap-2 sm:grid-cols-2">
-                  <Button className="w-full gap-2" variant="outline" onClick={() => downloadTicket(selectedTransaction, selectedAdditionalItems, selectedTransaction.job_type !== "waste_out")}>
+                  <Button className="w-full gap-2" variant="outline" onClick={() => downloadTicket(selectedTransaction, selectedAdditionalItems, hasWeighbridgePricing(selectedTransaction.job_type))}>
                     <Download className="h-4 w-4" /> Download PDF
                   </Button>
-                  <Button className="w-full gap-2" variant="outline" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems, selectedTransaction.job_type !== "waste_out")}>
+                  <Button className="w-full gap-2" variant="outline" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems, hasWeighbridgePricing(selectedTransaction.job_type))}>
                     <Printer className="h-4 w-4" /> Print ticket
                   </Button>
                 </div>
@@ -2627,16 +2634,16 @@ const WeighOnePage = () => {
                 <Copy className="h-4 w-4" /> Duplicate ticket
               </Button>
               {selectedTransaction.status === "completed" && (
-                <Button className="w-full gap-2" variant="outline" onClick={() => downloadTicket(selectedTransaction, selectedAdditionalItems, selectedTransaction.job_type !== "waste_out")}>
+                <Button className="w-full gap-2" variant="outline" onClick={() => downloadTicket(selectedTransaction, selectedAdditionalItems, hasWeighbridgePricing(selectedTransaction.job_type))}>
                   <Download className="h-4 w-4" /> Download ticket (PDF)
                 </Button>
               )}
-              {selectedTransaction.status === "completed" && selectedTransaction.job_type === "waste_out" && (
+              {selectedTransaction.status === "completed" && !hasWeighbridgePricing(selectedTransaction.job_type) && (
                 <Button className="w-full gap-2" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems, false)}>
                   <Printer className="h-4 w-4" /> Print double ticket (customer + office copy)
                 </Button>
               )}
-              {selectedTransaction.status === "completed" && selectedTransaction.job_type !== "waste_out" && (
+              {selectedTransaction.status === "completed" && hasWeighbridgePricing(selectedTransaction.job_type) && (
                 <div className="grid gap-2 sm:grid-cols-2">
                   <Button className="w-full gap-2" variant="outline" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems, false)}>
                     <Printer className="h-4 w-4" /> Without prices
@@ -2769,7 +2776,7 @@ const WeighOnePage = () => {
               onClick={async () => {
                 if (!completedTicket) return;
                 setDownloadingTicket(true);
-                await downloadTicket(completedTicket.ticket, completedTicket.items, completedTicket.ticket.job_type !== "waste_out");
+                await downloadTicket(completedTicket.ticket, completedTicket.items, hasWeighbridgePricing(completedTicket.ticket.job_type));
                 setDownloadingTicket(false);
               }}
             >
@@ -2777,7 +2784,7 @@ const WeighOnePage = () => {
             </Button>
             <Button
               className="gap-2"
-              onClick={() => completedTicket && printTicket(completedTicket.ticket, completedTicket.items, completedTicket.ticket.job_type !== "waste_out")}
+              onClick={() => completedTicket && printTicket(completedTicket.ticket, completedTicket.items, hasWeighbridgePricing(completedTicket.ticket.job_type))}
             >
               <Printer className="h-4 w-4" /> Print now
             </Button>

@@ -14,3 +14,7 @@ export function routeOneSkipDetails(job: {
   }
   return { site: parts.join(", "), waste_description: job.waste_type?.trim() ?? "", ewc_code: job.ewc_code?.trim() ?? "" };
 }
+
+export function importedSkipWaste(job: { waste_description: string | null; ewc: string | null }) {
+  return { waste_description: job.waste_description?.trim() ?? "", ewc_code: job.ewc?.trim() ?? "" };
+}
