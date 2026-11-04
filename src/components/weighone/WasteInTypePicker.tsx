@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import {
+  dedupeWasteInTypes,
   rankWasteInTypes,
   searchWasteInTypes,
   wasteInLoadsFor,
@@ -31,7 +32,7 @@ export function WasteInTypePicker({ types, value, onChange, bookedWaste, placeho
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
-  const ranked = useMemo(() => rankWasteInTypes(types), [types]);
+  const ranked = useMemo(() => rankWasteInTypes(dedupeWasteInTypes(types, value)), [types, value]);
   const shown = useMemo(() => searchWasteInTypes(ranked, query), [ranked, query]);
   const selected = types.find(t => t.id === value) ?? null;
   const topIds = useMemo(() => new Set(ranked.slice(0, WASTE_IN_TOP_N).map(t => t.id)), [ranked]);

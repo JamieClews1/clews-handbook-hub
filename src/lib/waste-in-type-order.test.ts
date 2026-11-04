@@ -81,3 +81,9 @@ describe("waste in picker order", () => {
     assert.deepEqual(names(searchWasteInTypes(ranked, "zzz")), []);
   });
 });
+
+import { dedupeWasteInTypes as dd } from "./waste-in-type-order";
+it("dedupes same name and EWC, keeping the selected one", () => {
+  const r = dd([{ id: "a", waste_type: "Green Waste", ewc_code: "20 02 01" }, { id: "b", waste_type: "Green waste", ewc_code: "200201" }, { id: "c", waste_type: "Wood", ewc_code: "17 02 01" }], "b");
+  assert.deepEqual(r.map(x => x.id), ["b", "c"]);
+});
