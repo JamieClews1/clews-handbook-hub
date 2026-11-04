@@ -1218,6 +1218,27 @@ const WeighOnePage = () => {
 
 
 
+  /** Open a new ticket prefilled from an existing one; weights, signatures and job links start blank. */
+  const duplicateTicket = async (t: WeighbridgeTransaction) => {
+    setTicketDialogOpen(false);
+    await openEdit(t);
+    setEditingTicket(null);
+    setArrivingJob(null);
+    setFormData((p) => ({ ...p, gross_weight_kg: "", tare_weight_kg: "", linked_job_number: "", linked_job_source: "", linked_job_date: "" }));
+    setOperatorSignature(null);
+    setDriverSignature(null);
+    setShowTareNow(false);
+    toast.success(`New ticket copied from ${t.ticket_number} — enter the weights and save`);
+  };
+
+  /** Chargeable items currently in the form, shaped for the ticket template */
+  const formItemsForPrint = (): AdditionalItem[] => newAdditionalItems
+    .filter((i) => i.description.trim())
+    .map((i, idx) => {
+      const qty = Math.max(1, parseInt(i.qty, 10) || 1);
+      return { id: String(idx), transaction_id: editingTicket?.id ?? "", description: qty > 1 ? `${qty} × ${i.description}` : i.description, cost: (parseFloat(i.cost) || 0) * qty, display_order: idx };
+    });
+
   // Add waste type
   const addWasteTypeMutation = useMutation({
     mutationFn: async () => {
@@ -1556,13 +1577,13 @@ const WeighOnePage = () => {
                             if (val !== "skip") setSkipDriver("");
                             if (val === "waste_out") setFormData(p => ({ ...p, customer: ownCompanyName, site: "", rate_group_id: "", waste_type_id: "" }));
                             else if (formData.job_type === "waste_out") setFormData(p => ({ ...p, customer: "" }));
-                          }}> <TabsList className="h-9">{JOB_TYPES.map(j => <TabsTrigger key={j.value} value={j.value} className="text-xs">{j.label === "Waste IN" ? "Waste in" : j.label === "Waste OUT" ? "Waste out" : j.label}</TabsTrigger>)}</TabsList></Tabs><div className="flex-1 min-w-64">                      <RouteOneArrivalPicker
+                          }}> <TabsList className="h-9">{JOB_TYPES.map(j => <TabsTrigger key={j.value} value={j.value} className="text-xs">{j.label === "Waste IN" ? "Waste in" : j.label === "Waste OUT" ? "Waste out" : j.label}</TabsTrigger>)}</TabsList></Tabs><div className="flex-1 min-w-64">                      {formData.job_type !== "waste_out" && <RouteOneArrivalPicker
                         compact
                         selected={arrivingJob}
                         vehicleReg={formData.vehicle_reg}
                         onPick={applyRouteOneJob}
                         onClear={() => { setArrivingJob(null); setFormData(p => ({ ...p, linked_job_number: "", linked_job_source: "", linked_job_date: "" })); }}
-                      />
+                      />}
                       {formData.job_type === "waste_out" && isOwnVehicle(formData.vehicle_reg, formData.carrier_name) && (
                         <label className="flex items-start gap-2 rounded-md border border-foreground/15 bg-muted/40 p-2.5 cursor-pointer">
                           <input
@@ -2133,7 +2154,7 @@ const WeighOnePage = () => {
                             </Button>
                           )}
 
-                <div className="ml-auto flex items-center gap-3"><span className="hidden md:inline text-xs text-muted-foreground">Use the button to save</span><Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>Cancel</Button><Button onClick={() => createMutation.mutate()} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? (editingTicket ? "Saving…" : "Recording…") : editingTicket ? "Save changes" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
+                <div className="ml-auto flex items-center gap-3">{editingTicket && (<><Button variant="outline" size="sm" className="gap-1.5" title="Download the saved ticket as PDF" onClick={() => downloadTicket(editingTicket, formItemsForPrint(), editingTicket.job_type !== "waste_out")}><Download className="h-4 w-4" /> PDF</Button><Button variant="outline" size="sm" className="gap-1.5" title="Print the saved ticket" onClick={() => printTicket(editingTicket, formItemsForPrint(), editingTicket.job_type !== "waste_out")}><Printer className="h-4 w-4" /> Print</Button><Button variant="outline" size="sm" className="gap-1.5" title="Start a new ticket with these details" onClick={() => duplicateTicket(editingTicket)}><Copy className="h-4 w-4" /> Duplicate</Button></>)}<span className="hidden xl:inline text-xs text-muted-foreground">Use the button to save</span><Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>Cancel</Button><Button onClick={() => createMutation.mutate()} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? (editingTicket ? "Saving…" : "Recording…") : editingTicket ? "Save changes" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
               </div>
             </DialogContent>
           </Dialog>
@@ -2533,6 +2554,19 @@ const WeighOnePage = () => {
                   </Button>
                 </div>
               )}
+              {selectedTransaction.status !== "completed" && (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button className="w-full gap-2" variant="outline" onClick={() => downloadTicket(selectedTransaction, selectedAdditionalItems, selectedTransaction.job_type !== "waste_out")}>
+                    <Download className="h-4 w-4" /> Download PDF
+                  </Button>
+                  <Button className="w-full gap-2" variant="outline" onClick={() => printTicket(selectedTransaction, selectedAdditionalItems, selectedTransaction.job_type !== "waste_out")}>
+                    <Printer className="h-4 w-4" /> Print ticket
+                  </Button>
+                </div>
+              )}
+              <Button className="w-full gap-2" variant="outline" onClick={() => duplicateTicket(selectedTransaction)}>
+                <Copy className="h-4 w-4" /> Duplicate ticket
+              </Button>
               {selectedTransaction.status === "completed" && (
                 <Button className="w-full gap-2" variant="outline" onClick={() => downloadTicket(selectedTransaction, selectedAdditionalItems, selectedTransaction.job_type !== "waste_out")}>
                   <Download className="h-4 w-4" /> Download ticket (PDF)
