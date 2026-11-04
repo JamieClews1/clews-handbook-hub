@@ -10587,6 +10587,7 @@ export type Database = {
           disposer_signoff_at: string | null
           driver_name: string | null
           driver_signature: string | null
+          driver_signoff_at: string | null
           ewc_code: string | null
           first_weigh_at: string | null
           gross_weight_kg: number | null
@@ -10603,6 +10604,7 @@ export type Database = {
           operator_id: string | null
           operator_name: string | null
           operator_signature: string | null
+          operator_signoff_at: string | null
           payment_method: string | null
           payment_paid: boolean
           payment_paid_at: string | null
@@ -10641,6 +10643,7 @@ export type Database = {
           disposer_signoff_at?: string | null
           driver_name?: string | null
           driver_signature?: string | null
+          driver_signoff_at?: string | null
           ewc_code?: string | null
           first_weigh_at?: string | null
           gross_weight_kg?: number | null
@@ -10657,6 +10660,7 @@ export type Database = {
           operator_id?: string | null
           operator_name?: string | null
           operator_signature?: string | null
+          operator_signoff_at?: string | null
           payment_method?: string | null
           payment_paid?: boolean
           payment_paid_at?: string | null
@@ -10695,6 +10699,7 @@ export type Database = {
           disposer_signoff_at?: string | null
           driver_name?: string | null
           driver_signature?: string | null
+          driver_signoff_at?: string | null
           ewc_code?: string | null
           first_weigh_at?: string | null
           gross_weight_kg?: number | null
@@ -10711,6 +10716,7 @@ export type Database = {
           operator_id?: string | null
           operator_name?: string | null
           operator_signature?: string | null
+          operator_signoff_at?: string | null
           payment_method?: string | null
           payment_paid?: boolean
           payment_paid_at?: string | null

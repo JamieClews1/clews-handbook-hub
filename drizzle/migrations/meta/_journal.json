@@ -421,6 +421,13 @@
       "when": 1793810712963,
       "tag": "0059_sync_waste_out_disposal_evidence",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1793811159414,
+      "tag": "0060_weighone_signature_timestamps",
+      "breakpoints": true
     }
   ]
 }
