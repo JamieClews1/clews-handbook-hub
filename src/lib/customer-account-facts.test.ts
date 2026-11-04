@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "bun:test";
 import { summariseAccountFacts } from "./customer-account-facts";
 
 const today = new Date("2026-11-04T08:00:00Z");
