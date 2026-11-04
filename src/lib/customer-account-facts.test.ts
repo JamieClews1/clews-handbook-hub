@@ -15,6 +15,11 @@ describe("summariseAccountFacts", () => {
     expect(f.range).toBe("Jan–Oct");
     expect(f.topStreams).toEqual(["Wood", "Metals"]);
   });
+  it("converts Midweigh kilograms to tonnes and prefers product names", () => {
+    const f = summariseAccountFacts([{ job_date: "2026-05-01", weight_t: 12400, waste_description: "wood other than…", source: "midweigh", product: "Wood" }], null, today);
+    expect(f.tonnes).toBe(12.4);
+    expect(f.topStreams).toEqual(["Wood"]);
+  });
   it("flags missing, undated and expired licences", () => {
     expect(summariseAccountFacts([], null, today).dutyOfCare.state).toBe("missing");
     expect(summariseAccountFacts([], { waste_carrier_licence: "CBDU1" }, today).dutyOfCare.state).toBe("no-expiry");

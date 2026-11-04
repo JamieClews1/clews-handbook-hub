@@ -12,7 +12,7 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 
 /** Read-only summary of an account's loads this year and its carrier licence status. */
 export function summariseAccountFacts(
-  rows: { job_date: string | null; weight_t: number | null; waste_description: string | null }[],
+  rows: { job_date: string | null; weight_t: number | null; waste_description: string | null; source?: string | null; product?: string | null }[],
   doc: { waste_carrier_licence?: string | null; waste_carrier_licence_expiry?: string | null } | null,
   today: Date = new Date(),
 ): AccountFacts {
@@ -20,10 +20,12 @@ export function summariseAccountFacts(
   let minM = 12, maxM = -1;
   const streams = new Map<string, number>();
   for (const r of rows) {
-    tonnes += Number(r.weight_t) || 0;
+    const w0 = Number(r.weight_t) || 0;
+    // Midweigh weights are kilograms; Skiptrak weights are tonnes.
+    tonnes += r.source === "midweigh" ? w0 / 1000 : w0;
     const m = r.job_date ? Number(r.job_date.slice(5, 7)) - 1 : -1;
     if (m >= 0 && m < 12) { minM = Math.min(minM, m); maxM = Math.max(maxM, m); }
-    const w = (r.waste_description ?? "").trim();
+    const w = ((r.product ?? "").trim() || (r.waste_description ?? "").trim());
     if (w) streams.set(w, (streams.get(w) ?? 0) + 1);
   }
   const range = maxM < 0 ? "this year" : minM === maxM ? MONTHS[minM] : `${MONTHS[minM]}–${MONTHS[maxM]}`;

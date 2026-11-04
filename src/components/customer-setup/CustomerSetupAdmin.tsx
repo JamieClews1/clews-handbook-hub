@@ -492,11 +492,11 @@ export function CustomerSetupAdmin() {
       const year = new Date().getFullYear();
       const name = c.data_hub_customer || c.customer_name;
       const supplierView = listView === "suppliers";
-      const rows: { job_date: string | null; weight_t: number | null; waste_description: string | null }[] = [];
+      const rows: { job_date: string | null; weight_t: number | null; waste_description: string | null; source?: string | null; product?: string | null }[] = [];
       for (let from = 0; from < 20000; from += 1000) {
         let q = supabase
           .from("data_hub_jobs")
-          .select("job_date, weight_t, waste_description")
+          .select("job_date, weight_t, waste_description, source, product:raw->>Product" as string)
           .eq("customer", name)
           .gte("job_date", `${year}-01-01`)
           .lte("job_date", `${year}-12-31`)
@@ -1662,11 +1662,11 @@ export function CustomerSetupAdmin() {
           const Fact = ({ label, value, sub, tone, action, onAction }: { label: string; value: string; sub?: string; tone?: "muted" | "warn"; action?: string; onAction?: () => void }) => (
             <div className="min-w-0 border-border p-4 [&:not(:first-child)]:border-l">
               <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
-              <div className={`mt-1 truncate text-xl font-bold tabular-nums ${tone === "muted" ? "text-muted-foreground" : tone === "warn" ? "text-warning-text" : "text-foreground"}`}>{value}</div>
+              <div title={value} className={`mt-1 line-clamp-2 break-words text-lg leading-snug font-bold tabular-nums ${tone === "muted" ? "text-muted-foreground" : tone === "warn" ? "text-warning-text" : "text-foreground"}`}>{value}</div>
               {action ? (
                 <button type="button" onClick={onAction} className="mt-0.5 text-sm font-semibold text-primary hover:underline">{action}</button>
               ) : (
-                <div className="mt-0.5 truncate text-sm text-muted-foreground">{sub ?? "\u00a0"}</div>
+                <div className="mt-0.5 text-sm text-muted-foreground">{sub ?? "\u00a0"}</div>
               )}
             </div>
           );
