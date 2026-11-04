@@ -386,6 +386,13 @@
       "when": 1793728923149,
       "tag": "0054_customer_account_type",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1793778983030,
+      "tag": "0055_supplier_waste_broker_flag",
+      "breakpoints": true
     }
   ]
 }

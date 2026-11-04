@@ -64,6 +64,7 @@ type Customer = {
   po_spans_periods: boolean;
   is_broker: boolean;
   account_type?: "customer" | "supplier" | "both" | null;
+  is_waste_broker?: boolean | null;
   all_data_hub_sites: boolean;
   midweigh_rebates_enabled: boolean;
   midweigh_rebate_contact_id: string | null;
@@ -180,7 +181,7 @@ export function CustomerSetupAdmin() {
 
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", pod_email: "", auto_pod_emails_enabled: false, custom_reporting_periods_enabled: false, po_spans_periods: false, is_broker: false, all_data_hub_sites: false, midweigh_rebates_enabled: false, midweigh_rebate_contact_id: "", account_type: "customer" as "customer" | "supplier" | "both" });
+  const [editCustomerForm, setEditCustomerForm] = useState({ customer_code: "", customer_name: "", po_notification_email: "", pod_email: "", auto_pod_emails_enabled: false, custom_reporting_periods_enabled: false, po_spans_periods: false, is_broker: false, all_data_hub_sites: false, midweigh_rebates_enabled: false, midweigh_rebate_contact_id: "", account_type: "customer" as "customer" | "supplier" | "both", is_waste_broker: false });
   const [editCustomerContacts, setEditCustomerContacts] = useState<CustomerContact[]>([]);
 
   const customerCreateSchema = useMemo(
@@ -470,7 +471,7 @@ export function CustomerSetupAdmin() {
     for (let from = 0; ; from += pageSize) {
       const { data, error } = await supabase
         .from("customers")
-        .select("id,customer_code,customer_name,po_notification_email,pod_email,auto_pod_emails_enabled,custom_reporting_periods_enabled,po_spans_periods,is_broker,account_type,all_data_hub_sites,midweigh_rebates_enabled,midweigh_rebate_contact_id,is_active,data_hub_customer,created_at,updated_at")
+        .select("id,customer_code,customer_name,po_notification_email,pod_email,auto_pod_emails_enabled,custom_reporting_periods_enabled,po_spans_periods,is_broker,account_type,is_waste_broker,all_data_hub_sites,midweigh_rebates_enabled,midweigh_rebate_contact_id,is_active,data_hub_customer,created_at,updated_at")
         .order("customer_name", { ascending: true })
         .range(from, from + pageSize - 1);
       if (error) throw error;
@@ -992,6 +993,7 @@ export function CustomerSetupAdmin() {
       po_spans_periods: customer.po_spans_periods ?? false,
       is_broker: customer.is_broker ?? false,
       account_type: (customer.account_type ?? "customer") as "customer" | "supplier" | "both",
+      is_waste_broker: customer.is_waste_broker ?? false,
       all_data_hub_sites: customer.all_data_hub_sites ?? false,
       midweigh_rebates_enabled: customer.midweigh_rebates_enabled ?? false,
       midweigh_rebate_contact_id: customer.midweigh_rebate_contact_id ?? "",
@@ -1031,6 +1033,7 @@ export function CustomerSetupAdmin() {
           po_spans_periods: editCustomerForm.po_spans_periods,
           is_broker: editCustomerForm.is_broker,
           account_type: editCustomerForm.account_type,
+          is_waste_broker: editCustomerForm.account_type !== "customer" && editCustomerForm.is_waste_broker,
           all_data_hub_sites: editCustomerForm.all_data_hub_sites,
           midweigh_rebates_enabled: editCustomerForm.midweigh_rebates_enabled,
           midweigh_rebate_contact_id: editCustomerForm.midweigh_rebates_enabled && editCustomerForm.midweigh_rebate_contact_id ? editCustomerForm.midweigh_rebate_contact_id : null,
@@ -1489,6 +1492,7 @@ export function CustomerSetupAdmin() {
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {c.customer_name}
+                          {c.is_waste_broker && <Badge variant="outline" className="text-xs">Broker</Badge>}
                           {c.account_type === "both" && <Badge variant="outline" className="text-xs">{listView === "suppliers" ? "Also customer" : "Also supplier"}</Badge>}
                           {!c.is_active && <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">Archived</Badge>}
                         </div>
@@ -2253,6 +2257,15 @@ export function CustomerSetupAdmin() {
                 </SelectContent>
               </Select>
             </div>
+            {editCustomerForm.account_type !== "customer" && (
+              <div className="flex items-center justify-between gap-4 rounded-md bg-muted/40 p-3">
+                <div className="space-y-0.5">
+                  <Label>Waste broker</Label>
+                  <p className="text-xs text-muted-foreground">Turn on if this supplier acts as a waste broker. They will then appear in the Broker list when creating a WeighOne ticket.</p>
+                </div>
+                <Switch checked={editCustomerForm.is_waste_broker} onCheckedChange={(v) => setEditCustomerForm((p) => ({ ...p, is_waste_broker: v }))} />
+              </div>
+            )}
             <Separator />
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">

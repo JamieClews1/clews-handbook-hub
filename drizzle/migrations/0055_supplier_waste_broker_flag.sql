@@ -1,0 +1,2 @@
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS is_waste_broker boolean NOT NULL DEFAULT false;
+COMMENT ON COLUMN public.customers.is_waste_broker IS 'Supplier acts as a waste broker; offered in the WeighOne ticket broker picker';
