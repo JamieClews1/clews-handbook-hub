@@ -44,7 +44,7 @@ import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib
 import { wtnHtmlToPdf, downloadBlob } from "@/lib/wtn-ticket-pdf";
 import { wasteOutProducerSignature } from "@/lib/waste-out-signatures";
 import { signaturePrintMarkup, signoffAt } from "@/lib/weighone-signature-times";
-import { routeOneSkipDetails, importedSkipWaste } from "@/lib/routeone-skip-ticket";
+import { routeOneSkipDetails, importedSkipWaste, routeOneSkipProducer } from "@/lib/routeone-skip-ticket";
 import { hasWeighbridgePricing } from "@/lib/weighone-pricing-policy";
 import { format, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
@@ -1419,7 +1419,21 @@ const WeighOnePage = () => {
     };
   };
 
-  const buildTicketHtml = (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
+  const buildTicketHtml = async (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
+    let producer = routeOneSkipProducer(null);
+    if (t.job_type === "skip") {
+      const { data: links, error: linkError } = await supabase.from("route_one_job_weighings")
+        .select("job_id").eq("weighbridge_transaction_id", t.id);
+      if (linkError) throw new Error("Could not read the linked Route One producer signature. Please try again.");
+      const jobIds = [...new Set((links ?? []).map(link => link.job_id))];
+      if (jobIds.length > 1) throw new Error("This ticket links to more than one Route One job. Please check the producer before printing.");
+      if (jobIds.length === 1 || (t.linked_job_number && ["routeone", "skiptrak"].includes(t.linked_job_source ?? ""))) {
+        const query = supabase.from("route_one_jobs").select("customer_signature, customer_signoff_name, customer_signoff_at");
+        const { data, error } = await (jobIds[0] ? query.eq("id", jobIds[0]) : query.eq("job_number", t.linked_job_number ?? "")).maybeSingle();
+        if (error) throw new Error("Could not read the linked Route One producer signature. Please try again.");
+        producer = routeOneSkipProducer(data);
+      }
+    }
     const kg = (v: number | null) => (v != null ? Math.round(v).toLocaleString() : "");
     const when = t.first_weigh_at ? new Date(t.first_weigh_at) : null;
     const vars = {
@@ -1456,6 +1470,8 @@ const WeighOnePage = () => {
       additional_items: additionalItems.map((i) => `${i.description} £${i.cost.toFixed(2)}`).join(" · "),
       operator_name: t.operator_name ?? "",
       vehicle_type: t.vehicle_type ?? "",
+      producer_signature: signaturePrintMarkup(producer.image, producer.at, "Producer signature"),
+      producer_signoff_name: producer.name,
       operator_signature: signaturePrintMarkup(t.operator_signature, t.operator_signoff_at ?? t.first_weigh_at, "Weighbridge signature"),
       driver_signature: signaturePrintMarkup(t.driver_signature, t.driver_signoff_at, "Driver signature"),
       disposer_signature: signaturePrintMarkup(t.disposer_signature, t.disposer_signoff_at, "Disposal site signature"),
@@ -1467,18 +1483,23 @@ const WeighOnePage = () => {
     return renderWtnSheet(wtnTemplate?.html || DEFAULT_WTN_TEMPLATE, vars, `WTN ${t.ticket_number}`, { includePrices: includePrices && hasWeighbridgePricing(t.job_type), testMode: t.is_test === true });
   };
 
-  const printTicket = (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
+  const printTicket = async (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
     const win = window.open("", "_blank", "width=900,height=1100");
     if (!win) return;
-    win.document.write(buildTicketHtml(t, additionalItems, includePrices));
-    win.document.close();
-    win.focus();
-    setTimeout(() => win.print(), 300);
+    try {
+      win.document.write(await buildTicketHtml(t, additionalItems, includePrices));
+      win.document.close();
+      win.focus();
+      setTimeout(() => win.print(), 300);
+    } catch (e) {
+      win.close();
+      toast.error((e as Error).message);
+    }
   };
 
   const downloadTicket = async (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
     try {
-      const blob = await wtnHtmlToPdf(buildTicketHtml(t, additionalItems, includePrices));
+      const blob = await wtnHtmlToPdf(await buildTicketHtml(t, additionalItems, includePrices));
       downloadBlob(blob, `Ticket-${t.ticket_number}.pdf`);
     } catch (e) {
       toast.error("Could not create the PDF: " + (e as Error).message);

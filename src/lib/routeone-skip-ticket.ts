@@ -18,3 +18,16 @@ export function routeOneSkipDetails(job: {
 export function importedSkipWaste(job: { waste_description: string | null; ewc: string | null }) {
   return { waste_description: job.waste_description?.trim() ?? "", ewc_code: job.ewc?.trim() ?? "" };
 }
+
+/** Producer evidence belongs to the linked Route One customer, never the crew. */
+export function routeOneSkipProducer(job: {
+  customer_signature?: string | null;
+  customer_signoff_name?: string | null;
+  customer_signoff_at?: string | null;
+} | null) {
+  return {
+    image: job?.customer_signature || null,
+    name: job?.customer_signature ? job.customer_signoff_name || "" : "",
+    at: job?.customer_signature ? job.customer_signoff_at || null : null,
+  };
+}
