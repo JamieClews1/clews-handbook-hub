@@ -27,7 +27,7 @@ import RentalNotes from "./RentalNotes";
 import { agreementCoversBin, trackedAgreementBins, agreedRentalRate } from "@/lib/rental-agreements";
 import RentalsInfoDialog from "@/components/rentals/RentalsInfoDialog";
 import RentalSettingsDialog from "@/components/rentals/RentalSettingsDialog";
-import { renderChaseTemplate, rentalRateLabel, siteWithPostcode } from "@/lib/rental-chase-email";
+import { binWasteTypeLabel, renderChaseTemplate, rentalRateLabel, siteWithPostcode } from "@/lib/rental-chase-email";
 import { useLatestDataDate } from "@/hooks/useLatestDataDate";
 import { eligibleRentalAssignees } from "@/lib/rental-assignees";
 import { loadSeenMap, notesBadgeLabel, unreadNoteCount, type NoteStamp, type SeenMap } from "@/lib/rental-notes-unread";
@@ -1274,7 +1274,7 @@ function EmailDialog({ bin, chase, defaultEmail, customerId, freeDays, draftBody
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Chase Rental by Email</DialogTitle>
-          <DialogDescription>{bin.customer} — {bin.site} ({bin.containerType})</DialogDescription>
+          <DialogDescription>{bin.customer} — {bin.site} ({bin.containerType}) · holding {binWasteTypeLabel(bin)}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
