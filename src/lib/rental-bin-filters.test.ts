@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun test";
+import { describe, expect, it } from "bun:test";
 import { ALL_RENTAL_FILTERS, customerBinCounts, filterRentalBins } from "./rental-bin-filters";
 
 const bins = [
