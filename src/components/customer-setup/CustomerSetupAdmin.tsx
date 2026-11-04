@@ -767,10 +767,6 @@ export function CustomerSetupAdmin() {
       site_contact_2_phone: "",
       sic_description: "",
       what3words: "",
-    site_contact_2_name: "",
-    site_contact_2_phone: "",
-    sic_description: "",
-    what3words: "",
     });
     setNewRebateSetInline("");
     setSelectedPeriodLabel(null);
