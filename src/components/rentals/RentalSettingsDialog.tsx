@@ -17,7 +17,7 @@ type Props = {
   updateSetting: (key: keyof LiveJobsSettings, value: any) => Promise<void>;
 };
 
-const PLACEHOLDERS = ["{customer}", "{site}", "{containerType}", "{days}", "{freeDays}", "{rate}"];
+const PLACEHOLDERS = ["{customer}", "{site}", "{containerType}", "{wasteType}", "{days}", "{freeDays}", "{rate}"];
 
 export default function RentalSettingsDialog({ settings, updateSetting }: Props) {
   const { toast } = useToast();

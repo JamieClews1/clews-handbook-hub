@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { DEFAULT_CHASE_EMAIL_TEMPLATE } from "@/lib/rental-chase-email";
 
-export const DEFAULT_CHASE_EMAIL_TEMPLATE =
-  `Dear {customer},\n\n` +
-  `Our records show a {containerType} container has been on site at {site} for {days} days, which is beyond the {freeDays}-day free rental period.\n\n` +
-  `Rental charges of {rate} now apply for this container. Please arrange a collection or exchange, or contact us to confirm how you would like to proceed.\n\n` +
-  `If you would like the container to remain on site, please reply to confirm acceptance of the rental charges.\n\n` +
-  `Kind regards,\nClews Recycling`;
+export { DEFAULT_CHASE_EMAIL_TEMPLATE };
 
 export type LiveJobsSettings = {
   rental_free_days: number;

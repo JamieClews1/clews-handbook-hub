@@ -27,7 +27,7 @@ import RentalNotes from "./RentalNotes";
 import { agreementCoversBin, trackedAgreementBins, agreedRentalRate } from "@/lib/rental-agreements";
 import RentalsInfoDialog from "@/components/rentals/RentalsInfoDialog";
 import RentalSettingsDialog from "@/components/rentals/RentalSettingsDialog";
-import { DEFAULT_CHASE_EMAIL_TEMPLATE } from "@/hooks/useLiveJobsSettings";
+import { renderChaseTemplate, rentalRateLabel, siteWithPostcode } from "@/lib/rental-chase-email";
 import { useLatestDataDate } from "@/hooks/useLatestDataDate";
 import { eligibleRentalAssignees } from "@/lib/rental-assignees";
 import { loadSeenMap, notesBadgeLabel, unreadNoteCount, type NoteStamp, type SeenMap } from "@/lib/rental-notes-unread";
@@ -65,34 +65,6 @@ type Agreement = {
   rental_mode: string;
 };
 
-// Weekly rental cost label for a bin, based on its category and the configured rates.
-function rentalRateLabel(bin: OverRentalBin, skipRate: number, roroRate: number): string {
-  const rate = bin.category === "roro" ? roroRate : skipRate;
-  return `£${rate.toFixed(2)} + VAT per week`;
-}
-
-// Site name followed by its postcode, e.g. "Solutions Ltd, NN11 7HJ".
-function siteWithPostcode(bin: OverRentalBin): string {
-  const pc = (bin.postcode ?? "").trim().toUpperCase();
-  if (!pc || bin.site.toUpperCase().replace(/\s/g, "").includes(pc.replace(/\s/g, ""))) return bin.site;
-  return `${bin.site}, ${pc}`;
-}
-
-// Fill the chase email template placeholders with this bin's details.
-function renderChaseTemplate(
-  template: string,
-  bin: OverRentalBin,
-  freeDays: number,
-  rateLabel: string,
-): string {
-  return (template || DEFAULT_CHASE_EMAIL_TEMPLATE)
-    .split("{customer}").join(bin.customer)
-    .split("{site}").join(siteWithPostcode(bin))
-    .split("{containerType}").join(bin.containerType)
-    .split("{days}").join(String(bin.daysSinceActivity ?? ""))
-    .split("{freeDays}").join(String(freeDays))
-    .split("{rate}").join(rateLabel);
-}
 
 const STATUS_LABELS: Record<string, string> = {
   not_chased: "Not Chased",
