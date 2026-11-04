@@ -56,3 +56,13 @@ export function searchWasteInTypes<T extends WasteInPickable>(ranked: T[], q: st
   if (!needle) return ranked;
   return ranked.filter(t => compact(`${t.waste_type ?? ""} ${t.ewc_code ?? ""}`).includes(needle));
 }
+
+/** One entry per waste type + EWC; the rate card stores some types twice. Keeps `keepId` if it is a duplicate. */
+export function dedupeWasteInTypes<T extends WasteInPickable & { id: string }>(types: T[], keepId?: string): T[] {
+  const byKey = new Map<string, T>();
+  for (const t of types) {
+    const key = `${compact(t.waste_type ?? "")}|${compact(t.ewc_code ?? "")}`;
+    if (!byKey.has(key) || t.id === keepId) byKey.set(key, t);
+  }
+  return [...byKey.values()];
+}
