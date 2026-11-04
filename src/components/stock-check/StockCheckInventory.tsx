@@ -1955,13 +1955,13 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
             >
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
                     <Boxes className="h-5 w-5 text-primary shrink-0" />
                     <button
                       type="button"
                       onClick={() => setEditingId(r.id)}
                       title="Click to change this profile"
-                      className="rounded-sm text-left font-bold text-foreground shrink-0 underline-offset-4 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="rounded-sm min-w-0 text-left font-bold text-foreground truncate underline-offset-4 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       #{r.asset_number}
                     </button>
