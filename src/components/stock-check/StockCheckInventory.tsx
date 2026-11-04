@@ -1969,11 +1969,6 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
                     <Badge variant="outline" className="text-[10px] uppercase shrink-0">
                       {r.asset_type === "roro" ? "RoRo" : "Skip"}
                     </Badge>
-                    {r.size && (
-                      <Badge variant="secondary" className="text-[10px] uppercase min-w-0 truncate">
-                        {r.size}
-                      </Badge>
-                    )}
 
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -2006,6 +2001,12 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  {r.size && (
+                    <Badge variant="secondary" className="text-[10px] uppercase">
+                      {r.size}
+                    </Badge>
+                  )}
+
                   {r.condition && (
                     <Badge
                       variant="outline"
