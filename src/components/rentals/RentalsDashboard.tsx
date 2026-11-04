@@ -506,6 +506,7 @@ export default function RentalsDashboard() {
           <LatestDataDate />
           <div className="flex flex-wrap items-center gap-2 pt-3">
             <Filter className="h-4 w-4 text-muted-foreground" />
+            <CustomerFilterSelect value={customerFilter} onChange={setCustomerFilter} options={customerOptions} />
             <Select
               value={categoryFilter}
               onValueChange={(v) => { setCategoryFilter(v as "all" | "skip" | "roro"); setSizeFilter("all"); }}
@@ -540,8 +541,8 @@ export default function RentalsDashboard() {
                 {unreadNotesBins} with notes to read
               </Button>
             )}
-            {(categoryFilter !== "all" || sizeFilter !== "all" || notesOnly) && (
-              <Button variant="ghost" size="sm" onClick={() => { setCategoryFilter("all"); setSizeFilter("all"); setNotesOnly(false); }}>
+            {(customerFilter !== "all" || categoryFilter !== "all" || sizeFilter !== "all" || notesOnly) && (
+              <Button variant="ghost" size="sm" onClick={() => { setCustomerFilter("all"); setCategoryFilter("all"); setSizeFilter("all"); setNotesOnly(false); }}>
                 Clear
               </Button>
             )}
