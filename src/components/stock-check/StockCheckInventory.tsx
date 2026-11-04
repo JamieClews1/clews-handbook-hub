@@ -1961,7 +1961,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
                       type="button"
                       onClick={() => setEditingId(r.id)}
                       title="Click to change this profile"
-                      className="rounded-sm text-left font-bold text-foreground truncate underline-offset-4 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="rounded-sm text-left font-bold text-foreground shrink-0 underline-offset-4 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       #{r.asset_number}
                     </button>
