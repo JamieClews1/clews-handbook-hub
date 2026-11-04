@@ -46,3 +46,4 @@ Outgoing stream comparisons share one classifier reading Midweigh raw Product; n
 Register normaliser accepts business_name. Insights shares URL-bound periods, cached read-only projected columns and P&L scalar maths, never private finance reads or Data Uploads changes.
 Duty of Care reclassification keeps company/permit evidence; shared tipping choices exclude Broker/Haulage even from historical fallbacks, without altering jobs.
 Waste products are reference-only; never rewrite tickets. WeighOne ticket deletion detaches Route One/Banksman links first, is refused while an invoice carries the ticket, and needs explicit acknowledgement.
+Rental chase-email wording (template, placeholders, site/postcode, waste-type label) lives in src/lib/rental-chase-email.ts, separate from bin computation, so email text is testable without touching operational records.
