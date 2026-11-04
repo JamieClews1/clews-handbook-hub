@@ -2757,10 +2757,14 @@ export type Database = {
           pod_email: string | null
           postcode: string | null
           sic_code: string | null
+          sic_description: string | null
+          site_contact_2_name: string | null
+          site_contact_2_phone: string | null
           site_contact_name: string | null
           site_contact_phone: string | null
           site_name: string
           updated_at: string
+          what3words: string | null
         }
         Insert: {
           address_1?: string | null
@@ -2786,10 +2790,14 @@ export type Database = {
           pod_email?: string | null
           postcode?: string | null
           sic_code?: string | null
+          sic_description?: string | null
+          site_contact_2_name?: string | null
+          site_contact_2_phone?: string | null
           site_contact_name?: string | null
           site_contact_phone?: string | null
           site_name: string
           updated_at?: string
+          what3words?: string | null
         }
         Update: {
           address_1?: string | null
@@ -2815,10 +2823,14 @@ export type Database = {
           pod_email?: string | null
           postcode?: string | null
           sic_code?: string | null
+          sic_description?: string | null
+          site_contact_2_name?: string | null
+          site_contact_2_phone?: string | null
           site_contact_name?: string | null
           site_contact_phone?: string | null
           site_name?: string
           updated_at?: string
+          what3words?: string | null
         }
         Relationships: [
           {
