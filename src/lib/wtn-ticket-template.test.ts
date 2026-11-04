@@ -4,6 +4,19 @@ import { DEFAULT_WTN_TEMPLATE, renderWtnSheet, withTestMarker } from "./wtn-tick
 
 const vars = { ticket_number: "WB000002", customer: "Test Co" };
 
+test("Skip producer sign box reuses Route One evidence in both ticket copies", () => {
+  const html = renderWtnSheet(DEFAULT_WTN_TEMPLATE, { direction: "INWARD", producer_signature: '<img class="sig" src="producer-evidence" /><div class="when">Signed 04/11/2026 17:00</div>', producer_signoff_name: "Site manager", operator_name: "Weighbridge user" });
+  assert.equal(html.match(/src="producer-evidence"/g)?.length, 2);
+  assert.equal(html.match(/<div class="name">Site manager<\/div>/g)?.length, 2);
+  assert.equal(html.match(/Signed 04\/11\/2026 17:00/g)?.length, 2);
+});
+
+test("Waste Out still uses weighbridge operator for producer even when customer evidence exists", () => {
+  const html = renderWtnSheet(DEFAULT_WTN_TEMPLATE, { direction: "OUTWARD", producer_signature: "wrong-customer-evidence", producer_signoff_name: "Customer", operator_signature: "clews-producer-evidence", operator_name: "Jamie" });
+  assert.doesNotMatch(html, /wrong-customer-evidence/);
+  assert.equal(html.match(/clews-producer-evidence/g)?.length, 2);
+});
+
 test("test-mode marker on printed tickets: stamps both copies when the ticket is a test", () => {
   const html = renderWtnSheet(DEFAULT_WTN_TEMPLATE, vars, "WTN WB000002", { testMode: true });
   assert.equal(html.match(/data-wtn-test/g).length, 2);

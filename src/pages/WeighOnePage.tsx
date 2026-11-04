@@ -1421,12 +1421,18 @@ const WeighOnePage = () => {
 
   const buildTicketHtml = async (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
     let producer = routeOneSkipProducer(null);
-    if (t.job_type === "skip" && t.linked_job_number && ["routeone", "skiptrak"].includes(t.linked_job_source ?? "")) {
-      const { data, error } = await supabase.from("route_one_jobs")
-        .select("customer_signature, customer_signoff_name, customer_signoff_at")
-        .eq("job_number", t.linked_job_number).maybeSingle();
-      if (error) throw new Error("Could not read the linked Route One producer signature. Please try again.");
-      producer = routeOneSkipProducer(data);
+    if (t.job_type === "skip") {
+      const { data: links, error: linkError } = await supabase.from("route_one_job_weighings")
+        .select("job_id").eq("weighbridge_transaction_id", t.id);
+      if (linkError) throw new Error("Could not read the linked Route One producer signature. Please try again.");
+      const jobIds = [...new Set((links ?? []).map(link => link.job_id))];
+      if (jobIds.length > 1) throw new Error("This ticket links to more than one Route One job. Please check the producer before printing.");
+      if (jobIds.length === 1 || (t.linked_job_number && ["routeone", "skiptrak"].includes(t.linked_job_source ?? ""))) {
+        const query = supabase.from("route_one_jobs").select("customer_signature, customer_signoff_name, customer_signoff_at");
+        const { data, error } = await (jobIds[0] ? query.eq("id", jobIds[0]) : query.eq("job_number", t.linked_job_number ?? "")).maybeSingle();
+        if (error) throw new Error("Could not read the linked Route One producer signature. Please try again.");
+        producer = routeOneSkipProducer(data);
+      }
     }
     const kg = (v: number | null) => (v != null ? Math.round(v).toLocaleString() : "");
     const when = t.first_weigh_at ? new Date(t.first_weigh_at) : null;
