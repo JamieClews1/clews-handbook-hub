@@ -115,6 +115,9 @@ interface Job {
   customer_signature?: string | null;
   customer_signoff_name?: string | null;
   customer_signoff_at?: string | null;
+  disposer_signature?: string | null;
+  disposer_name?: string | null;
+  disposer_signoff_at?: string | null;
   driver_signature?: string | null;
   driver_signoff_name?: string | null;
 }
@@ -549,8 +552,9 @@ const DriverJobDetail = ({
   const [driverNotes, setDriverNotes] = useState(job.driver_notes || "");
   const [showContamination, setShowContamination] = useState(false);
   const [updating, setUpdating] = useState(false);
-  const [customerSig, setCustomerSig] = useState<string | null>(job.customer_signature || null);
-  const [customerSigName, setCustomerSigName] = useState(job.customer_signoff_name || "");
+  const isWasteOut = job.job_type === "waste_out_skip";
+  const [customerSig, setCustomerSig] = useState<string | null>((isWasteOut ? job.disposer_signature : job.customer_signature) || null);
+  const [customerSigName, setCustomerSigName] = useState((isWasteOut ? job.disposer_name : job.customer_signoff_name) || "");
   const [driverSig, setDriverSig] = useState<string | null>(job.driver_signature || null);
   const [vehicleReg, setVehicleReg] = useState(job.vehicle_reg || "");
   const [classification, setClassification] = useState<WasteClassification>(asClassification(job.waste_classification));
@@ -604,9 +608,15 @@ const DriverJobDetail = ({
       completed_at: new Date().toISOString(),
       driver_notes: driverNotes.trim() || null,
       vehicle_reg: vehicleReg.trim() || null,
-      customer_signature: customerSig,
-      customer_signoff_name: customerSigName.trim() || null,
-      customer_signoff_at: customerSig ? new Date().toISOString() : null,
+      ...(isWasteOut ? {
+        disposer_signature: customerSig,
+        disposer_name: customerSigName.trim() || null,
+        disposer_signoff_at: customerSig ? new Date().toISOString() : null,
+      } : {
+        customer_signature: customerSig,
+        customer_signoff_name: customerSigName.trim() || null,
+        customer_signoff_at: customerSig ? new Date().toISOString() : null,
+      }),
       driver_signature: driverSig,
       driver_signoff_name: driverName || null,
       waste_classification: classification,
@@ -819,7 +829,7 @@ const DriverJobDetail = ({
                     />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Customer print name</p>
+                    <p className="text-xs text-muted-foreground mb-1">{isWasteOut ? "Disposal site print name" : "Customer print name"}</p>
                     <Input
                       value={customerSigName}
                       onChange={(e) => setCustomerSigName(e.target.value)}
@@ -828,7 +838,7 @@ const DriverJobDetail = ({
                     />
                   </div>
                   <SignatureField
-                    label="Customer signature"
+                    label={isWasteOut ? "Disposal site signature" : "Customer signature"}
                     value={customerSig}
                     onChange={setCustomerSig}
                     hint="Signed on site — added to the waste transfer note."
@@ -883,14 +893,14 @@ const DriverJobDetail = ({
                   )}
                 </div>
               )}
-              {job.customer_signature && (
+              {(isWasteOut ? job.disposer_signature : job.customer_signature) && (
                 <div className="pt-2 border-t">
                   <p className="text-xs text-muted-foreground font-medium mb-1">
-                    Customer sign-off{job.customer_signoff_name ? ` — ${job.customer_signoff_name}` : ""}
+                    {isWasteOut ? "Disposal site sign-off" : "Customer sign-off"}{(isWasteOut ? job.disposer_name : job.customer_signoff_name) ? ` — ${isWasteOut ? job.disposer_name : job.customer_signoff_name}` : ""}
                   </p>
                   <img
-                    src={job.customer_signature}
-                    alt="Customer signature"
+                    src={(isWasteOut ? job.disposer_signature : job.customer_signature) || undefined}
+                    alt={isWasteOut ? "Disposal site signature" : "Customer signature"}
                     className="h-16 rounded border bg-white object-contain"
                   />
                 </div>

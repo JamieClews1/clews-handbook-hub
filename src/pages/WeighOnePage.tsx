@@ -42,6 +42,7 @@ import { WtnTemplateEditor, useWtnTemplate } from "@/components/weighone/WtnTemp
 import { StagedAttachmentPicker, WeighbridgeAttachments, uploadWeighbridgeAttachments, type StagedAttachment } from "@/components/weighone/WeighbridgeAttachments";
 import { DEFAULT_WTN_TEMPLATE, WTN_COMPANY_DETAILS, renderWtnSheet } from "@/lib/wtn-ticket-template";
 import { wtnHtmlToPdf, downloadBlob } from "@/lib/wtn-ticket-pdf";
+import { wasteOutProducerSignature } from "@/lib/waste-out-signatures";
 import { format, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { SignatureField } from "@/components/SignatureField";
@@ -100,6 +101,9 @@ interface WeighbridgeTransaction {
   vehicle_type: string | null;
   operator_signature: string | null;
   driver_signature: string | null;
+  disposer_signature?: string | null;
+  disposer_name?: string | null;
+  disposer_signoff_at?: string | null;
   gross_weight_kg: number | null;
   tare_weight_kg: number | null;
   net_weight_kg: number | null;
@@ -248,6 +252,8 @@ const WeighOnePage = () => {
   const testMode = useTestModeActive();
   const [operatorSignature, setOperatorSignature] = useState<string | null>(null);
   const [driverSignature, setDriverSignature] = useState<string | null>(null);
+  const [disposerSignature, setDisposerSignature] = useState<string | null>(null);
+  const [disposerName, setDisposerName] = useState("");
   /** Waste OUT on a Clews vehicle → also raise the matching Route One job */
   const [createRouteOneJob, setCreateRouteOneJob] = useState(true);
 
@@ -876,6 +882,9 @@ const WeighOnePage = () => {
         vehicle_type: formData.vehicle_type || null,
         operator_signature: operatorSignature,
         driver_signature: driverSignature,
+        disposer_signature: isWasteOut ? disposerSignature : null,
+        disposer_name: isWasteOut ? disposerName.trim() || null : null,
+        disposer_signoff_at: isWasteOut && disposerSignature ? editing?.disposer_signoff_at ?? new Date().toISOString() : null,
         gross_weight_kg: isNaN(grossKg) ? null : grossKg,
         waste_type_id: isWasteOut ? null : (formData.waste_type_id || null),
         price_per_tonne: rate?.price_per_tonne ?? null,
@@ -987,9 +996,15 @@ const WeighOnePage = () => {
           carrier_name: formData.carrier_name || OWN_CARRIER_NAME,
           weighbridge_transaction_id: txData.id,
           weighbridge_ticket_number: ticket,
+          ...wasteOutProducerSignature({ operator_signature: operatorSignature, operator_name: payload.operator_name, first_weigh_at: new Date().toISOString() }),
+          driver_signature: driverSignature,
+          driver_signoff_name: formData.driver_name || null,
+          disposer_signature: payload.disposer_signature,
+          disposer_name: payload.disposer_name,
+          disposer_signoff_at: payload.disposer_signoff_at,
           outbound_weight_t: netKg != null ? Math.round((netKg / 1000) * 100) / 100 : null,
-          destination_name: formData.customer || null,
-          disposal_site: formData.customer || null,
+          destination_name: formData.site || null,
+          disposal_site: formData.site || null,
           notes: `Auto-created from WeighOne ticket ${ticket}`,
           created_by: user?.id ?? null,
         });
@@ -1212,6 +1227,8 @@ const WeighOnePage = () => {
     setClassification(asClassification(t.waste_classification));
     setOperatorSignature(t.operator_signature ?? null);
     setDriverSignature(t.driver_signature ?? null);
+    setDisposerSignature(t.disposer_signature ?? null);
+    setDisposerName(t.disposer_name ?? "");
     setShowTareNow(t.tare_weight_kg != null);
     setEditingTicket(t);
     setNewDialogOpen(true);
@@ -1234,6 +1251,8 @@ const WeighOnePage = () => {
     setFormData((p) => ({ ...p, gross_weight_kg: "", tare_weight_kg: "", linked_job_number: "", linked_job_source: "", linked_job_date: "" }));
     setOperatorSignature(null);
     setDriverSignature(null);
+    setDisposerSignature(null);
+    setDisposerName("");
     setShowTareNow(false);
     toast.success(`New ticket copied from ${t.ticket_number} — enter the weights and save`);
   };
@@ -1294,6 +1313,8 @@ const WeighOnePage = () => {
     setClassification({});
     setOperatorSignature(null);
     setDriverSignature(null);
+    setDisposerSignature(null);
+    setDisposerName("");
     setStagedAttachments([]);
     setSkipDriver("");
     setOutProductId("");
@@ -1421,6 +1442,8 @@ const WeighOnePage = () => {
       vehicle_type: t.vehicle_type ?? "",
       operator_signature: t.operator_signature ? `<img class="sig" src="${t.operator_signature}" alt="Weighbridge signature" />` : "",
       driver_signature: t.driver_signature ? `<img class="sig" src="${t.driver_signature}" alt="Driver signature" />` : "",
+      disposer_signature: t.disposer_signature ? `<img class="sig" src="${t.disposer_signature}" alt="Disposal site signature" />` : "",
+      disposer_name: t.disposer_name ?? "",
       notes: t.notes ?? "",
       ...WTN_COMPANY_DETAILS,
       ...ticketParties(t),
@@ -2139,7 +2162,7 @@ const WeighOnePage = () => {
               <div className="shrink-0 border-t border-border px-4 py-3 flex flex-wrap items-center gap-3 bg-card">
                 <div className="flex gap-4 text-xs mr-2"><div className="text-muted-foreground">Gross<strong className="block text-foreground font-mono">{formData.gross_weight_kg ? `${Number(formData.gross_weight_kg).toLocaleString()} kg` : "—"}</strong></div><div className="text-muted-foreground">Tare<strong className="block text-foreground font-mono">{formData.tare_weight_kg ? `${Number(formData.tare_weight_kg).toLocaleString()} kg` : "On exit"}</strong></div><div className="text-muted-foreground">Net<strong className="block text-foreground font-mono">{netPreviewKg !== null ? `${netPreviewKg.toLocaleString()} kg` : "—"}</strong></div></div>
                                           <SignatureField compact
-                            label={`Operator · ${operatorName}`}
+                            label={`${isWasteOut ? "Producer" : "Operator"} · ${operatorName}`}
                             value={operatorSignature}
                             onChange={setOperatorSignature}
                             hint={myProfile?.signature_image && !operatorSignature ? "Tap to sign, or use your saved signature" : undefined}
@@ -2160,6 +2183,7 @@ const WeighOnePage = () => {
                               Use my saved signature
                             </Button>
                           )}
+                          {isWasteOut && <><Input aria-label="Disposal site signatory name" placeholder="Disposal site signatory" value={disposerName} onChange={(e) => setDisposerName(e.target.value)} className="w-44" /><SignatureField compact label="Disposal site signature" value={disposerSignature} onChange={setDisposerSignature} /></>}
 
                 <div className="ml-auto flex items-center gap-3">{editingTicket && (<><Button variant="outline" size="sm" className="gap-1.5" title="Download the saved ticket as PDF" onClick={() => downloadTicket(editingTicket, formItemsForPrint(), editingTicket.job_type !== "waste_out")}><Download className="h-4 w-4" /> PDF</Button><Button variant="outline" size="sm" className="gap-1.5" title="Print the saved ticket" onClick={() => printTicket(editingTicket, formItemsForPrint(), editingTicket.job_type !== "waste_out")}><Printer className="h-4 w-4" /> Print</Button><Button variant="outline" size="sm" className="gap-1.5" title="Start a new ticket with these details" onClick={() => duplicateTicket(editingTicket)}><Copy className="h-4 w-4" /> Duplicate</Button></>)}<Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>{editingTicket ? "Close" : "Cancel"}</Button><Button variant="outline" onClick={() => createMutation.mutate({ keepOpen: true })} disabled={!formData.vehicle_reg || createMutation.isPending}>Save</Button><Button onClick={() => createMutation.mutate(undefined)} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? (editingTicket ? "Saving…" : "Recording…") : editingTicket ? "Save & close" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
               </div>

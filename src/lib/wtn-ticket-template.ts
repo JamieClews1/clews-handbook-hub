@@ -45,6 +45,8 @@ export const WTN_PLACEHOLDERS: { key: string; label: string }[] = [
   { key: "receiving_address", label: "Receiving site address" },
   { key: "driver_signature", label: "Driver signature (image)" },
   { key: "operator_signature", label: "Weighbridge signature (image)" },
+  { key: "disposer_signature", label: "Disposal site signature (image)" },
+  { key: "disposer_name", label: "Disposal site signatory" },
   { key: "notes", label: "Notes / comments" },
   { key: "company_name", label: "Company name" },
   { key: "company_address", label: "Company address" },
@@ -229,6 +231,11 @@ export function renderWtnSheet(
   }
   if (!/\{\{\s*operator_signature\s*\}\}/.test(preparedTemplate)) {
     preparedTemplate = preparedTemplate.replace(/(<div class="k">\s*Weighbridge Sign\s*<\/div>)/i, "$1{{operator_signature}}");
+  }
+  if (vars.direction === "OUTWARD") {
+    preparedTemplate = preparedTemplate
+      .replace(/(<div class="k">\s*Producer Sign\s*<\/div>)([\s\S]*?)(<div class="name">)[\s\S]*?(<\/div>)/i, "$1{{operator_signature}}$3{{operator_name}}$4")
+      .replace(/(<div class="k">)\s*Weighbridge Sign\s*(<\/div>)[\s\S]*?(<div class="name">)[\s\S]*?(<\/div>)/i, "$1Disposal Site Sign$2{{disposer_signature}}$3{{disposer_name}}$4");
   }
   vars = {
     producer_name: vars.customer ?? "",

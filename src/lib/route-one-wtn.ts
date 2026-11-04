@@ -288,7 +288,7 @@ function drawSignatureTrio(
     at?: string | null;
   }[] = [
     {
-      title: "Customer Signature",
+      title: job.job_type === WASTE_OUT_SKIP ? "Producer Signature" : "Customer Signature",
       signature: job.customer_signature,
       name: job.customer_signoff_name,
       at: job.customer_signoff_at,
@@ -1168,6 +1168,7 @@ export function mapWasteOutSkip(job: WtnJob): WtnJob {
 
 /** Builds the note using the design + builder options chosen in RouteOne setup. */
 export async function buildWtnDoc(job: WtnJob, design?: WtnDesign, options?: WtnOptions): Promise<jsPDF> {
+  job = await loadWasteOutSignatures(job);
   const chosen = design ?? getWtnDesign();
   const opts = options ?? getWtnOptions();
   const logo = opts.showLogo && (opts.brandStyle ?? "logo") === "logo" ? await loadLogoDataUrl() : null;
@@ -1208,6 +1209,24 @@ export async function buildWtnBatch(jobs: WtnJob[]): Promise<jsPDF | null> {
   const opts = getWtnOptions();
   const logo = opts.showLogo && (opts.brandStyle ?? "logo") === "logo" ? await loadLogoDataUrl() : null;
   let doc: jsPDF | undefined;
-  for (const job of jobs) doc = buildWtnPdf(mapWasteOutSkip(job), design, logo, opts, doc);
+  for (const job of jobs) doc = buildWtnPdf(mapWasteOutSkip(await loadWasteOutSignatures(job)), design, logo, opts, doc);
   return doc ?? null;
+}
+
+/** Read the original producer evidence and the receiving site's separate sign-off. */
+async function loadWasteOutSignatures(job: WtnJob & { weighbridge_transaction_id?: string | null }): Promise<WtnJob> {
+  if (job.job_type !== WASTE_OUT_SKIP || !job.weighbridge_transaction_id) return job;
+  const { supabase } = await import("@/integrations/supabase/client");
+  // PIN-only drivers use the producer snapshot already stored on their assigned job.
+  const { data: session } = await supabase.auth.getSession();
+  if (!session.session) return job;
+  const { wasteOutProducerSignature } = await import("./waste-out-signatures");
+  const { data, error } = await supabase.from("weighbridge_transactions")
+    .select("operator_signature,operator_name,first_weigh_at,disposer_signature,disposer_name,disposer_signoff_at")
+    .eq("id", job.weighbridge_transaction_id).single();
+  if (error) throw new Error("Could not load the linked weighbridge signatures. Please try again.");
+  return { ...job, ...wasteOutProducerSignature(data),
+    disposer_signature: job.disposer_signature || data.disposer_signature,
+    disposer_name: job.disposer_name || data.disposer_name,
+    disposer_signoff_at: job.disposer_signoff_at || data.disposer_signoff_at };
 }
