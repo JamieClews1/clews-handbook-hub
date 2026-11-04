@@ -1,0 +1,1 @@
+ALTER TABLE public.customer_sites ADD COLUMN IF NOT EXISTS site_contact_2_name text, ADD COLUMN IF NOT EXISTS site_contact_2_phone text, ADD COLUMN IF NOT EXISTS sic_description text, ADD COLUMN IF NOT EXISTS what3words text;
