@@ -832,7 +832,7 @@ const WeighOnePage = () => {
 
   // Create first weigh
   const createMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (_opts?: { keepOpen?: boolean }): Promise<string | null> => {
       const editing = editingTicket;
       const ticket = editing ? editing.ticket_number ?? "" : await generateTicket();
       const grossKg = parseFloat(formData.gross_weight_kg);
@@ -999,13 +999,20 @@ const WeighOnePage = () => {
           toast.success("Route One waste-out job created");
         }
       }
+      return txData?.id ?? null;
     },
 
-    onSuccess: () => {
+    onSuccess: async (savedId, opts) => {
       toast.success(editingTicket
-        ? "Ticket updated"
+        ? "Ticket saved"
         : formData.tare_weight_kg.trim() ? "Transaction completed (both weights recorded)" : "First weigh recorded");
       queryClient.invalidateQueries({ queryKey: ["weighbridge-additional-items"] });
+      queryClient.invalidateQueries({ queryKey: ["weighbridge-transactions"] });
+      if (opts?.keepOpen && savedId) {
+        // Stay on the form as the saved ticket so it can be printed, downloaded or duplicated.
+        const { data } = await supabase.from("weighbridge_transactions").select("*").eq("id", savedId).single();
+        if (data) { setEditingTicket(data as WeighbridgeTransaction); setStagedAttachments([]); return; }
+      }
       setNewDialogOpen(false);
       resetForm();
     },
@@ -2154,7 +2161,7 @@ const WeighOnePage = () => {
                             </Button>
                           )}
 
-                <div className="ml-auto flex items-center gap-3">{editingTicket && (<><Button variant="outline" size="sm" className="gap-1.5" title="Download the saved ticket as PDF" onClick={() => downloadTicket(editingTicket, formItemsForPrint(), editingTicket.job_type !== "waste_out")}><Download className="h-4 w-4" /> PDF</Button><Button variant="outline" size="sm" className="gap-1.5" title="Print the saved ticket" onClick={() => printTicket(editingTicket, formItemsForPrint(), editingTicket.job_type !== "waste_out")}><Printer className="h-4 w-4" /> Print</Button><Button variant="outline" size="sm" className="gap-1.5" title="Start a new ticket with these details" onClick={() => duplicateTicket(editingTicket)}><Copy className="h-4 w-4" /> Duplicate</Button></>)}<span className="hidden xl:inline text-xs text-muted-foreground">Use the button to save</span><Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>Cancel</Button><Button onClick={() => createMutation.mutate()} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? (editingTicket ? "Saving…" : "Recording…") : editingTicket ? "Save changes" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
+                <div className="ml-auto flex items-center gap-3">{editingTicket && (<><Button variant="outline" size="sm" className="gap-1.5" title="Download the saved ticket as PDF" onClick={() => downloadTicket(editingTicket, formItemsForPrint(), editingTicket.job_type !== "waste_out")}><Download className="h-4 w-4" /> PDF</Button><Button variant="outline" size="sm" className="gap-1.5" title="Print the saved ticket" onClick={() => printTicket(editingTicket, formItemsForPrint(), editingTicket.job_type !== "waste_out")}><Printer className="h-4 w-4" /> Print</Button><Button variant="outline" size="sm" className="gap-1.5" title="Start a new ticket with these details" onClick={() => duplicateTicket(editingTicket)}><Copy className="h-4 w-4" /> Duplicate</Button></>)}<span className="hidden xl:inline text-xs text-muted-foreground">Use the button to save</span><Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>{editingTicket ? "Close" : "Cancel"}</Button><Button variant="outline" onClick={() => createMutation.mutate({ keepOpen: true })} disabled={!formData.vehicle_reg || createMutation.isPending}>Save</Button><Button onClick={() => createMutation.mutate(undefined)} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? (editingTicket ? "Saving…" : "Recording…") : editingTicket ? "Save & close" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
               </div>
             </DialogContent>
           </Dialog>
