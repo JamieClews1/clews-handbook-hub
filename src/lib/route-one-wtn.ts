@@ -218,6 +218,14 @@ const fmtDate = (v?: string | null) => {
   return d.toLocaleDateString("en-GB");
 };
 
+/** Signature lines need the moment of signing, not just the day. */
+const fmtDateTime = (v?: string | null) => {
+  if (!v) return "";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return String(v);
+  return `${d.toLocaleDateString("en-GB")} ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+};
+
 /** Address lines for the waste producer block. */
 function addressLines(job: WtnJob): string[] {
   const raw = [
@@ -337,7 +345,7 @@ function drawSignatureTrio(
     doc.text(`Print: ${col.name || ""}`, x + 2, cursor + h - 4, { maxWidth: cw - 4 });
     doc.setFontSize(6);
     doc.setTextColor(120);
-    doc.text(col.at ? `Date: ${fmtDate(col.at)}` : "Date:", x + 2, cursor + h - 1);
+    doc.text(col.at ? `Date: ${fmtDateTime(col.at)}` : "Date:", x + 2, cursor + h - 1);
     doc.setTextColor(0);
   });
 
