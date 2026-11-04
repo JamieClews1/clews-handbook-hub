@@ -168,7 +168,8 @@ export function openRentalBins(
       const containerType = job.container_type ?? "";
       bins.push({ binKey: `${site.toLowerCase().trim()}|||${containerType.toLowerCase().trim()}`, customer: job.customer ?? "Unknown", site, postcode: job.postcode ?? null, category, containerType,
         netOnSite: overdue.length, daysSinceActivity: (todayDate.getTime() - date.getTime()) / 86400000,
-        lastActivityDate: oldest.date, lastJobNumber: job.job_number });
+        lastActivityDate: oldest.date, lastJobNumber: job.job_number,
+        wasteTypes: openBinWasteTypes(overdue) });
     }
   }
   return bins.sort((a, b) => (b.daysSinceActivity ?? 0) - (a.daysSinceActivity ?? 0));
