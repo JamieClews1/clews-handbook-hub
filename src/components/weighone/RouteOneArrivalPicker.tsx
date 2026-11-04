@@ -12,6 +12,8 @@ export interface ArrivingJob {
   scheduled_date: string;
   customer_name: string;
   site_name: string | null;
+  site_address: string | null;
+  site_address_2: string | null;
   site_postcode: string | null;
   vehicle_reg: string | null;
   container_type: string | null;
@@ -49,7 +51,7 @@ export function RouteOneArrivalPicker({ selected, onPick, onClear, vehicleReg, c
       const to = format(addDays(new Date(), 2), "yyyy-MM-dd");
       let query = supabase
         .from("route_one_jobs")
-        .select("id, job_number, scheduled_date, customer_name, site_name, site_postcode, vehicle_reg, container_type, container_size, waste_type, ewc_code, po_number, charge_per_tonne, status, job_type, destination_name, route_one_drivers(driver_name), route_one_job_weighings(id)")
+        .select("id, job_number, scheduled_date, customer_name, site_name, site_address, site_address_2, site_postcode, vehicle_reg, container_type, container_size, waste_type, ewc_code, po_number, charge_per_tonne, status, job_type, destination_name, route_one_drivers(driver_name), route_one_job_weighings(id)")
         .gte("scheduled_date", from).lte("scheduled_date", to)
         .neq("status", "unassigned")
         .order("scheduled_date", { ascending: false })
