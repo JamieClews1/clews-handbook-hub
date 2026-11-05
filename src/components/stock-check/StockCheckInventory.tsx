@@ -1286,6 +1286,10 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
   const needRepair = rows.filter((r) => r.repairs_required).length;
   const totalValue = rows.reduce((s, r) => s + valueOf(r), 0);
 
+  // Out-of-service profiles (Scrapped / Yard Use) are kept out of the counts
+  // and totals above — show how many are excluded so the numbers are clear.
+  const outOfServiceCount = allRows.filter((r) => isOutOfService(r.condition)).length;
+
   // % of expected fleet (Total Stock: in yard + on site) that has a catalogued
   // profile. Scrapped / Yard Use bins don't count toward active stock.
   const expected = useExpectedStock();
