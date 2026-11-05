@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Truck, Container, TrendingUp, TrendingDown, Calendar, ArrowLeftRight, Pencil } from "lucide-react";
 import { format, addDays, startOfDay } from "date-fns";
 import { applyEwcReclass, type EwcReclassRule } from "@/lib/stock-check-reclass";
+import { stockCheckAvailability } from "@/lib/stock-check-availability";
 
 interface ContainerType {
   id: string;
@@ -51,8 +52,6 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
   const [projections, setProjections] = useState<Record<string, { toCollect: number; toDeliver: number; toExchange: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[]; exchangeJobs: ProjectionJob[] }>>({});
   const [loading, setLoading] = useState(true);
   const [latestCheckDate, setLatestCheckDate] = useState<string | null>(null);
-  const [latestCheckDateOnly, setLatestCheckDateOnly] = useState<string | null>(null);
-  const [yardAdjustments, setYardAdjustments] = useState<Record<string, number>>({});
   const [outlookDays, setOutlookDays] = useState<number>(5);
   const [reclassRules, setReclassRules] = useState<EwcReclassRule[]>([]);
 
@@ -63,12 +62,10 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
   useEffect(() => {
     if (containerTypes.length > 0) {
       loadProjections();
-      loadYardAdjustments();
     } else {
       setProjections({});
-      setYardAdjustments({});
     }
-  }, [containerTypes, excludedSites, outlookDays, latestCheckDateOnly, reclassRules]);
+  }, [containerTypes, excludedSites, outlookDays, reclassRules]);
 
   const loadData = async () => {
     const [{ data: types }, { data: excluded }] = await Promise.all([
@@ -101,7 +98,6 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
     if (latestCheck) {
       setLatestCheckId(latestCheck.id);
       setLatestCheckDate(latestCheck.updated_at || latestCheck.created_at || latestCheck.check_date);
-      setLatestCheckDateOnly(latestCheck.check_date);
 
       const [{ data: items }, { data: entries }] = await Promise.all([
         supabase
@@ -187,74 +183,6 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
     setProjections(projMap);
   };
 
-  const loadYardAdjustments = async () => {
-    if (!latestCheckDateOnly) {
-      setYardAdjustments({});
-      return;
-    }
-    const today = startOfDay(new Date());
-    const todayStr = format(today, "yyyy-MM-dd");
-    // Jobs that occurred AFTER the last tally date and BEFORE today.
-    // Today's jobs are part of the forward outlook (To Collect/To Deliver).
-    if (latestCheckDateOnly >= todayStr) {
-      setYardAdjustments({});
-      return;
-    }
-
-    const { data: jobs } = await supabase
-      .from("data_hub_jobs")
-      .select("container_type, movement_type, site, job_date, ewc, raw")
-      .gt("job_date", latestCheckDateOnly)
-      .lt("job_date", todayStr)
-      .in("source", ["skiptrak"]);
-
-    if (!jobs) {
-      setYardAdjustments({});
-      return;
-    }
-
-    const filtered = jobs.filter((j) => {
-      if (excludedSites.some((s) => j.site?.toLowerCase().includes(s.toLowerCase()))) return false;
-      return true;
-    });
-
-    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const matchKeyword = (haystack: string, kw: string) => {
-      const re = new RegExp(`(^|\\W)${escapeRegex(kw)}(\\W|$)`, "i");
-      return re.test(haystack);
-    };
-
-    const adj: Record<string, number> = {};
-    for (const t of containerTypes) adj[t.id] = 0;
-
-    for (const job of filtered) {
-      if (!job.container_type) continue;
-      let bestType: ContainerType | null = null;
-      let bestLen = 0;
-      for (const type of containerTypes) {
-        for (const kw of type.data_hub_keywords || []) {
-          if (kw.length > bestLen && matchKeyword(job.container_type, kw)) {
-            bestLen = kw.length;
-            bestType = type;
-          }
-        }
-      }
-      if (!bestType) continue;
-      const targetId = applyEwcReclass(bestType.id, (job as any).ewc, reclassRules);
-      const key = targetId in adj ? targetId : bestType.id;
-      const mt = (job.movement_type || "").toLowerCase();
-      if (mt.includes("exchange")) {
-        // net zero
-      } else if (mt.includes("collect")) {
-        adj[key] += 1;
-      } else if (mt.includes("deliver")) {
-        adj[key] -= 1;
-      }
-    }
-
-    setYardAdjustments(adj);
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -278,22 +206,9 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
 
   const getItem = (typeId: string) => latestItems.find((i) => i.container_type_id === typeId);
   const getProjection = (typeId: string) => projections[typeId] || { toCollect: 0, toDeliver: 0, toExchange: 0, collectJobs: [], deliverJobs: [], exchangeJobs: [] };
-  const getAdjustedInYard = (typeId: string) => {
-    const item = getItem(typeId);
-    if (!item) return 0;
-    return item.in_yard + (yardAdjustments[typeId] || 0);
-  };
-
-  const calcBookingsAllowed = (typeId: string) => {
-    const item = getItem(typeId);
-    const proj = getProjection(typeId);
-    if (!item) return 0;
-    // In Yard projected forward from last tally using completed movements between
-    // the tally date and today. Collections don't add availability until they're
-    // back in the yard, and exchanges are self-fulfilling (runner returns with
-    // the swap) so they don't affect availability. Reserve declared runners only.
-    return getAdjustedInYard(typeId) - proj.toDeliver - item.runner;
-  };
+  const getInYard = (typeId: string) => stockCheckAvailability(getItem(typeId), 0).inYard;
+  const calcBookingsAllowed = (typeId: string) =>
+    stockCheckAvailability(getItem(typeId), getProjection(typeId).toDeliver).bookingsAllowed;
 
   return (
     <div className="space-y-6">
@@ -358,7 +273,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
           <StockTable
             types={skips}
             getItem={getItem}
-            getAdjustedInYard={getAdjustedInYard}
+            getInYard={getInYard}
             getProjection={getProjection}
             calcBookingsAllowed={calcBookingsAllowed}
             showProjections={true}
@@ -376,7 +291,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
           <StockTable
             types={roros}
             getItem={getItem}
-            getAdjustedInYard={getAdjustedInYard}
+            getInYard={getInYard}
             getProjection={getProjection}
             calcBookingsAllowed={calcBookingsAllowed}
             showProjections={true}
@@ -390,7 +305,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
 interface StockTableProps {
   types: ContainerType[];
   getItem: (typeId: string) => StockCheckItem | undefined;
-  getAdjustedInYard: (typeId: string) => number;
+  getInYard: (typeId: string) => number;
   getProjection: (typeId: string) => { toCollect: number; toDeliver: number; toExchange: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[]; exchangeJobs: ProjectionJob[] };
   calcBookingsAllowed: (typeId: string) => number;
   showProjections: boolean;
@@ -429,7 +344,7 @@ const JobsPopover = ({ jobs, label, colorClass }: { jobs: ProjectionJob[]; label
   );
 };
 
-const StockTable = ({ types, getItem, getAdjustedInYard, getProjection, calcBookingsAllowed, showProjections }: StockTableProps) => {
+const StockTable = ({ types, getItem, getInYard, getProjection, calcBookingsAllowed, showProjections }: StockTableProps) => {
   return (
     <table className="w-full text-sm">
       <thead>
@@ -472,20 +387,13 @@ const StockTable = ({ types, getItem, getAdjustedInYard, getProjection, calcBook
           const item = getItem(type.id);
           const proj = getProjection(type.id);
           const bookings = calcBookingsAllowed(type.id);
-          const adjustedInYard = getAdjustedInYard(type.id);
-          const baseInYard = item?.in_yard ?? 0;
-          const delta = adjustedInYard - baseInYard;
+          const inYard = getInYard(type.id);
 
           return (
             <tr key={type.id} className="border-b border-border/50 hover:bg-muted/30">
               <td className="py-3 px-2 font-medium text-foreground">{type.name}</td>
               <td className="py-3 px-2 text-center font-bold text-foreground">
-                {adjustedInYard}
-                {delta !== 0 && (
-                  <span className="ml-1 text-xs font-normal text-muted-foreground">
-                    ({baseInYard}{delta > 0 ? "+" : ""}{delta})
-                  </span>
-                )}
+                {inYard}
               </td>
               {showProjections && (
                 <>
