@@ -4778,6 +4778,24 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_condition_stock_rules: {
+        Row: {
+          condition: string
+          counts_in_stock: boolean
+          updated_at: string
+        }
+        Insert: {
+          condition: string
+          counts_in_stock?: boolean
+          updated_at?: string
+        }
+        Update: {
+          condition?: string
+          counts_in_stock?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inventory_expected_snapshot: {
         Row: {
           computed_at: string

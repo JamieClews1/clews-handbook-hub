@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Settings as SettingsIcon } from "lucide-react";
 import { InventorySizesSettings } from "./InventorySizesSettings";
 import { InventoryValueSettings } from "./InventoryValueSettings";
+import { ConditionStockSettings, useExcludedConditions } from "./ConditionStockSettings";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -251,7 +252,6 @@ const conditionStyle: Record<string, string> = {
 };
 
 const isScrapped = (c?: string | null) => c === "Scrapped";
-const isOutOfService = (c?: string | null) => c === "Scrapped" || c === "Yard Use";
 
 
 const emptyForm = {
@@ -1042,6 +1042,8 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
   const [typeFilter, setTypeFilter] = useState<"all" | "skip" | "roro">("all");
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [sizeFilter, setSizeFilter] = useState<string[]>([]);
+  const excludedConditions = useExcludedConditions();
+  const isOutOfService = (c?: string | null) => !!c && excludedConditions.includes(c);
   const { data: tagOptions = [] } = useTagOptions();
   const tagColour = (name: string) =>
     tagStyle[tagOptions.find((t) => t.name === name)?.colour || "amber"] || tagStyle.amber;
@@ -1192,7 +1194,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
           ? isOutOfService(r.condition)
           : !isOutOfService(r.condition),
       ),
-    [allRows, scope],
+    [allRows, scope, excludedConditions],
   );
 
   const { data: conditionValues = [] } = useQuery({
@@ -1281,7 +1283,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
 
   const skips = rows.filter((r) => r.asset_type === "skip").length;
   const roros = rows.filter(
-    (r) => r.asset_type === "roro" && r.condition !== "Scrapped" && r.condition !== "Yard Use",
+    (r) => r.asset_type === "roro" && !isOutOfService(r.condition),
   ).length;
   const needRepair = rows.filter((r) => r.repairs_required).length;
   const totalValue = rows.reduce((s, r) => s + valueOf(r), 0);
@@ -1343,7 +1345,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
       totalExpected,
       pct: totalExpected > 0 ? Math.round((totalCatalogued / totalExpected) * 100) : null,
     };
-  }, [allRows, expected.containerTypes, expected.expectedByType]);
+  }, [allRows, expected.containerTypes, expected.expectedByType, excludedConditions]);
 
   const conditionCounts = useMemo(() => {
     const counts: Record<string, number> = { Good: 0, Fair: 0, Poor: 0, Damaged: 0, Unknown: 0 };
@@ -1757,6 +1759,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
                 <DialogTitle>Inventory Settings</DialogTitle>
               </DialogHeader>
               <div className="space-y-6">
+                <ConditionStockSettings />
                 <InventorySizesSettings />
                 <InventoryValueSettings />
               </div>
@@ -2112,7 +2115,7 @@ export const StockCheckInventory = () => {
         </TabsTrigger>
         <TabsTrigger value="out-of-service" className="gap-2">
           <Boxes className="h-4 w-4" />
-          Yard Use &amp; Scrapped
+          Not in stock
         </TabsTrigger>
         <TabsTrigger value="leaderboard" className="gap-2">
           <Trophy className="h-4 w-4" />
