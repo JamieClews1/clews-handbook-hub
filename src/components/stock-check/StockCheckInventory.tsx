@@ -90,6 +90,7 @@ import { useExpectedStock, bestExpectedTypeFor } from "@/hooks/useExpectedStock"
 import { SizeFilter } from "./SizeFilter";
 import { sizeOptionsFromValues, type SizeFilterOption } from "@/lib/stock-check-size-filter";
 import { totalReportTotals, totalReportType } from "@/lib/stock-check-total-report";
+import { isSuspectProfile } from "@/lib/stock-check-suspect";
 
 interface InventoryRow {
   id: string;
@@ -1036,7 +1037,7 @@ const DEFAULT_COLUMNS: Record<string, boolean> = Object.fromEntries(
 );
 
 /* ─── Inventory list ─── */
-const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-service" }) => {
+const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-service" | "suspect" }) => {
 
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -1186,14 +1187,37 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
   // Yard Use / Scrapped bins live in their own tab — they aren't part of the
 
   // live stock calculation.
+  // Photo file sizes (read-only storage listing) for the Suspect tab.
+  const { data: photoSizes, isLoading: photoSizesLoading } = useQuery({
+    queryKey: ["skip-inventory-photo-sizes"],
+    enabled: scope === "suspect",
+    queryFn: async () => {
+      const sizes = new Map<string, number>();
+      for (let offset = 0; ; offset += 1000) {
+        const { data, error } = await supabase.storage
+          .from("contamination-photos")
+          .list("skip-tracker", { limit: 1000, offset });
+        if (error) throw error;
+        for (const f of data || []) {
+          const size = (f.metadata as any)?.size;
+          if (typeof size === "number") sizes.set(`skip-tracker/${f.name}`, size);
+        }
+        if (!data || data.length < 1000) break;
+      }
+      return sizes;
+    },
+  });
+
   const rows = useMemo(
     () =>
       allRows.filter((r) =>
         scope === "out-of-service"
           ? isOutOfService(r.condition)
-          : !isOutOfService(r.condition),
+          : scope === "suspect"
+            ? !isOutOfService(r.condition) && !!photoSizes && isSuspectProfile(r, photoSizes)
+            : !isOutOfService(r.condition),
       ),
-    [allRows, scope],
+    [allRows, scope, photoSizes],
   );
 
   const { data: conditionValues = [] } = useQuery({
@@ -2211,6 +2235,10 @@ export const StockCheckInventory = () => {
           <Boxes className="h-4 w-4" />
           Yard Use & Scrapped
         </TabsTrigger>
+        <TabsTrigger value="suspect" className="gap-2">
+          <Boxes className="h-4 w-4" />
+          Suspect
+        </TabsTrigger>
         <TabsTrigger value="leaderboard" className="gap-2">
           <Trophy className="h-4 w-4" />
           Leaderboard
@@ -2221,6 +2249,9 @@ export const StockCheckInventory = () => {
       </TabsContent>
       <TabsContent value="out-of-service">
         <InventoryList scope="out-of-service" />
+      </TabsContent>
+      <TabsContent value="suspect">
+        <InventoryList scope="suspect" />
       </TabsContent>
       <TabsContent value="leaderboard">
         <SkipTrackerLeaderboard />
