@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -251,7 +251,7 @@ const RebateValuesPage = () => {
       <main className="container mx-auto px-4 py-6">
         <PageHeading title="Rebates" />
         <div className="max-w-screen-2xl mx-auto space-y-6">
-          <Tabs defaultValue="monthly-generation" className="w-full">
+          <Tabs value={rebateTab} onValueChange={(v) => { const n = new URLSearchParams(rebateParams); n.set("tab", v); setRebateParams(n, { replace: true }); }} className="w-full">
             <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 mb-6 h-auto">
               <TabsTrigger value="sent-rebates" className="flex items-center gap-2">
                 <MailCheck className="h-4 w-4" />
