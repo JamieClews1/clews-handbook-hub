@@ -1,1 +1,2 @@
 Live dashboard stock uses stock-check-availability to replay completed movements over the latest tally; refresh both outstanding jobs and Yard together and reject incomplete paged reads to avoid misleading stock totals.
+Size filtering in Stock Check is presentation-only: it narrows which container types are listed and must never change the tally, movement replay or Bookings Allowed maths.
