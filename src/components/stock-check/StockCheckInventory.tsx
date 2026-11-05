@@ -1468,6 +1468,11 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
           </CardHeader>
           <CardContent>
             <span className="text-3xl font-bold">{rows.length}</span>
+            {scope === "active" && outOfServiceCount > 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {outOfServiceCount} Yard Use & Scrapped excluded
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
