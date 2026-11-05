@@ -34,6 +34,10 @@ test('Native size labels match imported yard names', () => {
   assert.equal(stockContainerKey('14 / 16 yd'), stockContainerKey('14/16yd'));
 });
 
-test('Bookings reserve deliveries and runners from the tally only', () => {
+test('Bookings reserve deliveries and runners, and count To Collect as returning', () => {
   assert.equal(stockCheckAvailability({ in_yard: 4, runner: 2 }, 1).bookingsAllowed, 1);
+  // 12yd live example: In Yard 9, To Collect 1, To Deliver 6, Runner 2 => 2 bookings allowed.
+  assert.equal(stockCheckAvailability({ in_yard: 9, runner: 2 }, 6, 0, 1).bookingsAllowed, 2);
+  // A completed collection moves the skip into Yard, so it is not counted twice.
+  assert.equal(stockCheckAvailability({ in_yard: 9, runner: 2 }, 6, stockMovementDelta('collection'), 1).bookingsAllowed, 3);
 });
