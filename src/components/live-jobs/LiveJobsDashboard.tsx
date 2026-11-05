@@ -1041,7 +1041,9 @@ function SiteTable({ sites, label, ownBinKeys }: { sites: Array<{ customer: stri
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
                     {s.containerTypes.slice(0, 3).map(ct => (
-                      <Badge key={ct} variant="outline" className="text-xs">{ct}</Badge>
+                      <Badge key={ct} variant="outline" className={`text-xs ${ownBinKeys.has(`${s.site.toLowerCase().trim()}|||${ct.toLowerCase().trim()}`) ? "text-info" : ""}`}>
+                        {ct}{ownBinKeys.has(`${s.site.toLowerCase().trim()}|||${ct.toLowerCase().trim()}`) ? " · Own" : ""}
+                      </Badge>
                     ))}
                     {s.containerTypes.length > 3 && (
                       <Badge variant="outline" className="text-xs">+{s.containerTypes.length - 3}</Badge>
