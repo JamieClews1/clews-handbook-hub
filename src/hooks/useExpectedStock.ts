@@ -4,6 +4,10 @@ import { format, startOfMonth, subMonths } from "date-fns";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 import { categoriseContainer, containerTypeCap } from "@/lib/overRental";
 import { applyEwcReclass, type EwcReclassRule } from "@/lib/stock-check-reclass";
+import { movementAfterTally, stockMovementDelta, uniqueStockMovements, type StockMovement } from "@/lib/stock-check-availability";
+import { londonCalendarKey } from "@/lib/ui-calendar";
+import { fetchAllRows } from "@/lib/fetch-all";
+import { containerSize } from "@/lib/container-taxonomy";
 
 export interface ExpectedContainerType {
   id: string;
@@ -19,6 +23,10 @@ interface StockCheckItem {
 }
 
 interface JobRow {
+  id: string;
+  job_number: string;
+  raw: unknown;
+  updated_at: string;
   site: string | null;
   container_type: string | null;
   movement_type: string | null;
@@ -95,6 +103,7 @@ const positionOnSite = (p: Pos): number => {
 
 export interface ExpectedStock {
   loading: boolean;
+  error: string | null;
   containerTypes: ExpectedContainerType[];
   /** In-yard per type, adjusted by completed movements since the last tally. */
   inYardByType: Record<string, number>;
@@ -120,10 +129,11 @@ export const useExpectedStock = (): ExpectedStock => {
   const [containerTypes, setContainerTypes] = useState<ExpectedContainerType[]>([]);
   const [latestItems, setLatestItems] = useState<StockCheckItem[]>([]);
   const [latestCheckDate, setLatestCheckDate] = useState<string | null>(null);
-  const [latestCheckDateOnly, setLatestCheckDateOnly] = useState<string | null>(null);
   const [excludedSites, setExcludedSites] = useState<string[]>([]);
   const [jobs, setJobs] = useState<JobRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [nativeMovements, setNativeMovements] = useState<StockMovement[]>([]);
   const [reclassRules, setReclassRules] = useState<EwcReclassRule[]>([]);
   // Bins manually marked collected in Rentals — excluded from Live Jobs counts,
   // so they must be excluded here too (same site|||container_type key).
@@ -132,6 +142,7 @@ export const useExpectedStock = (): ExpectedStock => {
 
   useEffect(() => {
     const load = async () => {
+      try {
       const [{ data: types }, { data: excluded }] = await Promise.all([
         supabase
           .from("stock_check_container_types")
@@ -171,7 +182,6 @@ export const useExpectedStock = (): ExpectedStock => {
 
       if (latestCheck) {
         setLatestCheckDate(latestCheck.updated_at || latestCheck.created_at || latestCheck.check_date);
-        setLatestCheckDateOnly(latestCheck.check_date);
         const { data: items } = await supabase
           .from("stock_check_items")
           .select("container_type_id, in_yard")
@@ -188,18 +198,30 @@ export const useExpectedStock = (): ExpectedStock => {
       while (hasMore) {
         const { data, error } = await supabase
           .from("data_hub_jobs")
-          .select("site,container_type,movement_type,job_date,ewc,customer")
+          .select("id,job_number,raw,updated_at,site,container_type,movement_type,job_date,ewc,customer")
           .eq("source", "skiptrak")
           .gte("job_date", since)
           .in("movement_type", ["Deliver", "Exchange", "Collect", "Tip/Return"])
           .order("job_date", { ascending: false })
           .range(from, from + pageSize - 1);
-        if (error) { console.error(error); break; }
+        if (error) throw error;
         all.push(...((data ?? []) as JobRow[]));
         hasMore = (data?.length ?? 0) === pageSize;
         from += pageSize;
       }
+      if (latestCheck) {
+        const baseline = latestCheck.updated_at || latestCheck.created_at || latestCheck.check_date;
+        const native = await fetchAllRows<{ id: string; job_number: string; container_type: string | null; container_size: string | null; job_type: string; site_name: string | null; scheduled_date: string; customer_name: string | null; ewc_code: string | null; status: string; completed_at: string | null; updated_at: string; own_container: boolean | null }>(
+          "route_one_jobs", "id, job_number, container_type, container_size, job_type, site_name, scheduled_date, customer_name, ewc_code, status, completed_at, updated_at, own_container", "id",
+          q => q.eq("is_test", false).eq("status", "completed").gt("completed_at", baseline),
+        );
+        setNativeMovements(native.filter(j => !j.own_container).map((j): StockMovement => ({ id: j.id, job_number: j.job_number, source: "routeone", container_type: [containerSize(j.container_size ?? "")?.label ?? j.container_size, j.container_type].filter(Boolean).join(" "), movement_type: j.job_type, site: j.site_name, customer: j.customer_name, job_date: j.scheduled_date, ewc: j.ewc_code, completed: j.status === "completed", completedAt: j.completed_at, updatedAt: j.updated_at })));
+      }
       setJobs(all);
+      } catch (cause) {
+        console.error(cause);
+        setError("Stock estimates could not be loaded in full. Refresh to try again.");
+      }
       setLoading(false);
     };
     load();
@@ -211,25 +233,24 @@ export const useExpectedStock = (): ExpectedStock => {
       const item = latestItems.find((i) => i.container_type_id === t.id);
       map[t.id] = item?.in_yard ?? 0;
     }
-    if (!latestCheckDateOnly) return map;
-    const todayStr = format(new Date(), "yyyy-MM-dd");
-    if (latestCheckDateOnly >= todayStr) return map;
-
-    for (const job of jobs) {
+    if (!latestCheckDate) return map;
+    const baselineDay = londonCalendarKey(new Date(latestCheckDate));
+    const movements = uniqueStockMovements([
+      ...jobs.map((j): StockMovement => ({ ...j, source: "skiptrak", completed: String((j.raw as { Status?: string } | null)?.Status ?? "").trim().toUpperCase() === "Y", completedAt: null, updatedAt: j.updated_at })),
+      ...nativeMovements,
+    ]);
+    for (const job of movements) {
       if (!job.container_type || !job.job_date) continue;
-      if (job.job_date <= latestCheckDateOnly || job.job_date >= todayStr) continue;
+      if (!movementAfterTally(job, latestCheckDate, baselineDay)) continue;
       if (excludedSites.some((s) => job.site?.toLowerCase().includes(s.toLowerCase()))) continue;
       const type = bestExpectedTypeFor(job.container_type, containerTypes);
       if (!type) continue;
       const targetId = applyEwcReclass(type.id, job.ewc, reclassRules);
       const key = targetId in map ? targetId : type.id;
-      const mt = (job.movement_type || "").toLowerCase();
-      if (mt.includes("exchange") || mt.includes("tip")) continue; // net zero
-      if (mt.includes("collect")) map[key] += 1;
-      else if (mt.includes("deliver")) map[key] -= 1;
+      map[key] += stockMovementDelta(job.movement_type);
     }
     return map;
-  }, [containerTypes, latestItems, latestCheckDateOnly, jobs, excludedSites, reclassRules]);
+  }, [containerTypes, latestItems, latestCheckDate, jobs, nativeMovements, excludedSites, reclassRules]);
 
   const { onSiteByType, ownOnSiteByType, onSiteOther, siteDetail } = useMemo(() => {
     const positions: Record<string, Pos> = {};
@@ -348,26 +369,14 @@ export const useExpectedStock = (): ExpectedStock => {
   // show "% of expected bins catalogued". Writes at most once per browser
   // session, and only when the figures changed.
   useEffect(() => {
-    if (loading || settingsLoading || snapshotWritten) return;
+    if (loading || error || settingsLoading || snapshotWritten) return;
     const total = expectedByCategory.skip + expectedByCategory.roro;
     if (total <= 0) return;
     snapshotWritten = true;
     (async () => {
-      // The yard tally is a physical count, so Scrapped / Yard Use bins sitting
-      // in the yard inflate the expected figures. Subtract any catalogued
-      // out-of-service bins so the share page compares like-for-like.
-      const { data: outRows } = await supabase
-        .from("skip_inventory")
-        .select("asset_type")
-        .in("condition", ["Scrapped", "Yard Use"]);
-      let outSkip = 0;
-      let outRoro = 0;
-      for (const r of outRows || []) {
-        if (r.asset_type === "roro") outRoro += 1;
-        else outSkip += 1;
-      }
-      const adjSkip = Math.max(0, expectedByCategory.skip - outSkip);
-      const adjRoro = Math.max(0, expectedByCategory.roro - outRoro);
+      // Working tallies already exclude out-of-service bins.
+      const adjSkip = Math.max(0, expectedByCategory.skip);
+      const adjRoro = Math.max(0, expectedByCategory.roro);
       const adjTotal = adjSkip + adjRoro;
       const { data: latest } = await supabase
         .from("inventory_expected_snapshot")
@@ -388,10 +397,11 @@ export const useExpectedStock = (): ExpectedStock => {
         expected_total: adjTotal,
       });
     })();
-  }, [loading, settingsLoading, expectedByCategory]);
+  }, [loading, error, settingsLoading, expectedByCategory]);
 
   return {
     loading: loading || settingsLoading,
+    error,
     containerTypes,
     inYardByType,
     onSiteByType,

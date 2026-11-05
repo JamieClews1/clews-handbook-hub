@@ -1604,7 +1604,8 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
       </Card>
       )}
 
-      {scope === "active" && !expected.loading && accounted.pct !== null && (
+      {scope === "active" && expected.error && <p role="alert" className="text-destructive">{expected.error}</p>}
+      {scope === "active" && !expected.loading && !expected.error && accounted.pct !== null && (
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Total Report</CardTitle>
