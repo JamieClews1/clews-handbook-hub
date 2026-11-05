@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { totalReportTotals, totalReportType } from './stock-check-total-report';
 
 describe('totalReportType', () => {
-  test('scrapped and yard use bins come off the yard first', () => {
+  test('working yard tally is not reduced by excluded inventory profiles', () => {
     const t = totalReportType({
       id: '12yd',
       name: '12 Yard',
@@ -14,13 +14,13 @@ describe('totalReportType', () => {
       outOfService: 2,
       catalogued: 10,
     });
-    assert.equal(t.inYard, 7);
+    assert.equal(t.inYard, 9);
     assert.equal(t.onSiteClews, 6);
-    assert.equal(t.fleet, 13);
-    assert.equal(t.required, 3);
+    assert.equal(t.fleet, 15);
+    assert.equal(t.required, 5);
   });
 
-  test('out-of-service bins beyond the yard count come off customer sites', () => {
+  test('excluded profiles do not imply removals from customer sites', () => {
     const t = totalReportType({
       id: '6yd',
       name: '6 Yard',
@@ -31,11 +31,10 @@ describe('totalReportType', () => {
       outOfService: 3,
       catalogued: 2,
     });
-    assert.equal(t.inYard, 0);
-    assert.equal(t.onSiteClews, 3);
-    assert.equal(t.fleet, 3);
-    // 3 working bins, 2 catalogued profiles → 1 still required
-    assert.equal(t.required, 1);
+    assert.equal(t.inYard, 1);
+    assert.equal(t.onSiteClews, 5);
+    assert.equal(t.fleet, 6);
+    assert.equal(t.required, 4);
   });
 
   test('customer-owned bins are never counted as Clews stock', () => {
@@ -70,18 +69,20 @@ describe('totalReportType', () => {
     assert.equal(t.required, 0);
   });
 
-  test('a bin is removed once, never from both yard and site', () => {
+  test('35/40yd working tally remains four with fourteen excluded profiles', () => {
     const t = totalReportType({
-      id: '12yd',
-      name: '12 Yard',
-      category: 'skip',
-      inYard: 5,
-      onSite: 5,
+      id: '35/40yd',
+      name: '35/40yd',
+      category: 'roro',
+      inYard: 4,
+      onSite: 39,
       ownOnSite: 0,
-      outOfService: 1,
-      catalogued: 9,
+      outOfService: 14,
+      catalogued: 77,
     });
-    assert.equal(t.inYard + t.onSiteClews, 9);
+    assert.equal(t.inYard, 4);
+    assert.equal(t.fleet, 43);
+    assert.equal(t.required, 0);
   });
 
   test('negative or missing inputs fall back to zero', () => {
@@ -109,8 +110,8 @@ describe('totalReportTotals', () => {
   ];
 
   test('sums only the requested category', () => {
-    // skip: yard 7-2 scrap = 5, out 6, fleet 11, catalogued 10 → 1 required
-    assert.deepStrictEqual(totalReportTotals(rows, 'skip'), { out: 6, yard: 5, required: 1 });
+    // Working tally already excludes the two out-of-service profiles.
+    assert.deepStrictEqual(totalReportTotals(rows, 'skip'), { out: 6, yard: 7, required: 3 });
     // roro: yard 2, out 3-1 own = 2, fleet 4, catalogued 1 → 3 required
     assert.deepStrictEqual(totalReportTotals(rows, 'roro'), { out: 2, yard: 2, required: 3 });
   });
