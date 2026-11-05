@@ -364,6 +364,8 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         const collectionClearedIt = s.lastCollectionDate && lastKeepDate && s.lastCollectionDate >= lastKeepDate;
         // Artics (waste trucks) don't stay on-site, so count sites visited instead
         let netOnSite: number;
+        let ownOnSite = 0;
+        let clewsOnSite = 0;
         if (s.category === "artic") {
           netOnSite = totalMovements; // For artics, this represents visit count
         } else {
@@ -376,6 +378,15 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
             if (collectedBinKeys.has(key)) return sum;
             return sum + typeOnSite(ctb.positions);
           }, 0);
+          // Split the on-site count between Clews-supplied containers and the
+          // customer's own ones. "Own" comes only from the markings staff make in
+          // Rentals (Own Skip) — nothing is inferred from the raw data.
+          ownOnSite = Object.entries(s.containerTypeBreakdown).reduce((sum, [ct, ctb]) => {
+            const key = `${s.site.toLowerCase().trim()}|||${ct.toLowerCase().trim()}`;
+            if (!ownBinKeys.has(key)) return sum;
+            return sum + typeOnSite(ctb.positions);
+          }, 0);
+          clewsOnSite = Math.max(0, netOnSite - ownOnSite);
         }
         const daysSinceLastKeep = lastKeepDate ? differenceInDays(new Date(), new Date(lastKeepDate)) : null;
         // Genuine uncollected delivery balance — ignores phantom containers
@@ -393,7 +404,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         // single tip/return or exchange with no delivery on record is NOT counted
         // as an on-site container, so it no longer falsely flags as over rental.
         const isOverRental = s.category !== "artic" && daysSinceLastKeep !== null && daysSinceLastKeep > settings.rental_free_days && netDeliveredOnSite > 0 && !collectionClearedIt;
-        return { ...s, customer: s.latestCustomer, netOnSite, daysSinceActivity: daysSinceLastKeep, lastActivityDate: lastKeepDate, isOverRental, containerTypes: Array.from(s.containerTypes), wasteTypes: Array.from(s.wasteTypes) };
+        return { ...s, customer: s.latestCustomer, netOnSite, ownOnSite, clewsOnSite, daysSinceActivity: daysSinceLastKeep, lastActivityDate: lastKeepDate, isOverRental, containerTypes: Array.from(s.containerTypes), wasteTypes: Array.from(s.wasteTypes) };
       });
 
     // Sites with net containers on-site
