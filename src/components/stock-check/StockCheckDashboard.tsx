@@ -198,8 +198,13 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
     );
   }
 
-  const skips = containerTypes.filter((t) => t.category === "skip");
-  const roros = containerTypes.filter((t) => t.category === "roro");
+  const skips = filterTypesBySize(containerTypes.filter((t) => t.category === "skip"), sizeFilter);
+  const roros = filterTypesBySize(containerTypes.filter((t) => t.category === "roro"), sizeFilter);
+  const sizeOptions: SizeFilterOption[] = containerTypes.map((t) => ({
+    id: t.id,
+    name: t.name,
+    group: t.category === "roro" ? "RoRos" : "Skips",
+  }));
 
   const getItem = (typeId: string) => latestItems.find((i) => i.container_type_id === typeId);
   const getProjection = (typeId: string) => projections[typeId] || { toCollect: 0, toDeliver: 0, toExchange: 0, collectJobs: [], deliverJobs: [], exchangeJobs: [] };
@@ -238,6 +243,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
         </div>
         <div className="flex items-center gap-4 flex-wrap">
           {headerAction}
+          <SizeFilter options={sizeOptions} selected={sizeFilter} onChange={setSizeFilter} />
           <div className="flex items-center gap-1.5">
             <Label className="text-sm text-muted-foreground">Outlook:</Label>
             <div className="inline-flex rounded-md border border-border overflow-hidden">
