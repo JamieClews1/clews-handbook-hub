@@ -38,7 +38,7 @@ export function uniqueStockMovements(jobs: StockMovement[]) {
   return jobs.filter(j => j.source !== 'skiptrak' || !nativeNumbers.has(j.job_number.trim().toUpperCase()));
 }
 
-export function stockCheckAvailability(tally: { in_yard: number; runner: number } | undefined, toDeliver: number, completedDelta = 0) {
+export function stockCheckAvailability(tally: { in_yard: number; runner: number } | undefined, toDeliver: number, completedDelta = 0, toCollect = 0) {
   const inYard = (tally?.in_yard ?? 0) + completedDelta;
-  return { inYard, bookingsAllowed: tally ? inYard - toDeliver - tally.runner : 0 };
+  return { inYard, bookingsAllowed: tally ? inYard + toCollect - toDeliver - tally.runner : 0 };
 }

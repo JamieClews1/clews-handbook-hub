@@ -201,8 +201,11 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
   const getItem = (typeId: string) => latestItems.find((i) => i.container_type_id === typeId);
   const getProjection = (typeId: string) => projections[typeId] || { toCollect: 0, toDeliver: 0, toExchange: 0, collectJobs: [], deliverJobs: [], exchangeJobs: [] };
   const getInYard = (typeId: string) => stockCheckAvailability(getItem(typeId), 0, yardDeltas[typeId] ?? 0).inYard;
-  const calcBookingsAllowed = (typeId: string) =>
-    stockCheckAvailability(getItem(typeId), getProjection(typeId).toDeliver, yardDeltas[typeId] ?? 0).bookingsAllowed;
+  const calcBookingsAllowed = (typeId: string) => {
+    const item = getItem(typeId);
+    const proj = getProjection(typeId);
+    return stockCheckAvailability(item, proj.toDeliver, yardDeltas[typeId] ?? 0, proj.toCollect).bookingsAllowed;
+  };
 
   return (
     <div className="space-y-6">
