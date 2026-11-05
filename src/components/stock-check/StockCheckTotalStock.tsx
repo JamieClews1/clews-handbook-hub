@@ -169,8 +169,8 @@ export const StockCheckTotalStock = () => {
       </div>
 
       {/* By type breakdown */}
-      <TotalStockTable title="Skips" icon={<Truck className="h-5 w-5 text-primary" />} types={skips} inYard={inYardByType} onSite={onSiteByType} otherOnSite={onSiteOther.skip} />
-      <TotalStockTable title="RoRos" icon={<Container className="h-5 w-5 text-primary" />} types={roros} inYard={inYardByType} onSite={onSiteByType} otherOnSite={onSiteOther.roro} />
+      <TotalStockTable title="Skips" icon={<Truck className="h-5 w-5 text-primary" />} types={skips} inYard={inYardByType} onSite={onSiteByType} otherOnSite={filtered ? 0 : onSiteOther.skip} />
+      <TotalStockTable title="RoRos" icon={<Container className="h-5 w-5 text-primary" />} types={roros} inYard={inYardByType} onSite={onSiteByType} otherOnSite={filtered ? 0 : onSiteOther.roro} />
     </div>
   );
 };
@@ -223,7 +223,7 @@ const TotalStockTable = ({
                 </tr>
               );
             })}
-            {otherOnSite > 0 && !sizeFilterActive && (
+            {otherOnSite > 0 && (
               <tr className="border-b border-border/50">
                 <td className="py-2 px-3 font-medium text-muted-foreground italic">Other / unclassified</td>
                 <td className="py-2 px-3 text-right">0</td>
