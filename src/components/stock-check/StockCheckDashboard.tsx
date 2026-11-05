@@ -1,15 +1,17 @@
-import { useState, useEffect, useMemo, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Truck, Container, TrendingUp, TrendingDown, Calendar, ArrowLeftRight, Pencil } from "lucide-react";
 import { format, addDays, startOfDay } from "date-fns";
 import { applyEwcReclass, type EwcReclassRule } from "@/lib/stock-check-reclass";
-import { stockCheckAvailability } from "@/lib/stock-check-availability";
+import { stockCheckAvailability, stockMovementDelta, movementAfterTally, uniqueStockMovements, stockContainerKey, type StockMovement } from "@/lib/stock-check-availability";
+import { fetchAllRows } from "@/lib/fetch-all";
+import { londonCalendarKey } from "@/lib/ui-calendar";
+import { containerSize } from "@/lib/container-taxonomy";
 
 interface ContainerType {
   id: string;
@@ -34,20 +36,14 @@ interface ProjectionJob {
   customer: string | null;
 }
 
-interface DailyEntry {
-  container_type_id: string;
-  entry_date: string;
-  projected_in: number;
-  projected_out: number;
-  actual_in: number | null;
-  actual_out: number | null;
-}
-
 export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?: (checkId: string) => void; headerAction?: ReactNode } = {}) => {
   const [latestCheckId, setLatestCheckId] = useState<string | null>(null);
   const [containerTypes, setContainerTypes] = useState<ContainerType[]>([]);
   const [latestItems, setLatestItems] = useState<StockCheckItem[]>([]);
-  const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
+  const [yardDeltas, setYardDeltas] = useState<Record<string, number>>({});
+  const [movementError, setMovementError] = useState<string | null>(null);
+  const refreshBusy = useRef(false);
+  const requestVersion = useRef(0);
   const [excludedSites, setExcludedSites] = useState<string[]>([]);
   const [projections, setProjections] = useState<Record<string, { toCollect: number; toDeliver: number; toExchange: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[]; exchangeJobs: ProjectionJob[] }>>({});
   const [loading, setLoading] = useState(true);
@@ -65,7 +61,19 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
     } else {
       setProjections({});
     }
-  }, [containerTypes, excludedSites, outlookDays, reclassRules]);
+  }, [containerTypes, latestItems, excludedSites, outlookDays, reclassRules, latestCheckDate]);
+
+  useEffect(() => {
+    const refresh = () => {
+      if (!refreshBusy.current && document.visibilityState === "visible") {
+        refreshBusy.current = true;
+        void loadData().finally(() => { refreshBusy.current = false; });
+      }
+    };
+    const interval = window.setInterval(refresh, 15000);
+    window.addEventListener("focus", refresh);
+    return () => { window.clearInterval(interval); window.removeEventListener("focus", refresh); };
+  }, []);
 
   const loadData = async () => {
     const [{ data: types }, { data: excluded }] = await Promise.all([
@@ -99,88 +107,74 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
       setLatestCheckId(latestCheck.id);
       setLatestCheckDate(latestCheck.updated_at || latestCheck.created_at || latestCheck.check_date);
 
-      const [{ data: items }, { data: entries }] = await Promise.all([
-        supabase
-          .from("stock_check_items")
-          .select("container_type_id, in_yard, runner, notes")
-          .eq("stock_check_id", latestCheck.id),
-        supabase
-          .from("stock_check_daily_entries")
-          .select("*")
-          .eq("stock_check_id", latestCheck.id),
-      ]);
-
+      const { data: items } = await supabase
+        .from("stock_check_items")
+        .select("container_type_id, in_yard, runner, notes")
+        .eq("stock_check_id", latestCheck.id);
       if (items) setLatestItems(items);
-      if (entries) setDailyEntries(entries as DailyEntry[]);
+
     }
 
     setLoading(false);
   };
 
   const loadProjections = async () => {
-    const today = startOfDay(new Date());
-    const endDate = addDays(today, outlookDays - 1);
-
-    // Query data_hub_jobs for upcoming movements (include raw to filter completed jobs)
-    const { data: jobs } = await supabase
-      .from("data_hub_jobs")
-      .select("container_type, movement_type, site, job_date, customer, ewc, raw")
-      .gte("job_date", format(today, "yyyy-MM-dd"))
-      .lte("job_date", format(endDate, "yyyy-MM-dd"))
-      .in("source", ["skiptrak"]);
-
-    if (!jobs) return;
-
-    const filteredJobs = jobs.filter((j) => {
-      if (excludedSites.some((s) => j.site?.toLowerCase().includes(s.toLowerCase()))) return false;
-      // Exclude completed jobs (Skiptrak Status 'Y' = completed) — keep only outstanding work
-      const status = (j.raw as any)?.Status;
-      if (status === "Y") return false;
-      return true;
-    });
-
-    const projMap: Record<string, { toCollect: number; toDeliver: number; toExchange: number; collectJobs: ProjectionJob[]; deliverJobs: ProjectionJob[]; exchangeJobs: ProjectionJob[] }> = {};
-    for (const t of containerTypes) {
-      projMap[t.id] = { toCollect: 0, toDeliver: 0, toExchange: 0, collectJobs: [], deliverJobs: [], exchangeJobs: [] };
-    }
-
-    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const matchKeyword = (haystack: string, kw: string) => {
-      const re = new RegExp(`(^|\\W)${escapeRegex(kw)}(\\W|$)`, "i");
-      return re.test(haystack);
-    };
-
-    // For each job, pick the type whose longest-matching keyword wins
-    // (so "12 Yard Enc" beats "12 Yard" for an Enclosed job).
-    for (const job of filteredJobs) {
-      if (!job.container_type) continue;
-      let bestType: ContainerType | null = null;
-      let bestLen = 0;
-      for (const type of containerTypes) {
-        for (const kw of type.data_hub_keywords || []) {
-          if (kw.length > bestLen && matchKeyword(job.container_type, kw)) {
-            bestLen = kw.length;
-            bestType = type;
+    if (!latestCheckDate) return;
+    const version = ++requestVersion.current;
+    const todayKey = londonCalendarKey();
+    const endKey = format(addDays(startOfDay(new Date()), outlookDays - 1), "yyyy-MM-dd");
+    const baselineDay = londonCalendarKey(new Date(latestCheckDate));
+    try {
+      const [imports, native] = await Promise.all([
+        fetchAllRows<{ id: string; job_number: string; container_type: string | null; movement_type: string | null; site: string | null; job_date: string | null; customer: string | null; ewc: string | null; raw: unknown; updated_at: string }>(
+          "data_hub_jobs", "id, job_number, container_type, movement_type, site, job_date, customer, ewc, raw, updated_at", "id",
+          q => q.eq("source", "skiptrak").gte("job_date", baselineDay < todayKey ? baselineDay : todayKey).lte("job_date", endKey)),
+        fetchAllRows<{ id: string; job_number: string; container_type: string | null; container_size: string | null; job_type: string; site_name: string | null; scheduled_date: string; customer_name: string | null; ewc_code: string | null; status: string; completed_at: string | null; updated_at: string; own_container: boolean | null }>(
+          "route_one_jobs", "id, job_number, container_type, container_size, job_type, site_name, scheduled_date, customer_name, ewc_code, status, completed_at, updated_at, own_container", "id",
+          q => q.eq("is_test", false).or(`and(scheduled_date.gte.${baselineDay < todayKey ? baselineDay : todayKey},scheduled_date.lte.${endKey}),completed_at.gt.${latestCheckDate}`)),
+      ]);
+      if (version !== requestVersion.current) return;
+      const jobs = uniqueStockMovements([
+        ...imports.map((j): StockMovement => ({ ...j, source: "skiptrak", completed: String((j.raw as { Status?: string } | null)?.Status ?? "").trim().toUpperCase() === "Y", completedAt: null, updatedAt: j.updated_at })),
+        ...native.filter(j => !j.own_container).map((j): StockMovement => ({ id: j.id, job_number: j.job_number, source: "routeone", container_type: [containerSize(j.container_size ?? "")?.label ?? j.container_size, j.container_type].filter(Boolean).join(" "), movement_type: j.job_type, site: j.site_name, customer: j.customer_name, job_date: j.scheduled_date, ewc: j.ewc_code, completed: j.status === "completed", completedAt: j.completed_at, updatedAt: j.updated_at })),
+      ]);
+      const projMap: typeof projections = {};
+      const deltas: Record<string, number> = {};
+      for (const t of containerTypes) {
+        projMap[t.id] = { toCollect: 0, toDeliver: 0, toExchange: 0, collectJobs: [], deliverJobs: [], exchangeJobs: [] };
+        deltas[t.id] = 0;
+      }
+      const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      for (const job of jobs) {
+        if (!job.container_type || excludedSites.some(s => job.site?.toLowerCase().includes(s.toLowerCase()))) continue;
+        let bestType: ContainerType | undefined;
+        let bestLen = 0;
+        for (const type of containerTypes) {
+          for (const kw of [...(type.data_hub_keywords || []), type.name]) {
+            const key = stockContainerKey(kw);
+            if (key.length > bestLen && new RegExp(`(^|\\W)${escapeRegex(key)}(\\W|$)`, "i").test(stockContainerKey(job.container_type))) {
+              bestType = type;
+              bestLen = key.length;
+            }
           }
         }
+        if (!bestType) continue;
+        const target = applyEwcReclass(bestType.id, job.ewc, reclassRules);
+        const key = projMap[target] ? target : bestType.id;
+        if (movementAfterTally(job, latestCheckDate, baselineDay)) deltas[key] += stockMovementDelta(job.movement_type);
+        if (job.completed || !job.job_date || job.job_date < todayKey || job.job_date > endKey) continue;
+        const bucket = projMap[key];
+        const movement = (job.movement_type ?? "").toLowerCase();
+        if (movement.includes("exchange")) { bucket.toExchange++; bucket.exchangeJobs.push(job); }
+        else if (movement.includes("collect")) { bucket.toCollect++; bucket.collectJobs.push(job); }
+        else if (movement.includes("deliver")) { bucket.toDeliver++; bucket.deliverJobs.push(job); }
       }
-      if (!bestType) continue;
-      const targetId = applyEwcReclass(bestType.id, (job as any).ewc, reclassRules);
-      const bucket = projMap[targetId] || projMap[bestType.id];
-      const mt = (job.movement_type || "").toLowerCase();
-      if (mt.includes("exchange")) {
-        bucket.toExchange++;
-        bucket.exchangeJobs.push(job);
-      } else if (mt.includes("collect")) {
-        bucket.toCollect++;
-        bucket.collectJobs.push(job);
-      } else if (mt.includes("deliver")) {
-        bucket.toDeliver++;
-        bucket.deliverJobs.push(job);
-      }
+      setProjections(projMap);
+      setYardDeltas(deltas);
+      setMovementError(null);
+    } catch {
+      if (version === requestVersion.current) setMovementError("Live stock could not be refreshed.");
     }
-
-    setProjections(projMap);
   };
 
   if (loading) {
@@ -206,9 +200,9 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
 
   const getItem = (typeId: string) => latestItems.find((i) => i.container_type_id === typeId);
   const getProjection = (typeId: string) => projections[typeId] || { toCollect: 0, toDeliver: 0, toExchange: 0, collectJobs: [], deliverJobs: [], exchangeJobs: [] };
-  const getInYard = (typeId: string) => stockCheckAvailability(getItem(typeId), 0).inYard;
+  const getInYard = (typeId: string) => stockCheckAvailability(getItem(typeId), 0, yardDeltas[typeId] ?? 0).inYard;
   const calcBookingsAllowed = (typeId: string) =>
-    stockCheckAvailability(getItem(typeId), getProjection(typeId).toDeliver).bookingsAllowed;
+    stockCheckAvailability(getItem(typeId), getProjection(typeId).toDeliver, yardDeltas[typeId] ?? 0).bookingsAllowed;
 
   return (
     <div className="space-y-6">
@@ -263,8 +257,14 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
         </div>
       </div>
 
+      {movementError && (
+        <div role="alert" className="flex items-center gap-3 text-destructive">
+          <span>{movementError}</span>
+          <Button variant="outline" size="sm" onClick={() => void loadProjections()}>Try again</Button>
+        </div>
+      )}
       {/* Skips */}
-      <div>
+      <div hidden={Boolean(movementError)}>
         <div className="flex items-center gap-2 mb-3">
           <Truck className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-bold text-foreground">Skips</h3>
@@ -282,7 +282,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
       </div>
 
       {/* RoRos */}
-      <div>
+      <div hidden={Boolean(movementError)}>
         <div className="flex items-center gap-2 mb-3">
           <Container className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-bold text-foreground">RoRos</h3>
