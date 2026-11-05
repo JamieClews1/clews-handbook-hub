@@ -1378,6 +1378,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
       rowsByType,
       skip: totalReportTotals(rowsByType, "skip"),
       roro: totalReportTotals(rowsByType, "roro"),
+      excluded: accounted.perType.reduce((a, t) => a + t.outOfService, 0),
     };
   }, [accounted.perType]);
 
@@ -1610,7 +1611,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Total Report</CardTitle>
           <p className="text-xs text-muted-foreground">
-            Estimates for Clews containers only — customer Own skips/RoRos are excluded. Yard is the latest tally plus completed movements, less Scrapped / Yard Use.
+            Estimates for Clews working containers only — customer Own skips/RoRos and {report.excluded} Scrapped / Yard Use {report.excluded === 1 ? "bin" : "bins"} are excluded. Yard is the latest tally plus completed movements.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
