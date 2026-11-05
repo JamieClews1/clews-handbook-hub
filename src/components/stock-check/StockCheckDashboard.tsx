@@ -12,6 +12,8 @@ import { stockCheckAvailability, stockMovementDelta, movementAfterTally, uniqueS
 import { fetchAllRows } from "@/lib/fetch-all";
 import { londonCalendarKey } from "@/lib/ui-calendar";
 import { containerSize } from "@/lib/container-taxonomy";
+import { SizeFilter } from "@/components/stock-check/SizeFilter";
+import { filterTypesBySize, type SizeFilterOption } from "@/lib/stock-check-size-filter";
 
 interface ContainerType {
   id: string;
@@ -49,6 +51,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
   const [loading, setLoading] = useState(true);
   const [latestCheckDate, setLatestCheckDate] = useState<string | null>(null);
   const [outlookDays, setOutlookDays] = useState<number>(5);
+  const [sizeFilter, setSizeFilter] = useState<string[]>([]);
   const [reclassRules, setReclassRules] = useState<EwcReclassRule[]>([]);
 
   useEffect(() => {
