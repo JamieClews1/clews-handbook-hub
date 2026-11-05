@@ -1249,11 +1249,21 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
     refetch();
   };
 
+  const sizeOptions = useMemo<SizeFilterOption[]>(() => {
+    const sizes = sizeOptionsFromValues(rows.map((r) => r.size));
+    return sizes.map((s) => ({
+      id: s,
+      name: s,
+      group: /roro|roll/i.test(s) ? "RoRos" : "Skips",
+    }));
+  }, [rows]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows.filter((r) => {
       if (typeFilter !== "all" && r.asset_type !== typeFilter) return false;
       if (tagFilter !== "all" && !(r.tags || []).includes(tagFilter)) return false;
+      if (sizeFilter.length > 0 && !sizeFilter.includes((r.size || "").trim())) return false;
       if (!q) return true;
       return (
         r.asset_number.toLowerCase().includes(q) ||
@@ -1262,7 +1272,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
         (r.tags || []).some((t) => t.toLowerCase().includes(q))
       );
     });
-  }, [rows, search, typeFilter, tagFilter]);
+  }, [rows, search, typeFilter, tagFilter, sizeFilter]);
 
   const sortedRows = useMemo(
     () => sortRows(filtered),
