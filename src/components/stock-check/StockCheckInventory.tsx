@@ -1922,7 +1922,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
                             .from("inventory_share_links")
                             .update({ [key]: v })
                             .eq("id", l.id);
-                          if (error) toast({ title: "Update failed", description: error.message, variant: "destructive" });
+                          if (error) toast.error(`Update failed: ${error.message}`);
                           queryClient.invalidateQueries({ queryKey: ["inventory-share-links"] });
                         }}
                       />
