@@ -1188,7 +1188,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
 
   // live stock calculation.
   // Photo file sizes (read-only storage listing) for the Suspect tab.
-  const { data: photoSizes, isLoading: photoSizesLoading } = useQuery({
+  const { data: photoSizes } = useQuery({
     queryKey: ["skip-inventory-photo-sizes"],
     enabled: scope === "suspect",
     queryFn: async () => {
