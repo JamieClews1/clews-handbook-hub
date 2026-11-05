@@ -49,6 +49,13 @@ interface ExpectedSnapshot {
   expected_roro: number;
   expected_total: number;
   computed_at: string;
+  total_report?: {
+    computed_at?: string;
+    excluded: number;
+    skip: { out: number; yard: number; required: number };
+    roro: { out: number; yard: number; required: number };
+    rowsByType: { id: string; name: string; category: string; inYard: number; onSiteClews: number; fleet: number; catalogued: number; required: number }[];
+  } | null;
 }
 
 const PublicInventoryPage = () => {
@@ -327,6 +334,7 @@ const PublicInventoryPage = () => {
           <TabsList className="print:hidden">
             <TabsTrigger value="assets">Asset list</TabsTrigger>
             <TabsTrigger value="summary">Summary</TabsTrigger>
+            <TabsTrigger value="total">Total Report</TabsTrigger>
           </TabsList>
 
           <TabsContent value="assets" className="space-y-4">
@@ -511,6 +519,66 @@ const PublicInventoryPage = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="total">
+            {!expected?.total_report ? (
+              <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">The Total Report isn't available yet.</CardContent></Card>
+            ) : (() => {
+              const r = expected.total_report!;
+              return (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Total Report</CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      Customer-owned skips/RoRos and Scrapped / Yard Use bins are excluded.
+                      {r.computed_at && ` Updated ${new Date(r.computed_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}.`}
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        { label: "Out on Live Jobs (exc. Own)", k: "out" as const },
+                        { label: "In Yard (spare stock)", k: "yard" as const },
+                        { label: "Profiles still required", k: "required" as const },
+                      ].map((c) => (
+                        <div key={c.k} className="rounded-lg border border-border p-3">
+                          <p className="text-xs font-medium text-muted-foreground">{c.label}</p>
+                          <p className="text-2xl font-bold text-foreground tabular-nums">{r.skip[c.k] + r.roro[c.k]}</p>
+                          <p className="text-[11px] text-muted-foreground tabular-nums">Skips {r.skip[c.k]} · RoRos {r.roro[c.k]}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Type</TableHead>
+                            <TableHead className="text-right">Out on jobs</TableHead>
+                            <TableHead className="text-right">In yard</TableHead>
+                            <TableHead className="text-right">Est. fleet</TableHead>
+                            <TableHead className="text-right">Profiles</TableHead>
+                            <TableHead className="text-right">Still required</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {r.rowsByType.map((t) => (
+                            <TableRow key={t.id}>
+                              <TableCell>{t.name} <span className="text-[11px] text-muted-foreground">{t.category === "roro" ? "RoRo" : "Skip"}</span></TableCell>
+                              <TableCell className="text-right tabular-nums">{t.onSiteClews}</TableCell>
+                              <TableCell className="text-right tabular-nums">{t.inYard}</TableCell>
+                              <TableCell className="text-right tabular-nums">{t.fleet}</TableCell>
+                              <TableCell className="text-right tabular-nums">{t.catalogued}</TableCell>
+                              <TableCell className={`text-right tabular-nums ${t.required > 0 ? "text-destructive font-semibold" : ""}`}>{t.required}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </TabsContent>
         </Tabs>
 
