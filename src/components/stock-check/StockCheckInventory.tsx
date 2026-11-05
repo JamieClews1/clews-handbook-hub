@@ -87,6 +87,8 @@ import {
 import { cn, compareAssetNumbers } from "@/lib/utils";
 import { publicUrl } from "@/lib/public-url";
 import { useExpectedStock, bestExpectedTypeFor } from "@/hooks/useExpectedStock";
+import { SizeFilter } from "./SizeFilter";
+import { sizeOptionsFromValues, type SizeFilterOption } from "@/lib/stock-check-size-filter";
 
 interface InventoryRow {
   id: string;
@@ -1039,6 +1041,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "skip" | "roro">("all");
   const [tagFilter, setTagFilter] = useState<string>("all");
+  const [sizeFilter, setSizeFilter] = useState<string[]>([]);
   const { data: tagOptions = [] } = useTagOptions();
   const tagColour = (name: string) =>
     tagStyle[tagOptions.find((t) => t.name === name)?.colour || "amber"] || tagStyle.amber;
@@ -1246,11 +1249,21 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
     refetch();
   };
 
+  const sizeOptions = useMemo<SizeFilterOption[]>(() => {
+    const sizes = sizeOptionsFromValues(rows.map((r) => r.size));
+    return sizes.map((s) => ({
+      id: s,
+      name: s,
+      group: /roro|roll/i.test(s) ? "RoRos" : "Skips",
+    }));
+  }, [rows]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows.filter((r) => {
       if (typeFilter !== "all" && r.asset_type !== typeFilter) return false;
       if (tagFilter !== "all" && !(r.tags || []).includes(tagFilter)) return false;
+      if (sizeFilter.length > 0 && !sizeFilter.includes((r.size || "").trim())) return false;
       if (!q) return true;
       return (
         r.asset_number.toLowerCase().includes(q) ||
@@ -1259,7 +1272,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
         (r.tags || []).some((t) => t.toLowerCase().includes(q))
       );
     });
-  }, [rows, search, typeFilter, tagFilter]);
+  }, [rows, search, typeFilter, tagFilter, sizeFilter]);
 
   const sortedRows = useMemo(
     () => sortRows(filtered),
@@ -1616,6 +1629,11 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
               </SelectContent>
             </Select>
           )}
+          <SizeFilter
+            options={sizeOptions}
+            selected={sizeFilter}
+            onChange={setSizeFilter}
+          />
         </div>
         <div className="flex items-center gap-2">
           {viewMode === "list" && (
