@@ -8,11 +8,9 @@
 //     scrapped, so they must not inflate "out on jobs", "in yard" or
 //     "still required".
 //
-// Condition is only recorded on catalogued profiles, so an out-of-service bin
-// is removed from the size it is catalogued as. A bin is counted once: it comes
-// off the yard first (that is where written-off bins physically sit), and only
-// the remainder comes off customer sites, so the same bin is never removed
-// from both sides.
+// The tally already counts working bins only. Scrapped / Yard Use profiles
+// are excluded from catalogued upstream, not subtracted from the physical
+// tally or guessed to be on customer sites.
 
 export interface TotalReportInput {
   id: string;
@@ -51,14 +49,9 @@ export const totalReportType = (t: TotalReportInput): TotalReportType => {
   const yardRaw = whole(t.inYard);
   const siteRaw = whole(t.onSite);
   const ownRaw = whole(t.ownOnSite);
-  const oos = whole(t.outOfService);
   const siteClews = Math.max(0, siteRaw - ownRaw);
-
-  const yardCut = Math.min(yardRaw, oos);
-  const siteCut = Math.min(siteClews, oos - yardCut);
-
-  const inYard = yardRaw - yardCut;
-  const onSiteClews = siteClews - siteCut;
+  const inYard = yardRaw;
+  const onSiteClews = siteClews;
   const fleet = inYard + onSiteClews;
   const catalogued = whole(t.catalogued);
 

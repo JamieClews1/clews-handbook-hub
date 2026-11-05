@@ -1321,9 +1321,8 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
       else unmatched += 1;
     }
 
-    // The yard tally is a physical count, so Scrapped / Yard Use bins sitting in
-    // the yard inflate the expected in-yard figures. Subtract any catalogued
-    // out-of-service bins from their size's expected count (never below zero).
+    // Working tallies already exclude Scrapped / Yard Use. Count excluded
+    // profiles for disclosure only, never subtract them from the tally again.
     const outOfServiceByType: Record<string, number> = {};
     for (const r of outOfService) {
       const type = matchType(r);
@@ -1331,15 +1330,14 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
     }
 
     const perType = expected.containerTypes.map((t) => ({
-      inYard: Math.max(0, (expected.inYardByType[t.id] || 0) - (outOfServiceByType[t.id] || 0)),
+      inYard: Math.max(0, expected.inYardByType[t.id] || 0),
       onSiteClews: Math.max(0, (expected.onSiteByType[t.id] || 0) - (expected.ownOnSiteByType[t.id] || 0)),
       id: t.id,
       name: t.name,
       category: t.category,
       catalogued: cataloguedByType[t.id] || 0,
-      expected: Math.max(0, (expected.expectedByType[t.id] || 0) - (outOfServiceByType[t.id] || 0)),
-      // Unadjusted figures the Total Report needs so it can remove Scrapped /
-      // Yard Use bins from yard and customer sites itself.
+      expected: Math.max(0, expected.expectedByType[t.id] || 0),
+      // Physical counts already exclude non-working bins.
       inYardRaw: expected.inYardByType[t.id] || 0,
       onSiteRaw: expected.onSiteByType[t.id] || 0,
       ownOnSiteRaw: expected.ownOnSiteByType[t.id] || 0,
@@ -1359,8 +1357,8 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
   }, [allRows, expected.containerTypes, expected.expectedByType, expected.inYardByType, expected.onSiteByType, expected.ownOnSiteByType]);
 
   // Total report: working Clews fleet only. Customer "Own" skips need no
-  // profile, and Scrapped / Yard Use bins are out of service so they are
-  // removed from yard and customer sites before the fleet is totalled.
+  // profile; working tallies and active catalogued profiles already exclude
+  // Scrapped / Yard Use, so no second physical-stock deduction is needed.
   const report = useMemo(() => {
     const rowsByType = accounted.perType.map((t) =>
       totalReportType({
@@ -1611,7 +1609,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Total Report</CardTitle>
           <p className="text-xs text-muted-foreground">
-            Estimates for Clews working containers only — customer Own skips/RoRos and {report.excluded} Scrapped / Yard Use {report.excluded === 1 ? "bin" : "bins"} are excluded. Yard is the latest tally plus completed movements.
+            Yard starts from the latest working-stock tally plus completed movements; Scrapped / Yard Use are already excluded from the tally. Customer Own skips/RoRos are excluded from Live Jobs, and {report.excluded} Scrapped / Yard Use profiles are excluded from Profiles.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
