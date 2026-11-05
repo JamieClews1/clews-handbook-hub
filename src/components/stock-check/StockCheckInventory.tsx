@@ -89,6 +89,7 @@ import { publicUrl } from "@/lib/public-url";
 import { useExpectedStock, bestExpectedTypeFor } from "@/hooks/useExpectedStock";
 import { SizeFilter } from "./SizeFilter";
 import { sizeOptionsFromValues, type SizeFilterOption } from "@/lib/stock-check-size-filter";
+import { totalReportTotals, totalReportType } from "@/lib/stock-check-total-report";
 
 interface InventoryRow {
   id: string;
