@@ -1412,6 +1412,29 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
     };
   }, [accounted.perType]);
 
+  // Share the Total Report with External View links as a read-only snapshot,
+  // written only when the figures change.
+  const reportKey = JSON.stringify(report);
+  useEffect(() => {
+    if (scope !== "active" || expected.loading || expected.error || report.rowsByType.length === 0) return;
+    const t = setTimeout(async () => {
+      const payload = { ...report, computed_at: new Date().toISOString() };
+      const { data: latest } = await supabase
+        .from("inventory_expected_snapshot")
+        .select("id, total_report")
+        .order("computed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const prev = latest?.total_report as any;
+      if (prev && JSON.stringify({ ...prev, computed_at: undefined }) === JSON.stringify({ ...report, computed_at: undefined })) return;
+      if (latest?.id) {
+        await supabase.from("inventory_expected_snapshot").update({ total_report: payload as any }).eq("id", latest.id);
+      }
+    }, 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportKey, scope, expected.loading, expected.error]);
+
   const conditionCounts = useMemo(() => {
     const counts: Record<string, number> = { Good: 0, Fair: 0, Poor: 0, Damaged: 0, Unknown: 0 };
     for (const r of rows) {

@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
     // the share page can show what % of expected bins are catalogued.
     const { data: snapshot } = await supabase
       .from("inventory_expected_snapshot")
-      .select("expected_skip, expected_roro, expected_total, computed_at")
+      .select("expected_skip, expected_roro, expected_total, computed_at, total_report")
       .order("computed_at", { ascending: false })
       .limit(1)
       .maybeSingle();
