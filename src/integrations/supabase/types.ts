@@ -4803,6 +4803,7 @@ export type Database = {
           expected_skip: number
           expected_total: number
           id: string
+          total_report: Json | null
         }
         Insert: {
           computed_at?: string
@@ -4810,6 +4811,7 @@ export type Database = {
           expected_skip?: number
           expected_total?: number
           id?: string
+          total_report?: Json | null
         }
         Update: {
           computed_at?: string
@@ -4817,6 +4819,7 @@ export type Database = {
           expected_skip?: number
           expected_total?: number
           id?: string
+          total_report?: Json | null
         }
         Relationships: []
       }

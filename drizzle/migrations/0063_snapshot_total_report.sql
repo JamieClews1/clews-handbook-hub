@@ -1,0 +1,1 @@
+ALTER TABLE public.inventory_expected_snapshot ADD COLUMN IF NOT EXISTS total_report jsonb;

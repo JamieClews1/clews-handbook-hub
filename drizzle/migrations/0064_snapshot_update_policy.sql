@@ -1,0 +1,2 @@
+GRANT UPDATE (total_report) ON public.inventory_expected_snapshot TO authenticated;
+CREATE POLICY "Staff can attach total report" ON public.inventory_expected_snapshot FOR UPDATE TO authenticated USING (public.is_staff(auth.uid())) WITH CHECK (public.is_staff(auth.uid()));
