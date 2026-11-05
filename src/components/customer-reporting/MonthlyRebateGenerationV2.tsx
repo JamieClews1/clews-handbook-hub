@@ -1,4 +1,5 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -112,6 +113,19 @@ export function MonthlyRebateGenerationV2() {
   const [lockedSiteIds, setLockedSiteIds] = useState<Set<string>>(new Set());
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  // "Unlock & recalculate" hand-off from Sent Rebates.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [recalc, setRecalc] = useState<{
+    customerId: string;
+    siteId: string | null;
+    previous: number | null;
+    sentAt: string | null;
+    unlocked: boolean;
+  } | null>(null);
+  const [unlocking, setUnlocking] = useState(false);
+  const recalcStartRef = useRef(false);
+  const recalcPendingRef = useRef(false);
 
   // Email dialog
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
@@ -954,6 +968,86 @@ export function MonthlyRebateGenerationV2() {
 
   // Customer-level breakdowns use a synthetic site id — track them against the
   // customer (site_id null) instead.
+  useEffect(() => {
+    if (recalcStartRef.current || searchParams.get("recalc") !== "1") return;
+    const customerId = searchParams.get("customer");
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
+    if (!customerId || !from || !to) return;
+    recalcStartRef.current = true;
+    const prev = searchParams.get("prev");
+    setRecalc({
+      customerId,
+      siteId: searchParams.get("site") || null,
+      previous: prev !== null && prev !== "" ? Number(prev) : null,
+      sentAt: searchParams.get("sentAt"),
+      unlocked: false,
+    });
+    setDateRange({ from: new Date(`${from}T00:00:00`), to: new Date(`${to}T00:00:00`) });
+    setExpanded(new Set([customerId]));
+    recalcPendingRef.current = true;
+    const next = new URLSearchParams(searchParams);
+    ["recalc", "customer", "site", "from", "to", "prev", "sentAt"].forEach((k) => next.delete(k));
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (recalcPendingRef.current && dateRange?.from && dateRange?.to) {
+      recalcPendingRef.current = false;
+      generate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateRange]);
+
+  const recalcTarget = (() => {
+    if (!recalc) return null;
+    const summary = summaries.find((x) => x.customer.id === recalc.customerId);
+    if (!summary) return null;
+    const sb =
+      summary.siteBreakdowns.find((b) => (b.site.id.startsWith("cust-") ? null : b.site.id) === recalc.siteId) ??
+      (recalc.siteId === null ? summary.siteBreakdowns[0] : undefined);
+    return sb ? { summary, sb } : null;
+  })();
+
+  const unlockForRecalc = async () => {
+    if (!recalc || !recalcTarget || !dateRange?.from || !dateRange?.to) return;
+    setUnlocking(true);
+    const periodStart = format(dateRange.from, "yyyy-MM-dd");
+    const periodEnd = format(dateRange.to, "yyyy-MM-dd");
+    try {
+      let lockQ = supabase
+        .from("locked_rebate_reports")
+        .delete()
+        .eq("customer_id", recalc.customerId)
+        .eq("period_start", periodStart)
+        .eq("period_end", periodEnd);
+      lockQ = recalc.siteId ? lockQ.eq("site_id", recalc.siteId) : lockQ.is("site_id", null);
+      const { error: lockErr } = await lockQ;
+      if (lockErr) throw lockErr;
+      await upsertTracking({
+        customerId: recalc.customerId,
+        siteId: recalc.siteId,
+        periodStart,
+        periodEnd,
+        status: "generated",
+        rebateAmount: recalcTarget.sb.totalRebate,
+        userId: user?.id,
+      });
+      setTracking(await fetchTrackingForPeriod(periodStart, periodEnd));
+      setLockedSiteIds((prev) => {
+        const n = new Set(prev);
+        if (recalc.siteId) n.delete(recalc.siteId);
+        return n;
+      });
+      setRecalc({ ...recalc, unlocked: true });
+      toast({ title: "Report unlocked", description: "Totals recalculated. Review, then send the revised report." });
+    } catch (e: any) {
+      toast({ title: "Could not unlock", description: e?.message ?? String(e), variant: "destructive" });
+    } finally {
+      setUnlocking(false);
+    }
+  };
+
   const trackSiteId = (sb: SiteBreakdown) => (sb.site.id.startsWith("cust-") ? null : sb.site.id);
 
   const markGenerated = async (summary: CustomerRebateSummary) => {
@@ -1363,6 +1457,46 @@ export function MonthlyRebateGenerationV2() {
           <p className="text-sm text-muted-foreground">
             {progressLabel} ({progress}%)
           </p>
+        </div>
+      )}
+
+      {generated && !loading && recalc && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-4 space-y-3">
+          <div className="flex items-start gap-2">
+            <RefreshCw className="h-4 w-4 mt-0.5 text-amber-700" />
+            <div className="text-sm">
+              <p className="font-semibold">Recalculating a previously sent report</p>
+              {recalcTarget ? (
+                <p className="text-muted-foreground">
+                  {recalcTarget.summary.customer.customer_name} — {recalcTarget.sb.site.site_name}:{" "}
+                  sent {recalc.previous !== null ? <strong>£{recalc.previous.toFixed(2)}</strong> : "amount unknown"}
+                  {recalc.sentAt ? ` on ${format(new Date(recalc.sentAt), "d MMM yyyy")}` : ""}; recalculated now{" "}
+                  <strong>£{recalcTarget.sb.totalRebate.toFixed(2)}</strong>
+                  {recalc.previous !== null && (
+                    <> ({recalcTarget.sb.totalRebate - recalc.previous >= 0 ? "+" : "−"}£
+                    {Math.abs(recalcTarget.sb.totalRebate - recalc.previous).toFixed(2)})</>
+                  )}
+                  . The original send stays in Sent Rebates for the record.
+                </p>
+              ) : (
+                <p className="text-muted-foreground">This site has no rebatable loads in the period now, so there is nothing to resend.</p>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {recalcTarget && !recalc.unlocked && (
+              <Button size="sm" onClick={unlockForRecalc} disabled={unlocking} className="gap-1.5">
+                {unlocking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+                Unlock & use revised totals
+              </Button>
+            )}
+            {recalcTarget && recalc.unlocked && (
+              <Button size="sm" onClick={() => openEmailDialog(recalcTarget.summary, recalcTarget.sb)} className="gap-1.5">
+                <Mail className="h-3.5 w-3.5" /> Send revised report
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={() => setRecalc(null)}>Dismiss</Button>
+          </div>
         </div>
       )}
 
