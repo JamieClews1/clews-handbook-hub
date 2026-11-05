@@ -38,16 +38,25 @@ export const StockCheckTotalStock = () => {
     );
   }
 
-  const skips = containerTypes.filter((t) => t.category === "skip");
-  const roros = containerTypes.filter((t) => t.category === "roro");
+  const allSkips = containerTypes.filter((t) => t.category === "skip");
+  const allRoros = containerTypes.filter((t) => t.category === "roro");
+  const sizeOptions: SizeFilterOption[] = containerTypes.map((t) => ({
+    id: t.id,
+    name: t.name,
+    group: t.category === "roro" ? "RoRos" : "Skips",
+  }));
+  const filtered = sizeFilter.length > 0;
+  const skips = filterTypesBySize(allSkips, sizeFilter);
+  const roros = filterTypesBySize(allRoros, sizeFilter);
 
   const sumFor = (types: ExpectedContainerType[], src: Record<string, number>) =>
     types.reduce((acc, t) => acc + (src[t.id] || 0), 0);
 
+  // Unclassified bins belong to no size, so they drop out once a size is chosen.
   const skipYard = sumFor(skips, inYardByType);
-  const skipSite = sumFor(skips, onSiteByType) + onSiteOther.skip;
+  const skipSite = sumFor(skips, onSiteByType) + (filtered ? 0 : onSiteOther.skip);
   const roroYard = sumFor(roros, inYardByType);
-  const roroSite = sumFor(roros, onSiteByType) + onSiteOther.roro;
+  const roroSite = sumFor(roros, onSiteByType) + (filtered ? 0 : onSiteOther.roro);
 
   const downloadSiteReport = () => {
     const esc = (v: string | number | null) => {
