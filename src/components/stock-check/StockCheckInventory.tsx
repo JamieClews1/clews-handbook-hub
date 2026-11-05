@@ -1330,6 +1330,8 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
     }
 
     const perType = expected.containerTypes.map((t) => ({
+      inYard: Math.max(0, (expected.inYardByType[t.id] || 0) - (outOfServiceByType[t.id] || 0)),
+      onSiteClews: Math.max(0, (expected.onSiteByType[t.id] || 0) - (expected.ownOnSiteByType[t.id] || 0)),
       id: t.id,
       name: t.name,
       category: t.category,
@@ -1347,7 +1349,22 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
       totalExpected,
       pct: totalExpected > 0 ? Math.round((totalCatalogued / totalExpected) * 100) : null,
     };
-  }, [allRows, expected.containerTypes, expected.expectedByType]);
+  }, [allRows, expected.containerTypes, expected.expectedByType, expected.inYardByType, expected.onSiteByType, expected.ownOnSiteByType]);
+
+  // Total report: Clews-owned fleet only (customer "Own" skips need no profile).
+  const report = useMemo(() => {
+    const rowsByType = accounted.perType.map((t) => {
+      const fleet = t.inYard + t.onSiteClews;
+      return { ...t, fleet, required: Math.max(0, fleet - t.catalogued) };
+    });
+    const sum = (cat: string, k: "onSiteClews" | "inYard" | "required") =>
+      rowsByType.filter((t) => t.category === cat).reduce((a, t) => a + t[k], 0);
+    return {
+      rowsByType,
+      skip: { out: sum("skip", "onSiteClews"), yard: sum("skip", "inYard"), required: sum("skip", "required") },
+      roro: { out: sum("roro", "onSiteClews"), yard: sum("roro", "inYard"), required: sum("roro", "required") },
+    };
+  }, [accounted.perType]);
 
   const conditionCounts = useMemo(() => {
     const counts: Record<string, number> = { Good: 0, Fair: 0, Poor: 0, Damaged: 0, Unknown: 0 };
@@ -1569,6 +1586,62 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
               </div>
             </>
           )}
+        </CardContent>
+      </Card>
+      )}
+
+      {scope === "active" && !expected.loading && accounted.pct !== null && (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Total Report</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Estimates for Clews containers only — customer Own skips/RoRos are excluded. Yard is the latest tally plus completed movements, less Scrapped / Yard Use.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              { label: "Out on Live Jobs (exc. Own)", k: "out" as const },
+              { label: "In Yard (spare stock)", k: "yard" as const },
+              { label: "Profiles still required", k: "required" as const },
+            ].map((c) => (
+              <div key={c.k} className="rounded-lg border border-border p-3">
+                <p className="text-xs font-medium text-muted-foreground">{c.label}</p>
+                <p className="text-2xl font-bold text-foreground tabular-nums">{report.skip[c.k] + report.roro[c.k]}</p>
+                <p className="text-[11px] text-muted-foreground tabular-nums">Skips {report.skip[c.k]} · RoRos {report.roro[c.k]}</p>
+              </div>
+            ))}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="py-2 pr-3 font-medium">Type</th>
+                  <th className="py-2 px-3 font-medium text-right">Out on jobs</th>
+                  <th className="py-2 px-3 font-medium text-right">In yard</th>
+                  <th className="py-2 px-3 font-medium text-right">Est. fleet</th>
+                  <th className="py-2 px-3 font-medium text-right">Profiles</th>
+                  <th className="py-2 pl-3 font-medium text-right">Still required</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.rowsByType.map((t) => (
+                  <tr key={t.id} className="border-b border-border/60 last:border-0">
+                    <td className="py-2 pr-3">
+                      {t.name} <span className="text-[11px] text-muted-foreground">{t.category === "roro" ? "RoRo" : "Skip"}</span>
+                    </td>
+                    <td className="py-2 px-3 text-right tabular-nums">{t.onSiteClews}</td>
+                    <td className="py-2 px-3 text-right tabular-nums">{t.inYard}</td>
+                    <td className="py-2 px-3 text-right tabular-nums">{t.fleet}</td>
+                    <td className="py-2 px-3 text-right tabular-nums">{t.catalogued}</td>
+                    <td className={cn("py-2 pl-3 text-right tabular-nums font-semibold", t.required > 0 ? "text-destructive" : "text-muted-foreground")}>
+                      {t.required}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
       )}

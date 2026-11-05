@@ -100,6 +100,8 @@ export interface ExpectedStock {
   inYardByType: Record<string, number>;
   /** On-site per type, reconciled with the Live Jobs dashboard. */
   onSiteByType: Record<string, number>;
+  /** Of onSiteByType, containers marked "Own Skip" in Rentals (customer-owned). */
+  ownOnSiteByType: Record<string, number>;
   /** On-site containers that match no Stock Check type, per category. */
   onSiteOther: { skip: number; roro: number };
   siteDetail: SiteDetailRow[];
@@ -126,6 +128,7 @@ export const useExpectedStock = (): ExpectedStock => {
   // Bins manually marked collected in Rentals — excluded from Live Jobs counts,
   // so they must be excluded here too (same site|||container_type key).
   const [collectedBinKeys, setCollectedBinKeys] = useState<Set<string>>(new Set());
+  const [ownBinKeys, setOwnBinKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const load = async () => {
@@ -151,6 +154,12 @@ export const useExpectedStock = (): ExpectedStock => {
         .select("bin_key")
         .eq("collected", true);
       setCollectedBinKeys(new Set((collected ?? []).map((r: { bin_key: string }) => r.bin_key)));
+
+      const { data: own } = await supabase
+        .from("rental_chases")
+        .select("bin_key")
+        .eq("own_skip", true);
+      setOwnBinKeys(new Set((own ?? []).map((r: { bin_key: string }) => r.bin_key)));
 
       const { data: latestCheck } = await supabase
         .from("stock_checks")
@@ -222,7 +231,7 @@ export const useExpectedStock = (): ExpectedStock => {
     return map;
   }, [containerTypes, latestItems, latestCheckDateOnly, jobs, excludedSites, reclassRules]);
 
-  const { onSiteByType, onSiteOther, siteDetail } = useMemo(() => {
+  const { onSiteByType, ownOnSiteByType, onSiteOther, siteDetail } = useMemo(() => {
     const positions: Record<string, Pos> = {};
     for (const job of jobs) {
       if (!job.container_type) continue;
@@ -261,7 +270,8 @@ export const useExpectedStock = (): ExpectedStock => {
     }
 
     const byType: Record<string, number> = {};
-    for (const t of containerTypes) byType[t.id] = 0;
+    const ownByType: Record<string, number> = {};
+    for (const t of containerTypes) { byType[t.id] = 0; ownByType[t.id] = 0; }
     const other = { skip: 0, roro: 0 };
     const detail: SiteDetailRow[] = [];
 
@@ -292,7 +302,10 @@ export const useExpectedStock = (): ExpectedStock => {
       if (collectedBinKeys.has(binKey)) continue;
       const candidates = containerTypes.filter((t) => t.category === p.category);
       const type = bestExpectedTypeFor(p.containerType, candidates);
-      if (type) byType[type.id] += count;
+      if (type) {
+        byType[type.id] += count;
+        if (ownBinKeys.has(binKey)) ownByType[type.id] += count;
+      }
       else other[p.category] += count;
       detail.push({
         site: p.site,
@@ -309,8 +322,8 @@ export const useExpectedStock = (): ExpectedStock => {
     detail.sort((a, b) =>
       a.site.localeCompare(b.site) || a.typeName.localeCompare(b.typeName)
     );
-    return { onSiteByType: byType, onSiteOther: other, siteDetail: detail };
-  }, [containerTypes, jobs, excludedSites, liveSettings, collectedBinKeys]);
+    return { onSiteByType: byType, ownOnSiteByType: ownByType, onSiteOther: other, siteDetail: detail };
+  }, [containerTypes, jobs, excludedSites, liveSettings, collectedBinKeys, ownBinKeys]);
 
   const expectedByType = useMemo(() => {
     const map: Record<string, number> = {};
@@ -382,6 +395,7 @@ export const useExpectedStock = (): ExpectedStock => {
     containerTypes,
     inYardByType,
     onSiteByType,
+    ownOnSiteByType,
     onSiteOther,
     siteDetail,
     latestCheckDate,
