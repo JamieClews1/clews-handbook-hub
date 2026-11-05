@@ -29,6 +29,8 @@ interface ShareLink {
   show_values: boolean;
   show_photos: boolean;
   verified_only: boolean;
+  show_unverified_skips: boolean;
+  show_unverified_roros: boolean;
   view_count: number;
   last_viewed_at: string | null;
 }
@@ -54,7 +56,7 @@ export const InventoryValueSettings = () => {
         .order("display_order"),
       supabase
         .from("inventory_share_links")
-        .select("id, token, label, is_active, show_values, show_photos, verified_only, view_count, last_viewed_at")
+        .select("id, token, label, is_active, show_values, show_photos, verified_only, show_unverified_skips, show_unverified_roros, view_count, last_viewed_at")
         .order("created_at", { ascending: false }),
     ]);
     setValues((v ?? []) as ConditionValue[]);
@@ -312,10 +314,17 @@ export const InventoryValueSettings = () => {
                 </label>
                 <label className="flex items-center gap-2">
                   <Switch
-                    checked={l.verified_only}
-                    onCheckedChange={(v) => updateLink(l.id, { verified_only: v })}
+                    checked={l.show_unverified_skips}
+                    onCheckedChange={(v) => updateLink(l.id, { show_unverified_skips: v })}
                   />
-                  Office verified only
+                  Show unverified skips
+                </label>
+                <label className="flex items-center gap-2">
+                  <Switch
+                    checked={l.show_unverified_roros}
+                    onCheckedChange={(v) => updateLink(l.id, { show_unverified_roros: v })}
+                  />
+                  Show unverified RoRos
                 </label>
               </div>
               <div className="flex items-center gap-2">

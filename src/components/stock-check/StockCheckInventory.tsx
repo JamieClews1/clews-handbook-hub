@@ -1243,11 +1243,18 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
     queryFn: async () => {
       const { data, error } = await supabase
         .from("inventory_share_links")
-        .select("id, token, label, is_active")
+        .select("id, token, label, is_active, show_unverified_skips, show_unverified_roros")
         .eq("is_active", true)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data || []) as { id: string; token: string; label: string | null; is_active: boolean }[];
+      return (data || []) as {
+        id: string;
+        token: string;
+        label: string | null;
+        is_active: boolean;
+        show_unverified_skips: boolean;
+        show_unverified_roros: boolean;
+      }[];
     },
   });
 
@@ -1883,6 +1890,48 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+        )}
+
+        {shareLinks.length > 0 && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon" title="External view settings" aria-label="External view settings">
+                <SettingsIcon className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 space-y-3">
+              <div>
+                <p className="text-sm font-semibold">External view settings</p>
+                <p className="text-xs text-muted-foreground">Choose what people with the link can see.</p>
+              </div>
+              {shareLinks.map((l) => (
+                <div key={l.id} className="space-y-2 rounded-md border p-2">
+                  {shareLinks.length > 1 && (
+                    <p className="text-xs font-semibold">{l.label || "External inventory view"}</p>
+                  )}
+                  {([
+                    ["show_unverified_skips", "Show skips not verified"],
+                    ["show_unverified_roros", "Show RoRos not verified"],
+                  ] as const).map(([key, label]) => (
+                    <label key={key} className="flex items-center justify-between gap-2 text-sm">
+                      {label}
+                      <Switch
+                        checked={l[key]}
+                        onCheckedChange={async (v) => {
+                          const { error } = await supabase
+                            .from("inventory_share_links")
+                            .update({ [key]: v })
+                            .eq("id", l.id);
+                          if (error) toast.error(`Update failed: ${error.message}`);
+                          queryClient.invalidateQueries({ queryKey: ["inventory-share-links"] });
+                        }}
+                      />
+                    </label>
+                  ))}
+                </div>
+              ))}
+            </PopoverContent>
+          </Popover>
         )}
 
         <Dialog>

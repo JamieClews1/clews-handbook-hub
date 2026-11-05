@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
 
     const { data: link, error: linkError } = await supabase
       .from("inventory_share_links")
-      .select("id, label, is_active, show_values, show_photos, verified_only, view_count")
+      .select("id, label, is_active, show_values, show_photos, verified_only, show_unverified_skips, show_unverified_roros, view_count")
       .eq("token", token)
       .maybeSingle();
 
@@ -74,7 +74,8 @@ Deno.serve(async (req) => {
     const visibleRows = (rows ?? []).filter(
       (r: any) =>
         !HIDDEN_CONDITIONS.includes(r.condition ?? "") &&
-        (!link.verified_only || r.office_verified === true),
+        (r.office_verified === true ||
+          (r.asset_type === "roro" ? link.show_unverified_roros !== false : link.show_unverified_skips !== false)),
     );
 
     const items = visibleRows.map((r) => ({
@@ -109,7 +110,7 @@ Deno.serve(async (req) => {
       label: link.label,
       show_values: link.show_values,
       show_photos: link.show_photos,
-      verified_only: link.verified_only,
+      verified_only: link.show_unverified_skips === false && link.show_unverified_roros === false,
       items,
       expected: snapshot ?? null,
     });
