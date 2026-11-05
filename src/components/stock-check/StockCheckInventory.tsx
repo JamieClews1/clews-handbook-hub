@@ -1338,6 +1338,12 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
       category: t.category,
       catalogued: cataloguedByType[t.id] || 0,
       expected: Math.max(0, (expected.expectedByType[t.id] || 0) - (outOfServiceByType[t.id] || 0)),
+      // Unadjusted figures the Total Report needs so it can remove Scrapped /
+      // Yard Use bins from yard and customer sites itself.
+      inYardRaw: expected.inYardByType[t.id] || 0,
+      onSiteRaw: expected.onSiteByType[t.id] || 0,
+      ownOnSiteRaw: expected.ownOnSiteByType[t.id] || 0,
+      outOfService: outOfServiceByType[t.id] || 0,
     }));
     // Only bins matched to an expected size count, capped per size so a surplus
     // in one size can't hide a shortfall in another (headline never exceeds 100%).
@@ -1352,18 +1358,26 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
     };
   }, [allRows, expected.containerTypes, expected.expectedByType, expected.inYardByType, expected.onSiteByType, expected.ownOnSiteByType]);
 
-  // Total report: Clews-owned fleet only (customer "Own" skips need no profile).
+  // Total report: working Clews fleet only. Customer "Own" skips need no
+  // profile, and Scrapped / Yard Use bins are out of service so they are
+  // removed from yard and customer sites before the fleet is totalled.
   const report = useMemo(() => {
-    const rowsByType = accounted.perType.map((t) => {
-      const fleet = t.inYard + t.onSiteClews;
-      return { ...t, fleet, required: Math.max(0, fleet - t.catalogued) };
-    });
-    const sum = (cat: string, k: "onSiteClews" | "inYard" | "required") =>
-      rowsByType.filter((t) => t.category === cat).reduce((a, t) => a + t[k], 0);
+    const rowsByType = accounted.perType.map((t) =>
+      totalReportType({
+        id: t.id,
+        name: t.name,
+        category: t.category,
+        inYard: t.inYardRaw,
+        onSite: t.onSiteRaw,
+        ownOnSite: t.ownOnSiteRaw,
+        outOfService: t.outOfService,
+        catalogued: t.catalogued,
+      }),
+    );
     return {
       rowsByType,
-      skip: { out: sum("skip", "onSiteClews"), yard: sum("skip", "inYard"), required: sum("skip", "required") },
-      roro: { out: sum("roro", "onSiteClews"), yard: sum("roro", "inYard"), required: sum("roro", "required") },
+      skip: totalReportTotals(rowsByType, "skip"),
+      roro: totalReportTotals(rowsByType, "roro"),
     };
   }, [accounted.perType]);
 
