@@ -42,7 +42,7 @@ test('suspect CSV lists one row per bin with its reason', () => {
   const lines = csv.split('\n');
   assert.equal(lines.length, 3);
   assert.equal(lines[0], '"Number","Type","Size","Condition","Tags","Photos","Why flagged","Last location","Skiptrak ticket","Last catalogued","Logged by"');
-  assert.equal(lines[1], '"SK41","Skip","6 CU YD","Poor","Damaged",1,"Old photos only","Yard","12345","2026-11-05","Jamie"');
+  assert.equal(lines[1], '"SK41","Skip","6 CU YD","Poor","Damaged","1","Old photos only","Yard","12345","2026-11-05","Jamie"');
   assert.equal(lines[2], '"RO93","RoRo","","","","0","No photos","","","",""');
 });
 
