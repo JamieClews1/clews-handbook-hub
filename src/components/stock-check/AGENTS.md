@@ -1,3 +1,4 @@
 Live dashboard stock uses stock-check-availability to replay completed movements over the latest tally; refresh both outstanding jobs and Yard together and reject incomplete paged reads to avoid misleading stock totals.
 Size filtering in Stock Check is presentation-only: it narrows which container types are listed and must never change the tally, movement replay or Bookings Allowed maths.
 The Inventory Total Report uses working-stock tallies unchanged, active catalogued profiles and Own-excluded on-site counts via stock-check-total-report; never infer physical removals from excluded profiles, avoiding double deductions.
+Expected-stock yard replay uses stock-check-availability completion rules and the tally update timestamp rather than its original check date, preventing historical jobs from being replayed over a revised tally.
