@@ -795,7 +795,7 @@ function primaryContainerSize(containerTypes: string[]): number {
   return Math.max(...containerTypes.map(extractBinSize));
 }
 
-function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: string; netOnSite: number; delivered: number; collected: number; exchanged: number; containerTypes: string[]; wasteTypes: string[]; plannedCollections?: { jobNumber: string; date: string; containerType: string | null }[]; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; positions: Record<string, PosCounts> }> }>; label: string }) {
+function SiteTable({ sites, label, ownBinKeys }: { sites: Array<{ customer: string; site: string; netOnSite: number; ownOnSite?: number; delivered: number; collected: number; exchanged: number; containerTypes: string[]; wasteTypes: string[]; plannedCollections?: { jobNumber: string; date: string; containerType: string | null }[]; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; positions: Record<string, PosCounts> }> }>; label: string; ownBinKeys: Set<string> }) {
   const [sortField, setSortField] = useState<SortField>("netOnSite");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
@@ -865,16 +865,21 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
         );
         if (matchingTypes.length === 0) return null;
         // Recalculate on-site from matching container type breakdowns only,
-        // counting each distinct position (EWC/waste stream).
-        let delivered = 0, collected = 0, exchanged = 0, netOnSite = 0;
+        // counting each distinct position (EWC/waste stream). Own (customer
+        // supplied) containers are re-counted for the matching types too so the
+        // Clews/Own split follows the active filter.
+        let delivered = 0, collected = 0, exchanged = 0, netOnSite = 0, ownOnSite = 0;
         for (const ct of matchingTypes) {
           const b = s.containerTypeBreakdown[ct];
-          if (b) { delivered += b.delivered; collected += b.collected; exchanged += b.exchanged; netOnSite += typeOnSite(b.positions); }
+          if (b) {
+            delivered += b.delivered; collected += b.collected; exchanged += b.exchanged; netOnSite += typeOnSite(b.positions);
+            if (ownBinKeys.has(`${s.site.toLowerCase().trim()}|||${ct.toLowerCase().trim()}`)) ownOnSite += typeOnSite(b.positions);
+          }
         }
-        return { ...s, containerTypes: matchingTypes, netOnSite, delivered, collected, exchanged };
+        return { ...s, containerTypes: matchingTypes, netOnSite, ownOnSite, delivered, collected, exchanged };
       })
       .filter((s): s is NonNullable<typeof s> => s !== null && s.netOnSite > 0);
-  }, [sites, selectedTypes, selectedSizes, wasteSearchLower]);
+  }, [sites, selectedTypes, selectedSizes, wasteSearchLower, ownBinKeys]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
