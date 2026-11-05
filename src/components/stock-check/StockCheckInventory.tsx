@@ -1629,6 +1629,11 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
               </SelectContent>
             </Select>
           )}
+          <SizeFilter
+            options={sizeOptions}
+            selected={sizeFilter}
+            onChange={setSizeFilter}
+          />
         </div>
         <div className="flex items-center gap-2">
           {viewMode === "list" && (
