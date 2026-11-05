@@ -1025,7 +1025,15 @@ function SiteTable({ sites, label, ownBinKeys }: { sites: Array<{ customer: stri
                   )}
                 </TableCell>
                 <TableCell className="text-center">
-                  <Badge variant="default">{s.netOnSite}</Badge>
+                  <div className="flex items-center justify-center gap-1.5">
+                    <Badge variant="default">{s.netOnSite}</Badge>
+                    {!!s.ownOnSite && (
+                      <Badge className="bg-info/15 text-info border border-info/30" title="Customer's own container, marked in Rentals">
+                        <Package className="h-3 w-3 mr-1" />
+                        Own {s.ownOnSite}
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-center text-muted-foreground">{s.delivered}</TableCell>
                 <TableCell className="text-center text-muted-foreground">{s.exchanged}</TableCell>
