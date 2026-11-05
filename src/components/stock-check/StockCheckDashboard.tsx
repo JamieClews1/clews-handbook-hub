@@ -289,9 +289,10 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
     const proj = getProjection(typeId);
     if (!item) return 0;
     // In Yard projected forward from last tally using completed movements between
-    // the tally date and today. Exchanges are self-fulfilling (runner returns
-    // with the swap), so they don't affect availability. Reserve declared runners only.
-    return getAdjustedInYard(typeId) + proj.toCollect - proj.toDeliver - item.runner;
+    // the tally date and today. Collections don't add availability until they're
+    // back in the yard, and exchanges are self-fulfilling (runner returns with
+    // the swap) so they don't affect availability. Reserve declared runners only.
+    return getAdjustedInYard(typeId) - proj.toDeliver - item.runner;
   };
 
   return (
