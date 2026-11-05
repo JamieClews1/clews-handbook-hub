@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Truck, Container, Warehouse, MapPin, Calendar, Download } from "lucide-react";
 import { format } from "date-fns";
 import { useExpectedStock, type ExpectedContainerType } from "@/hooks/useExpectedStock";
+import { SizeFilter } from "@/components/stock-check/SizeFilter";
+import { filterTypesBySize, type SizeFilterOption } from "@/lib/stock-check-size-filter";
+import { useState } from "react";
 
 export const StockCheckTotalStock = () => {
   const {
@@ -15,6 +18,7 @@ export const StockCheckTotalStock = () => {
     siteDetail,
     latestCheckDate,
   } = useExpectedStock();
+  const [sizeFilter, setSizeFilter] = useState<string[]>([]);
 
   if (loading) {
     return (
@@ -34,16 +38,25 @@ export const StockCheckTotalStock = () => {
     );
   }
 
-  const skips = containerTypes.filter((t) => t.category === "skip");
-  const roros = containerTypes.filter((t) => t.category === "roro");
+  const allSkips = containerTypes.filter((t) => t.category === "skip");
+  const allRoros = containerTypes.filter((t) => t.category === "roro");
+  const sizeOptions: SizeFilterOption[] = containerTypes.map((t) => ({
+    id: t.id,
+    name: t.name,
+    group: t.category === "roro" ? "RoRos" : "Skips",
+  }));
+  const filtered = sizeFilter.length > 0;
+  const skips = filterTypesBySize(allSkips, sizeFilter);
+  const roros = filterTypesBySize(allRoros, sizeFilter);
 
   const sumFor = (types: ExpectedContainerType[], src: Record<string, number>) =>
     types.reduce((acc, t) => acc + (src[t.id] || 0), 0);
 
+  // Unclassified bins belong to no size, so they drop out once a size is chosen.
   const skipYard = sumFor(skips, inYardByType);
-  const skipSite = sumFor(skips, onSiteByType) + onSiteOther.skip;
+  const skipSite = sumFor(skips, onSiteByType) + (filtered ? 0 : onSiteOther.skip);
   const roroYard = sumFor(roros, inYardByType);
-  const roroSite = sumFor(roros, onSiteByType) + onSiteOther.roro;
+  const roroSite = sumFor(roros, onSiteByType) + (filtered ? 0 : onSiteOther.roro);
 
   const downloadSiteReport = () => {
     const esc = (v: string | number | null) => {
@@ -106,16 +119,19 @@ export const StockCheckTotalStock = () => {
             </p>
           )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5"
-          onClick={downloadSiteReport}
-          disabled={siteDetail.length === 0}
-        >
-          <Download className="h-4 w-4" />
-          Download site report
-        </Button>
+        <div className="flex items-center gap-2">
+          <SizeFilter options={sizeOptions} selected={sizeFilter} onChange={setSizeFilter} />
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={downloadSiteReport}
+            disabled={siteDetail.length === 0}
+          >
+            <Download className="h-4 w-4" />
+            Download site report
+          </Button>
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -153,8 +169,8 @@ export const StockCheckTotalStock = () => {
       </div>
 
       {/* By type breakdown */}
-      <TotalStockTable title="Skips" icon={<Truck className="h-5 w-5 text-primary" />} types={skips} inYard={inYardByType} onSite={onSiteByType} otherOnSite={onSiteOther.skip} />
-      <TotalStockTable title="RoRos" icon={<Container className="h-5 w-5 text-primary" />} types={roros} inYard={inYardByType} onSite={onSiteByType} otherOnSite={onSiteOther.roro} />
+      <TotalStockTable title="Skips" icon={<Truck className="h-5 w-5 text-primary" />} types={skips} inYard={inYardByType} onSite={onSiteByType} otherOnSite={filtered ? 0 : onSiteOther.skip} />
+      <TotalStockTable title="RoRos" icon={<Container className="h-5 w-5 text-primary" />} types={roros} inYard={inYardByType} onSite={onSiteByType} otherOnSite={filtered ? 0 : onSiteOther.roro} />
     </div>
   );
 };

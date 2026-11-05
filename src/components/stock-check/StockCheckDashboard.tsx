@@ -12,6 +12,8 @@ import { stockCheckAvailability, stockMovementDelta, movementAfterTally, uniqueS
 import { fetchAllRows } from "@/lib/fetch-all";
 import { londonCalendarKey } from "@/lib/ui-calendar";
 import { containerSize } from "@/lib/container-taxonomy";
+import { SizeFilter } from "@/components/stock-check/SizeFilter";
+import { filterTypesBySize, type SizeFilterOption } from "@/lib/stock-check-size-filter";
 
 interface ContainerType {
   id: string;
@@ -49,6 +51,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
   const [loading, setLoading] = useState(true);
   const [latestCheckDate, setLatestCheckDate] = useState<string | null>(null);
   const [outlookDays, setOutlookDays] = useState<number>(5);
+  const [sizeFilter, setSizeFilter] = useState<string[]>([]);
   const [reclassRules, setReclassRules] = useState<EwcReclassRule[]>([]);
 
   useEffect(() => {
@@ -195,8 +198,13 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
     );
   }
 
-  const skips = containerTypes.filter((t) => t.category === "skip");
-  const roros = containerTypes.filter((t) => t.category === "roro");
+  const skips = filterTypesBySize(containerTypes.filter((t) => t.category === "skip"), sizeFilter);
+  const roros = filterTypesBySize(containerTypes.filter((t) => t.category === "roro"), sizeFilter);
+  const sizeOptions: SizeFilterOption[] = containerTypes.map((t) => ({
+    id: t.id,
+    name: t.name,
+    group: t.category === "roro" ? "RoRos" : "Skips",
+  }));
 
   const getItem = (typeId: string) => latestItems.find((i) => i.container_type_id === typeId);
   const getProjection = (typeId: string) => projections[typeId] || { toCollect: 0, toDeliver: 0, toExchange: 0, collectJobs: [], deliverJobs: [], exchangeJobs: [] };
@@ -235,6 +243,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
         </div>
         <div className="flex items-center gap-4 flex-wrap">
           {headerAction}
+          <SizeFilter options={sizeOptions} selected={sizeFilter} onChange={setSizeFilter} />
           <div className="flex items-center gap-1.5">
             <Label className="text-sm text-muted-foreground">Outlook:</Label>
             <div className="inline-flex rounded-md border border-border overflow-hidden">
@@ -267,7 +276,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
         </div>
       )}
       {/* Skips */}
-      <div hidden={Boolean(movementError)}>
+      <div hidden={Boolean(movementError) || skips.length === 0}>
         <div className="flex items-center gap-2 mb-3">
           <Truck className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-bold text-foreground">Skips</h3>
@@ -285,7 +294,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
       </div>
 
       {/* RoRos */}
-      <div hidden={Boolean(movementError)}>
+      <div hidden={Boolean(movementError) || roros.length === 0}>
         <div className="flex items-center gap-2 mb-3">
           <Container className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-bold text-foreground">RoRos</h3>
