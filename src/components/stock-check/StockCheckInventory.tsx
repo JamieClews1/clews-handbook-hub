@@ -90,7 +90,8 @@ import { useExpectedStock, bestExpectedTypeFor } from "@/hooks/useExpectedStock"
 import { SizeFilter } from "./SizeFilter";
 import { sizeOptionsFromValues, type SizeFilterOption } from "@/lib/stock-check-size-filter";
 import { totalReportTotals, totalReportType } from "@/lib/stock-check-total-report";
-import { isSuspectProfile } from "@/lib/stock-check-suspect";
+import { isSuspectProfile, suspectCsv } from "@/lib/stock-check-suspect";
+import { downloadCsv } from "@/lib/csv-download";
 
 interface InventoryRow {
   id: string;
@@ -1790,6 +1791,23 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
                 </button>
               </DropdownMenuContent>
           </DropdownMenu>
+          )}
+
+          {scope === "suspect" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              disabled={sortedRows.length === 0 || !photoSizes}
+              onClick={() =>
+                downloadCsv(
+                  suspectCsv(sortedRows, photoSizes || new Map()),
+                  `suspect-profiles-${new Date().toISOString().slice(0, 10)}.csv`,
+                )
+              }
+            >
+              <Download className="h-4 w-4" /> Export CSV
+            </Button>
           )}
 
           <Button
