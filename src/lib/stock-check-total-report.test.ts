@@ -33,7 +33,8 @@ describe("totalReportType", () => {
     expect(t.inYard).toBe(0);
     expect(t.onSiteClews).toBe(3);
     expect(t.fleet).toBe(3);
-    expect(t.required).toBe(0);
+    // 3 working bins, 2 catalogued profiles → 1 still required
+    expect(t.required).toBe(1);
   });
 
   test("customer-owned bins are never counted as Clews stock", () => {
