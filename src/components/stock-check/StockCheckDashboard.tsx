@@ -276,7 +276,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
         </div>
       )}
       {/* Skips */}
-      <div hidden={Boolean(movementError)}>
+      <div hidden={Boolean(movementError) || skips.length === 0}>
         <div className="flex items-center gap-2 mb-3">
           <Truck className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-bold text-foreground">Skips</h3>
@@ -294,7 +294,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
       </div>
 
       {/* RoRos */}
-      <div hidden={Boolean(movementError)}>
+      <div hidden={Boolean(movementError) || roros.length === 0}>
         <div className="flex items-center gap-2 mb-3">
           <Container className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-bold text-foreground">RoRos</h3>
