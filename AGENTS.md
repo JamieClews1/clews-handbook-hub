@@ -46,4 +46,3 @@ Outgoing stream comparisons share one classifier reading Midweigh raw Product; n
 Register normaliser accepts business_name. Insights shares URL-bound periods, cached read-only projected columns and P&L scalar maths, never private finance reads or Data Uploads changes.
 Duty of Care reclassification keeps company/permit evidence; shared tipping choices exclude Broker/Haulage even from historical fallbacks, without altering jobs.
 Waste products are reference-only; never rewrite tickets. WeighOne ticket deletion detaches Route One/Banksman links first, is refused while an invoice carries the ticket, and needs explicit acknowledgement.
-Open tabs move onto a newer published build automatically via the build-watchdog module-script signature; dev tooling scripts are excluded so a preview tab never self-reloads.
