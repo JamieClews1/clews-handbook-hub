@@ -87,6 +87,8 @@ import {
 import { cn, compareAssetNumbers } from "@/lib/utils";
 import { publicUrl } from "@/lib/public-url";
 import { useExpectedStock, bestExpectedTypeFor } from "@/hooks/useExpectedStock";
+import { SizeFilter } from "./SizeFilter";
+import { sizeOptionsFromValues, type SizeFilterOption } from "@/lib/stock-check-size-filter";
 
 interface InventoryRow {
   id: string;
@@ -1039,6 +1041,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "skip" | "roro">("all");
   const [tagFilter, setTagFilter] = useState<string>("all");
+  const [sizeFilter, setSizeFilter] = useState<string[]>([]);
   const { data: tagOptions = [] } = useTagOptions();
   const tagColour = (name: string) =>
     tagStyle[tagOptions.find((t) => t.name === name)?.colour || "amber"] || tagStyle.amber;
