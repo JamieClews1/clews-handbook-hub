@@ -446,6 +446,16 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
 
   const skipSites = useMemo(() => liveSites.filter(s => s.category === "skip"), [liveSites]);
   const roroSites = useMemo(() => liveSites.filter(s => s.category === "roro"), [liveSites]);
+  // Own (customer-supplied) containers split out of the on-site totals, so the
+  // summary cards can show Clews vs Own side by side.
+  const ownOnSiteCounts = useMemo(() => {
+    const acc = { skip: 0, roro: 0 };
+    for (const s of liveSites) {
+      if (s.category === "skip") acc.skip += s.ownOnSite;
+      else if (s.category === "roro") acc.roro += s.ownOnSite;
+    }
+    return acc;
+  }, [liveSites]);
   const sixMonthsAgo = useMemo(() => format(subMonths(new Date(), settings.waste_truck_months), "yyyy-MM-dd"), [settings.waste_truck_months]);
   const wasteTruckSites = useMemo(() => liveSites.filter(s => s.category === "artic" && s.lastActivityDate && s.lastActivityDate >= sixMonthsAgo), [liveSites, sixMonthsAgo]);
 
@@ -617,12 +627,14 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           value={liveCounts.skip}
           icon={<Container className="h-5 w-5" />}
           tone="success"
+          caption={`Clews ${Math.max(0, liveCounts.skip - ownOnSiteCounts.skip)} · Own ${ownOnSiteCounts.skip}`}
         />
         <StatCard
           label="RoRos On-Site"
           value={liveCounts.roro}
           icon={<Truck className="h-5 w-5" />}
           tone="info"
+          caption={`Clews ${Math.max(0, liveCounts.roro - ownOnSiteCounts.roro)} · Own ${ownOnSiteCounts.roro}`}
         />
         <StatCard
           label="Waste Truck Sites"
@@ -710,13 +722,13 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         </TabsList>
 
         <TabsContent value="skips">
-          <SiteTable sites={skipSites} label="Skip" />
+          <SiteTable sites={skipSites} label="Skip" ownBinKeys={ownBinKeys} />
         </TabsContent>
         <TabsContent value="roros">
-          <SiteTable sites={roroSites} label="RoRo" />
+          <SiteTable sites={roroSites} label="RoRo" ownBinKeys={ownBinKeys} />
         </TabsContent>
         <TabsContent value="artics">
-          <SiteTable sites={wasteTruckSites} label="Waste Truck" />
+          <SiteTable sites={wasteTruckSites} label="Waste Truck" ownBinKeys={ownBinKeys} />
         </TabsContent>
         <TabsContent value="over-rental">
           <OverRentalTable sites={overRentalSites} />
