@@ -119,16 +119,19 @@ export const StockCheckTotalStock = () => {
             </p>
           )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5"
-          onClick={downloadSiteReport}
-          disabled={siteDetail.length === 0}
-        >
-          <Download className="h-4 w-4" />
-          Download site report
-        </Button>
+        <div className="flex items-center gap-2">
+          <SizeFilter options={sizeOptions} selected={sizeFilter} onChange={setSizeFilter} />
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={downloadSiteReport}
+            disabled={siteDetail.length === 0}
+          >
+            <Download className="h-4 w-4" />
+            Download site report
+          </Button>
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -220,7 +223,7 @@ const TotalStockTable = ({
                 </tr>
               );
             })}
-            {otherOnSite > 0 && (
+            {otherOnSite > 0 && !sizeFilterActive && (
               <tr className="border-b border-border/50">
                 <td className="py-2 px-3 font-medium text-muted-foreground italic">Other / unclassified</td>
                 <td className="py-2 px-3 text-right">0</td>
