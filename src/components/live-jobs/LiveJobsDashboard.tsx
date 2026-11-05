@@ -364,6 +364,8 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         const collectionClearedIt = s.lastCollectionDate && lastKeepDate && s.lastCollectionDate >= lastKeepDate;
         // Artics (waste trucks) don't stay on-site, so count sites visited instead
         let netOnSite: number;
+        let ownOnSite = 0;
+        let clewsOnSite = 0;
         if (s.category === "artic") {
           netOnSite = totalMovements; // For artics, this represents visit count
         } else {
@@ -376,6 +378,15 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
             if (collectedBinKeys.has(key)) return sum;
             return sum + typeOnSite(ctb.positions);
           }, 0);
+          // Split the on-site count between Clews-supplied containers and the
+          // customer's own ones. "Own" comes only from the markings staff make in
+          // Rentals (Own Skip) — nothing is inferred from the raw data.
+          ownOnSite = Object.entries(s.containerTypeBreakdown).reduce((sum, [ct, ctb]) => {
+            const key = `${s.site.toLowerCase().trim()}|||${ct.toLowerCase().trim()}`;
+            if (!ownBinKeys.has(key)) return sum;
+            return sum + typeOnSite(ctb.positions);
+          }, 0);
+          clewsOnSite = Math.max(0, netOnSite - ownOnSite);
         }
         const daysSinceLastKeep = lastKeepDate ? differenceInDays(new Date(), new Date(lastKeepDate)) : null;
         // Genuine uncollected delivery balance — ignores phantom containers
@@ -393,7 +404,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         // single tip/return or exchange with no delivery on record is NOT counted
         // as an on-site container, so it no longer falsely flags as over rental.
         const isOverRental = s.category !== "artic" && daysSinceLastKeep !== null && daysSinceLastKeep > settings.rental_free_days && netDeliveredOnSite > 0 && !collectionClearedIt;
-        return { ...s, customer: s.latestCustomer, netOnSite, daysSinceActivity: daysSinceLastKeep, lastActivityDate: lastKeepDate, isOverRental, containerTypes: Array.from(s.containerTypes), wasteTypes: Array.from(s.wasteTypes) };
+        return { ...s, customer: s.latestCustomer, netOnSite, ownOnSite, clewsOnSite, daysSinceActivity: daysSinceLastKeep, lastActivityDate: lastKeepDate, isOverRental, containerTypes: Array.from(s.containerTypes), wasteTypes: Array.from(s.wasteTypes) };
       });
 
     // Sites with net containers on-site
@@ -435,6 +446,16 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
 
   const skipSites = useMemo(() => liveSites.filter(s => s.category === "skip"), [liveSites]);
   const roroSites = useMemo(() => liveSites.filter(s => s.category === "roro"), [liveSites]);
+  // Own (customer-supplied) containers split out of the on-site totals, so the
+  // summary cards can show Clews vs Own side by side.
+  const ownOnSiteCounts = useMemo(() => {
+    const acc = { skip: 0, roro: 0 };
+    for (const s of liveSites) {
+      if (s.category === "skip") acc.skip += s.ownOnSite;
+      else if (s.category === "roro") acc.roro += s.ownOnSite;
+    }
+    return acc;
+  }, [liveSites]);
   const sixMonthsAgo = useMemo(() => format(subMonths(new Date(), settings.waste_truck_months), "yyyy-MM-dd"), [settings.waste_truck_months]);
   const wasteTruckSites = useMemo(() => liveSites.filter(s => s.category === "artic" && s.lastActivityDate && s.lastActivityDate >= sixMonthsAgo), [liveSites, sixMonthsAgo]);
 
@@ -504,6 +525,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
               Customer: s.customer,
               Site: s.site,
               "Container Type": "Unknown",
+              "Ownership": "Clews",
               "Waste Type": s.wasteTypes.join(", "),
               "Net On-Site": s.netOnSite,
               Delivered: s.delivered,
@@ -530,6 +552,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
                   Customer: s.customer,
                   Site: s.site,
                   "Container Type": ctName,
+                  "Ownership": ownBinKeys.has(`${s.site.toLowerCase().trim()}|||${ctName.toLowerCase().trim()}`) ? "Own" : "Clews",
                   "EWC": pos.ewc ?? "",
                   "Waste Type": Array.from(pos.wasteTypes).join(", "),
                   "Net On-Site": posNet,
@@ -549,6 +572,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
                 Customer: s.customer,
                 Site: s.site,
                 "Container Type": s.containerTypes.join(", ") || "Unknown",
+                "Ownership": s.containerTypes.length > 0 && s.containerTypes.every(ct => ownBinKeys.has(`${s.site.toLowerCase().trim()}|||${ct.toLowerCase().trim()}`)) ? "Own" : "Clews",
                 "EWC": "",
                 "Waste Type": s.wasteTypes.join(", "),
                 "Net On-Site": s.netOnSite,
@@ -606,12 +630,14 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           value={liveCounts.skip}
           icon={<Container className="h-5 w-5" />}
           tone="success"
+          caption={`Clews ${Math.max(0, liveCounts.skip - ownOnSiteCounts.skip)} · Own ${ownOnSiteCounts.skip}`}
         />
         <StatCard
           label="RoRos On-Site"
           value={liveCounts.roro}
           icon={<Truck className="h-5 w-5" />}
           tone="info"
+          caption={`Clews ${Math.max(0, liveCounts.roro - ownOnSiteCounts.roro)} · Own ${ownOnSiteCounts.roro}`}
         />
         <StatCard
           label="Waste Truck Sites"
@@ -699,13 +725,13 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         </TabsList>
 
         <TabsContent value="skips">
-          <SiteTable sites={skipSites} label="Skip" />
+          <SiteTable sites={skipSites} label="Skip" ownBinKeys={ownBinKeys} />
         </TabsContent>
         <TabsContent value="roros">
-          <SiteTable sites={roroSites} label="RoRo" />
+          <SiteTable sites={roroSites} label="RoRo" ownBinKeys={ownBinKeys} />
         </TabsContent>
         <TabsContent value="artics">
-          <SiteTable sites={wasteTruckSites} label="Waste Truck" />
+          <SiteTable sites={wasteTruckSites} label="Waste Truck" ownBinKeys={ownBinKeys} />
         </TabsContent>
         <TabsContent value="over-rental">
           <OverRentalTable sites={overRentalSites} />
@@ -772,7 +798,7 @@ function primaryContainerSize(containerTypes: string[]): number {
   return Math.max(...containerTypes.map(extractBinSize));
 }
 
-function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: string; netOnSite: number; delivered: number; collected: number; exchanged: number; containerTypes: string[]; wasteTypes: string[]; plannedCollections?: { jobNumber: string; date: string; containerType: string | null }[]; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; positions: Record<string, PosCounts> }> }>; label: string }) {
+function SiteTable({ sites, label, ownBinKeys }: { sites: Array<{ customer: string; site: string; netOnSite: number; ownOnSite?: number; delivered: number; collected: number; exchanged: number; containerTypes: string[]; wasteTypes: string[]; plannedCollections?: { jobNumber: string; date: string; containerType: string | null }[]; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; positions: Record<string, PosCounts> }> }>; label: string; ownBinKeys: Set<string> }) {
   const [sortField, setSortField] = useState<SortField>("netOnSite");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
@@ -842,16 +868,21 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
         );
         if (matchingTypes.length === 0) return null;
         // Recalculate on-site from matching container type breakdowns only,
-        // counting each distinct position (EWC/waste stream).
-        let delivered = 0, collected = 0, exchanged = 0, netOnSite = 0;
+        // counting each distinct position (EWC/waste stream). Own (customer
+        // supplied) containers are re-counted for the matching types too so the
+        // Clews/Own split follows the active filter.
+        let delivered = 0, collected = 0, exchanged = 0, netOnSite = 0, ownOnSite = 0;
         for (const ct of matchingTypes) {
           const b = s.containerTypeBreakdown[ct];
-          if (b) { delivered += b.delivered; collected += b.collected; exchanged += b.exchanged; netOnSite += typeOnSite(b.positions); }
+          if (b) {
+            delivered += b.delivered; collected += b.collected; exchanged += b.exchanged; netOnSite += typeOnSite(b.positions);
+            if (ownBinKeys.has(`${s.site.toLowerCase().trim()}|||${ct.toLowerCase().trim()}`)) ownOnSite += typeOnSite(b.positions);
+          }
         }
-        return { ...s, containerTypes: matchingTypes, netOnSite, delivered, collected, exchanged };
+        return { ...s, containerTypes: matchingTypes, netOnSite, ownOnSite, delivered, collected, exchanged };
       })
       .filter((s): s is NonNullable<typeof s> => s !== null && s.netOnSite > 0);
-  }, [sites, selectedTypes, selectedSizes, wasteSearchLower]);
+  }, [sites, selectedTypes, selectedSizes, wasteSearchLower, ownBinKeys]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -997,7 +1028,15 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
                   )}
                 </TableCell>
                 <TableCell className="text-center">
-                  <Badge variant="default">{s.netOnSite}</Badge>
+                  <div className="flex items-center justify-center gap-1.5">
+                    <Badge variant="default">{s.netOnSite}</Badge>
+                    {!!s.ownOnSite && (
+                      <Badge className="bg-info/15 text-info border border-info/30" title="Customer's own container, marked in Rentals">
+                        <Package className="h-3 w-3 mr-1" />
+                        Own {s.ownOnSite}
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-center text-muted-foreground">{s.delivered}</TableCell>
                 <TableCell className="text-center text-muted-foreground">{s.exchanged}</TableCell>
@@ -1005,7 +1044,9 @@ function SiteTable({ sites, label }: { sites: Array<{ customer: string; site: st
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
                     {s.containerTypes.slice(0, 3).map(ct => (
-                      <Badge key={ct} variant="outline" className="text-xs">{ct}</Badge>
+                      <Badge key={ct} variant="outline" className={`text-xs ${ownBinKeys.has(`${s.site.toLowerCase().trim()}|||${ct.toLowerCase().trim()}`) ? "text-info" : ""}`}>
+                        {ct}{ownBinKeys.has(`${s.site.toLowerCase().trim()}|||${ct.toLowerCase().trim()}`) ? " · Own" : ""}
+                      </Badge>
                     ))}
                     {s.containerTypes.length > 3 && (
                       <Badge variant="outline" className="text-xs">+{s.containerTypes.length - 3}</Badge>
