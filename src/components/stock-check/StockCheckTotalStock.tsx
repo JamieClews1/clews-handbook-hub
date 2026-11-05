@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Truck, Container, Warehouse, MapPin, Calendar, Download } from "lucide-react";
 import { format } from "date-fns";
 import { useExpectedStock, type ExpectedContainerType } from "@/hooks/useExpectedStock";
+import { SizeFilter } from "@/components/stock-check/SizeFilter";
+import { filterTypesBySize, type SizeFilterOption } from "@/lib/stock-check-size-filter";
+import { useState } from "react";
 
 export const StockCheckTotalStock = () => {
   const {
@@ -15,6 +18,7 @@ export const StockCheckTotalStock = () => {
     siteDetail,
     latestCheckDate,
   } = useExpectedStock();
+  const [sizeFilter, setSizeFilter] = useState<string[]>([]);
 
   if (loading) {
     return (
