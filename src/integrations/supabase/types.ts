@@ -4829,6 +4829,8 @@ export type Database = {
           label: string | null
           last_viewed_at: string | null
           show_photos: boolean
+          show_unverified_roros: boolean
+          show_unverified_skips: boolean
           show_values: boolean
           token: string
           updated_at: string
@@ -4843,6 +4845,8 @@ export type Database = {
           label?: string | null
           last_viewed_at?: string | null
           show_photos?: boolean
+          show_unverified_roros?: boolean
+          show_unverified_skips?: boolean
           show_values?: boolean
           token?: string
           updated_at?: string
@@ -4857,6 +4861,8 @@ export type Database = {
           label?: string | null
           last_viewed_at?: string | null
           show_photos?: boolean
+          show_unverified_roros?: boolean
+          show_unverified_skips?: boolean
           show_values?: boolean
           token?: string
           updated_at?: string
