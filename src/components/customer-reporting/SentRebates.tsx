@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Search, Mail, Building2, Trash2, Copy, Download, Eye, Archive } from "lucide-react";
+import { Loader2, Search, Mail, Building2, Trash2, Copy, Download, Eye, Archive, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -445,6 +445,27 @@ export function SentRebates() {
                           <Archive className="h-4 w-4" />
                         </Button>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          const params = new URLSearchParams({
+                            tab: "monthly-generation",
+                            recalc: "1",
+                            customer: r.customer_id,
+                            from: r.period_start,
+                            to: r.period_end,
+                          });
+                          if (r.site_id) params.set("site", r.site_id);
+                          if (r.rebate_amount !== null) params.set("prev", String(r.rebate_amount));
+                          if (r.sent_at) params.set("sentAt", r.sent_at);
+                          navigate(`/rebate-values?${params.toString()}`);
+                        }}
+                        title="Unlock and recalculate this report with today's figures, then send a revised copy"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"

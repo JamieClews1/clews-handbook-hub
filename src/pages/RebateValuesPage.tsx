@@ -60,6 +60,8 @@ function labelForMonth(monthStart: string) {
 }
 
 const RebateValuesPage = () => {
+  const [rebateParams, setRebateParams] = useSearchParams();
+  const rebateTab = rebateParams.get("tab") || "monthly-generation";
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading, isAdmin } = useAuth();
