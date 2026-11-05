@@ -107,8 +107,10 @@ describe("totalReportTotals", () => {
   ];
 
   test("sums only the requested category", () => {
-    expect(totalReportTotals(rows, "skip")).toEqual({ out: 6, yard: 7, required: 3 });
-    expect(totalReportTotals(rows, "roro")).toEqual({ out: 2, yard: 2, required: 1 });
+    // skip: yard 7-2 scrap = 5, out 6, fleet 11, catalogued 10 → 1 required
+    expect(totalReportTotals(rows, "skip")).toEqual({ out: 6, yard: 5, required: 1 });
+    // roro: yard 2, out 3-1 own = 2, fleet 4, catalogued 1 → 3 required
+    expect(totalReportTotals(rows, "roro")).toEqual({ out: 2, yard: 2, required: 3 });
   });
 
   test("unknown category is all zero", () => {
