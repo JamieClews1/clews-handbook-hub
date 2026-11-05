@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Truck, Container, TrendingUp, TrendingDown, Calendar, ArrowLeftRight, Pencil } from "lucide-react";
 import { format, addDays, startOfDay } from "date-fns";
 import { applyEwcReclass, type EwcReclassRule } from "@/lib/stock-check-reclass";
-import { stockCheckAvailability, stockMovementDelta, movementAfterTally, uniqueStockMovements, type StockMovement } from "@/lib/stock-check-availability";
+import { stockCheckAvailability, stockMovementDelta, movementAfterTally, uniqueStockMovements, stockContainerKey, type StockMovement } from "@/lib/stock-check-availability";
 import { fetchAllRows } from "@/lib/fetch-all";
 import { londonCalendarKey } from "@/lib/ui-calendar";
+import { containerSize } from "@/lib/container-taxonomy";
 
 interface ContainerType {
   id: string;
@@ -135,7 +136,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
       if (version !== requestVersion.current) return;
       const jobs = uniqueStockMovements([
         ...imports.map((j): StockMovement => ({ ...j, source: "skiptrak", completed: String((j.raw as { Status?: string } | null)?.Status ?? "").trim().toUpperCase() === "Y", completedAt: null, updatedAt: j.updated_at })),
-        ...native.filter(j => !j.own_container).map((j): StockMovement => ({ id: j.id, job_number: j.job_number, source: "routeone", container_type: [j.container_size, j.container_type].filter(Boolean).join(" "), movement_type: j.job_type, site: j.site_name, customer: j.customer_name, job_date: j.scheduled_date, ewc: j.ewc_code, completed: j.status === "completed", completedAt: j.completed_at, updatedAt: j.updated_at })),
+        ...native.filter(j => !j.own_container).map((j): StockMovement => ({ id: j.id, job_number: j.job_number, source: "routeone", container_type: [containerSize(j.container_size ?? "")?.label ?? j.container_size, j.container_type].filter(Boolean).join(" "), movement_type: j.job_type, site: j.site_name, customer: j.customer_name, job_date: j.scheduled_date, ewc: j.ewc_code, completed: j.status === "completed", completedAt: j.completed_at, updatedAt: j.updated_at })),
       ]);
       const projMap: typeof projections = {};
       const deltas: Record<string, number> = {};
@@ -149,10 +150,11 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
         let bestType: ContainerType | undefined;
         let bestLen = 0;
         for (const type of containerTypes) {
-          for (const kw of type.data_hub_keywords || []) {
-            if (kw.length > bestLen && new RegExp(`(^|\\W)${escapeRegex(kw)}(\\W|$)`, "i").test(job.container_type)) {
+          for (const kw of [...(type.data_hub_keywords || []), type.name]) {
+            const key = stockContainerKey(kw);
+            if (key.length > bestLen && new RegExp(`(^|\\W)${escapeRegex(key)}(\\W|$)`, "i").test(stockContainerKey(job.container_type))) {
               bestType = type;
-              bestLen = kw.length;
+              bestLen = key.length;
             }
           }
         }

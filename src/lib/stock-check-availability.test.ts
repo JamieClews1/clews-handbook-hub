@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stockCheckAvailability, stockMovementDelta, movementAfterTally, uniqueStockMovements, type StockMovement } from './stock-check-availability';
+import { stockCheckAvailability, stockMovementDelta, movementAfterTally, uniqueStockMovements, stockContainerKey, type StockMovement } from './stock-check-availability';
 
 test('Without completed movements Yard equals the tally', () => {
   assert.equal(stockCheckAvailability({ in_yard: 4, runner: 2 }, 1).inYard, 4);
@@ -28,6 +28,10 @@ test('Imports need completed status, post-tally upload and a current job date', 
 });
 test('A native job represented in Skiptrak counts only once', () => {
   assert.equal(uniqueStockMovements([collection, { ...collection, source: 'skiptrak', id: '2' }]).length, 1);
+});
+test('Native size labels match imported yard names', () => {
+  assert.equal(stockContainerKey('12 yd enclosed'), stockContainerKey('12 Yard Enc'));
+  assert.equal(stockContainerKey('14 / 16 yd'), stockContainerKey('14/16yd'));
 });
 
 test('Bookings reserve deliveries and runners from the tally only', () => {

@@ -29,6 +29,10 @@ export function stockMovementDelta(movement: string | null) {
   return 0;
 }
 
+export function stockContainerKey(value: string) {
+  return value.toLowerCase().replace(/\byards?\b/g, 'yd').replace(/\benc\b/g, 'enclosed').replace(/(\d)\s+yd/g, '$1yd').replace(/\s*\/\s*/g, '/').replace(/[^a-z0-9/]+/g, ' ').trim();
+}
+
 export function uniqueStockMovements(jobs: StockMovement[]) {
   const nativeNumbers = new Set(jobs.filter(j => j.source === 'routeone').map(j => j.job_number.trim().toUpperCase()));
   return jobs.filter(j => j.source !== 'skiptrak' || !nativeNumbers.has(j.job_number.trim().toUpperCase()));

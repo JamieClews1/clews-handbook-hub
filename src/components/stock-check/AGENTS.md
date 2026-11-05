@@ -1,0 +1,1 @@
+Live dashboard stock uses stock-check-availability to replay completed movements over the latest tally; refresh both outstanding jobs and Yard together and reject incomplete paged reads to avoid misleading stock totals.
