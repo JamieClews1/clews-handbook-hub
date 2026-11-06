@@ -85,7 +85,10 @@ export default function SiteHistorySearch({ settings, startSite, onStartSiteHand
     try {
       const filters = siteHistorySearchFilters(term);
       const [rows, mappings] = await Promise.all([
-        readPages<Pick<HistoryJob,"customer"|"site"|"postcode"|"address"|"address2"|"address3">>((from,to) => supabase.from("data_hub_jobs").select(HISTORY_SEARCH_FIELDS).eq("source",source).or(filters.jobs).order("id").range(from,to)),
+        supabase.rpc("search_site_history", { p_term: term, p_source: source }).then(({ data, error }) => {
+          if (error) throw error;
+          return (data ?? []) as Pick<HistoryJob,"customer"|"site"|"postcode"|"address"|"address2"|"address3">[];
+        }),
         source === "skiptrak" ? readPages<MappedSite>((from,to) => supabase.from("customer_sites").select("site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,address_1,address_2,postcode").or(filters.mappings).order("id").range(from,to)) : Promise.resolve([]),
       ]);
       const sites = new Map<string, SiteResult>();

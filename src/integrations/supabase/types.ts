@@ -11315,6 +11315,17 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      search_site_history: {
+        Args: { p_source: string; p_term: string }
+        Returns: {
+          address: string
+          address2: string
+          address3: string
+          customer: string
+          postcode: string
+          site: string
+        }[]
+      }
       section_allows_user: {
         Args: { _key: string; _user_id: string }
         Returns: boolean
