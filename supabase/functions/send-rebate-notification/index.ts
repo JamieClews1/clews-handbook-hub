@@ -74,7 +74,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const htmlBody = body.replace(/\n/g, "<br>");
+    const htmlBody = /<\/?(p|ul|li|br|strong|em|div)\b/i.test(body) ? body : body.replace(/\n/g, "<br>");
 
     // Use template from DB or fall back to defaults
     let senderName = "Clews Recycling";

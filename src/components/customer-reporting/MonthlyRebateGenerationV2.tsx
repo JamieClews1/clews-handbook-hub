@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { CompactRichTextEditor } from "@/components/CompactRichTextEditor";
 import { isMidweighRebateCustomer } from "@/lib/midweigh-rebates";
 import { convertWeightToTonnes } from "@/lib/weighbridge-source";
 import { Button } from "@/components/ui/button";
@@ -136,6 +137,11 @@ export function MonthlyRebateGenerationV2() {
   const [emailRecipient, setEmailRecipient] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
+  const [rebateMessageTemplate, setRebateMessageTemplate] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.from("email_templates").select("message_html").eq("template_key", "rebate_notification").maybeSingle()
+      .then(({ data }) => setRebateMessageTemplate(data?.message_html ?? null));
+  }, []);
   const [midweighContactByCustomer, setMidweighContactByCustomer] = useState<Record<string, string>>({});
   useEffect(() => {
     supabase
@@ -1176,8 +1182,18 @@ export function MonthlyRebateGenerationV2() {
     );
   };
 
-  const buildSiteBody = (contactName: string | undefined, sb: SiteBreakdown) =>
-    `Dear ${contactName ?? "Customer"},\n\nWe are writing to inform you that rebates have been calculated for ${sb.site.site_name} for ${periodLabel}.\n\nTotal Rebate Due: £${sb.totalRebate.toFixed(2)}\n\nPlease submit an invoice for this amount at your earliest convenience.\n\nMaterial Breakdown:\n${sb.materials.map((m) => `- ${m.name}: ${m.weight.toFixed(2)}t @ £${m.rate.toFixed(2)}/t = £${m.rebate.toFixed(2)}`).join("\n")}\n\nIf you have any questions, please don't hesitate to contact us.\n\nBest regards,\nClews Recycling Limited`;
+  const buildSiteBody = (contactName: string | undefined, sb: SiteBreakdown) => {
+    const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const breakdown = `<ul>${sb.materials.map((m) => `<li>${esc(m.name)}: ${m.weight.toFixed(2)}t @ £${m.rate.toFixed(2)}/t = £${m.rebate.toFixed(2)}</li>`).join("")}</ul>`;
+    const tpl = rebateMessageTemplate ||
+      "<p>Dear {{contactName}},</p><p>We are writing to inform you that rebates have been calculated for {{siteName}} for {{period}}.</p><p>Total Rebate Due: £{{totalRebate}}</p><p>Please submit an invoice for this amount at your earliest convenience.</p><p>Material Breakdown:</p>{{materialBreakdown}}<p>If you have any questions, please don't hesitate to contact us.</p><p>Best regards,<br>Clews Recycling Limited</p>";
+    return tpl
+      .replace(/\{\{contactName\}\}/g, esc(contactName ?? "Customer"))
+      .replace(/\{\{siteName\}\}/g, esc(sb.site.site_name))
+      .replace(/\{\{period\}\}/g, esc(periodLabel))
+      .replace(/\{\{totalRebate\}\}/g, sb.totalRebate.toFixed(2))
+      .replace(/(<p>)?\{\{materialBreakdown\}\}(<\/p>)?/g, breakdown);
+  };
 
   const openEmailDialog = (summary: CustomerRebateSummary, sb: SiteBreakdown) => {
     setSelectedCustomer(summary);
@@ -2044,7 +2060,7 @@ export function MonthlyRebateGenerationV2() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="v2-email-body">Message</Label>
-              <Textarea id="v2-email-body" value={emailBody} onChange={(e) => setEmailBody(e.target.value)} rows={12} className="font-mono text-sm" />
+              <CompactRichTextEditor content={emailBody} onChange={setEmailBody} minHeight="260px" />
             </div>
             <div className="bg-muted/50 rounded-lg p-3 text-sm">
               <strong>Rebate Amount:</strong> £{selectedSite?.totalRebate.toFixed(2)}
