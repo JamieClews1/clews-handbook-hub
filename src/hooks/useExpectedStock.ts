@@ -1,4 +1,4 @@
-import { useStandingBinRules, withStandingBins } from "@/lib/standing-bins";
+import { withStandingBins, type StandingBinRule } from "@/lib/standing-bins";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, subMonths } from "date-fns";
@@ -9,6 +9,7 @@ import { movementAfterTally, stockMovementDelta, uniqueStockMovements, type Stoc
 import { londonCalendarKey } from "@/lib/ui-calendar";
 import { fetchAllRows } from "@/lib/fetch-all";
 import { containerSize } from "@/lib/container-taxonomy";
+import { bestStockType } from "@/lib/stock-check-matching";
 import { isCompletedRentalMovement } from "@/lib/rental-open-movements";
 
 export interface ExpectedContainerType {
@@ -29,6 +30,7 @@ interface JobRow {
   job_number: string;
   raw: unknown;
   updated_at: string;
+  rental_status?: string | null;
   site: string | null;
   container_type: string | null;
   movement_type: string | null;
@@ -37,34 +39,8 @@ interface JobRow {
   customer: string | null;
 }
 
-const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-// Module-level guard so the expected-stock snapshot is written at most once
-// per browser session, no matter how many components use this hook.
-let snapshotWritten = false;
-const matchKeyword = (haystack: string, kw: string) => {
-  const re = new RegExp(`(^|\\W)${escapeRegex(kw)}(\\W|$)`, "i");
-  return re.test(haystack);
-};
-
-// Pick the container type whose longest matching keyword wins. Optionally the
-// caller restricts the candidate types first (e.g. only one category).
-export const bestExpectedTypeFor = (
-  containerType: string,
-  types: ExpectedContainerType[],
-): ExpectedContainerType | null => {
-  let bestType: ExpectedContainerType | null = null;
-  let bestLen = 0;
-  for (const type of types) {
-    for (const kw of type.data_hub_keywords || []) {
-      if (kw.length > bestLen && matchKeyword(containerType, kw)) {
-        bestLen = kw.length;
-        bestType = type;
-      }
-    }
-  }
-  return bestType;
-};
+// All Stock Check consumers use the same container spelling and name fallback.
+export const bestExpectedTypeFor = bestStockType;
 
 // A single physical on-site position (site + container_type + EWC/waste stream).
 type Pos = {
@@ -89,6 +65,7 @@ export type SiteDetailRow = {
   containerType: string;
   ewc: string;
   count: number;
+  own: boolean;
   lastKeepDate: string | null;
   lastCollectionDate: string | null;
 };
@@ -115,6 +92,9 @@ export interface ExpectedStock {
   ownOnSiteByType: Record<string, number>;
   /** On-site containers that match no Stock Check type, per category. */
   onSiteOther: { skip: number; roro: number };
+  clewsOnSiteByType: Record<string, number>;
+  clewsOnSiteOther: { skip: number; roro: number };
+  refresh: () => void;
   siteDetail: SiteDetailRow[];
   latestCheckDate: string | null;
   /** Total expected (in yard + on site) per type id. */
@@ -141,54 +121,50 @@ export const useExpectedStock = (): ExpectedStock => {
   // so they must be excluded here too (same site|||container_type key).
   const [collectedBinKeys, setCollectedBinKeys] = useState<Set<string>>(new Set());
   const [ownBinKeys, setOwnBinKeys] = useState<Set<string>>(new Set());
-  const standingRules = useStandingBinRules();
+  const [standingRules, setStandingRules] = useState<StandingBinRule[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refresh = () => setRefreshKey(n => n + 1);
+  useEffect(() => {
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible") refresh(); }, 15000);
+    window.addEventListener("focus", refresh);
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", refresh); };
+  }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
       try {
-      const [{ data: types }, { data: excluded }] = await Promise.all([
-        supabase
-          .from("stock_check_container_types")
-          .select("*")
-          .eq("is_active", true)
-          .order("display_order"),
-        supabase.from("stock_check_excluded_sites").select("site_name"),
+      const [types, excluded, rules, markings, standing] = await Promise.all([
+        fetchAllRows<ExpectedContainerType>("stock_check_container_types", "*", "id", q => q.eq("is_active",true)),
+        fetchAllRows<{site_name:string}>("stock_check_excluded_sites", "id,site_name", "id"),
+        fetchAllRows<EwcReclassRule>("stock_check_ewc_reclass_rules", "id,from_type_id,to_type_id,ewc_codes,is_active", "id", q => q.eq("is_active",true)),
+        fetchAllRows<{bin_key:string;collected:boolean|null;own_skip:boolean|null}>("rental_chases", "id,bin_key,collected,own_skip", "id"),
+        fetchAllRows<StandingBinRule>("site_standing_bins", "id,customer,site,container_type,ewc,bin_count,active,notes", "id", q => q.eq("active",true)),
       ]);
-      if (types) setContainerTypes(types as ExpectedContainerType[]);
-      if (excluded) setExcludedSites(excluded.map((e) => e.site_name));
+      if (cancelled) return;
+      setContainerTypes(types.sort((a,b)=>a.display_order-b.display_order));
+      setExcludedSites(excluded.map(e=>e.site_name));
+      setReclassRules(rules); setStandingRules(standing);
+      setCollectedBinKeys(new Set(markings.filter(r=>r.collected).map(r=>r.bin_key)));
+      setOwnBinKeys(new Set(markings.filter(r=>r.own_skip).map(r=>r.bin_key)));
 
-      const { data: rules } = await supabase
-        .from("stock_check_ewc_reclass_rules")
-        .select("id, from_type_id, to_type_id, ewc_codes, is_active")
-        .eq("is_active", true);
-      setReclassRules((rules ?? []) as EwcReclassRule[]);
-
-      const { data: collected } = await supabase
-        .from("rental_chases")
-        .select("bin_key")
-        .eq("collected", true);
-      setCollectedBinKeys(new Set((collected ?? []).map((r: { bin_key: string }) => r.bin_key)));
-
-      const { data: own } = await supabase
-        .from("rental_chases")
-        .select("bin_key")
-        .eq("own_skip", true);
-      setOwnBinKeys(new Set((own ?? []).map((r: { bin_key: string }) => r.bin_key)));
-
-      const { data: latestCheck } = await supabase
+      const { data: latestCheck, error: checkError } = await supabase
         .from("stock_checks")
         .select("id, check_date, updated_at, created_at")
         .eq("status", "submitted")
         .order("check_date", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
+      if (checkError) throw checkError;
+      if (cancelled) return;
 
       if (latestCheck) {
         setLatestCheckDate(latestCheck.updated_at || latestCheck.created_at || latestCheck.check_date);
-        const { data: items } = await supabase
+        const { data: items, error: itemError } = await supabase
           .from("stock_check_items")
           .select("container_type_id, in_yard")
           .eq("stock_check_id", latestCheck.id);
+        if (itemError) throw itemError;
         if (items) setLatestItems(items as StockCheckItem[]);
       }
 
@@ -221,15 +197,18 @@ export const useExpectedStock = (): ExpectedStock => {
         );
         setNativeMovements(native.filter(j => !j.own_container).map((j): StockMovement => ({ id: j.id, job_number: j.job_number, source: "routeone", container_type: [containerSize(j.container_size ?? "")?.label ?? j.container_size, j.container_type].filter(Boolean).join(" "), movement_type: j.job_type, site: j.site_name, customer: j.customer_name, job_date: j.scheduled_date, ewc: j.ewc_code, completed: j.status === "completed", completedAt: j.completed_at, updatedAt: j.updated_at })));
       }
-      setJobs(all);
+      if (cancelled) return;
+      setJobs(all); setError(null);
       } catch (cause) {
+        if (cancelled) return;
         console.error(cause);
         setError("Stock estimates could not be loaded in full. Refresh to try again.");
       }
       setLoading(false);
     };
-    load();
-  }, []);
+    void load();
+    return () => { cancelled = true; };
+  }, [refreshKey]);
 
   const inYardByType = useMemo(() => {
     const map: Record<string, number> = {};
@@ -240,7 +219,7 @@ export const useExpectedStock = (): ExpectedStock => {
     if (!latestCheckDate) return map;
     const baselineDay = londonCalendarKey(new Date(latestCheckDate));
     const movements = uniqueStockMovements([
-      ...jobs.map((j): StockMovement => ({ ...j, source: "skiptrak", completed: String((j.raw as { Status?: string } | null)?.Status ?? "").trim().toUpperCase() === "Y", completedAt: null, updatedAt: j.updated_at })),
+      ...jobs.map((j): StockMovement => ({ ...j, source: "skiptrak", completed: String((j.raw as { Status?: string } | null)?.Status ?? "").trim().toUpperCase() === "Y" && Boolean(j.job_date && j.job_date <= londonCalendarKey()), completedAt: null, updatedAt: j.updated_at })),
       ...nativeMovements,
     ]);
     for (const job of movements) {
@@ -256,10 +235,10 @@ export const useExpectedStock = (): ExpectedStock => {
     return map;
   }, [containerTypes, latestItems, latestCheckDate, jobs, nativeMovements, excludedSites, reclassRules]);
 
-  const { onSiteByType, ownOnSiteByType, onSiteOther, siteDetail } = useMemo(() => {
+  const { onSiteByType, ownOnSiteByType, onSiteOther, clewsOnSiteOther, siteDetail } = useMemo(() => {
     const positions: Record<string, Pos> = {};
     for (const job of withStandingBins(jobs, standingRules)) {
-      if (!isCompletedRentalMovement({ ...job, rental_status: (job.raw as { Status?: string } | null)?.Status, waste_description: null, vehicle_registration: null })) continue;
+      if (!isCompletedRentalMovement({ ...job, rental_status: job.rental_status ?? (job.raw as { Status?: string } | null)?.Status, waste_description: null, vehicle_registration: null })) continue;
       if (!job.container_type) continue;
       if (excludedSites.some((s) => job.site?.toLowerCase().includes(s.toLowerCase()))) continue;
       const cat = categoriseContainer(job.container_type, null, liveSettings);
@@ -299,6 +278,7 @@ export const useExpectedStock = (): ExpectedStock => {
     const ownByType: Record<string, number> = {};
     for (const t of containerTypes) { byType[t.id] = 0; ownByType[t.id] = 0; }
     const other = { skip: 0, roro: 0 };
+    const clewsOther = { skip: 0, roro: 0 };
     const detail: SiteDetailRow[] = [];
 
     // Clamp each site + container type to its plain delivered−collected balance so a
@@ -327,12 +307,14 @@ export const useExpectedStock = (): ExpectedStock => {
       const binKey = `${p.site.toLowerCase().trim()}|||${p.containerType.toLowerCase().trim()}`;
       if (collectedBinKeys.has(binKey)) continue;
       const candidates = containerTypes.filter((t) => t.category === p.category);
-      const type = bestExpectedTypeFor(p.containerType, candidates);
+      const matched = bestExpectedTypeFor(p.containerType, candidates);
+      const target = matched ? applyEwcReclass(matched.id, p.ewc, reclassRules) : null;
+      const type = candidates.find(t => t.id === target) ?? matched;
       if (type) {
         byType[type.id] += count;
         if (ownBinKeys.has(binKey)) ownByType[type.id] += count;
       }
-      else other[p.category] += count;
+      else { other[p.category] += count; if (!ownBinKeys.has(binKey)) clewsOther[p.category] += count; }
       detail.push({
         site: p.site,
         customer: p.customer,
@@ -341,6 +323,7 @@ export const useExpectedStock = (): ExpectedStock => {
         containerType: p.containerType,
         ewc: p.ewc && p.ewc !== "__none__" ? p.ewc : "",
         count,
+        own: ownBinKeys.has(binKey),
         lastKeepDate: p.lastKeepDate,
         lastCollectionDate: p.lastCollectionDate,
       });
@@ -348,16 +331,18 @@ export const useExpectedStock = (): ExpectedStock => {
     detail.sort((a, b) =>
       a.site.localeCompare(b.site) || a.typeName.localeCompare(b.typeName)
     );
-    return { onSiteByType: byType, ownOnSiteByType: ownByType, onSiteOther: other, siteDetail: detail };
-  }, [containerTypes, jobs, excludedSites, liveSettings, collectedBinKeys, ownBinKeys, standingRules]);
+    return { onSiteByType: byType, ownOnSiteByType: ownByType, onSiteOther: other, clewsOnSiteOther: clewsOther, siteDetail: detail };
+  }, [containerTypes, jobs, excludedSites, liveSettings, collectedBinKeys, ownBinKeys, standingRules, reclassRules]);
+
+  const clewsOnSiteByType = useMemo(() => Object.fromEntries(containerTypes.map(t => [t.id, Math.max(0,(onSiteByType[t.id] ?? 0)-(ownOnSiteByType[t.id] ?? 0))])), [containerTypes,onSiteByType,ownOnSiteByType]);
 
   const expectedByType = useMemo(() => {
     const map: Record<string, number> = {};
     for (const t of containerTypes) {
-      map[t.id] = (inYardByType[t.id] || 0) + (onSiteByType[t.id] || 0);
+      map[t.id] = (inYardByType[t.id] || 0) + (clewsOnSiteByType[t.id] || 0);
     }
     return map;
-  }, [containerTypes, inYardByType, onSiteByType]);
+  }, [containerTypes, inYardByType, clewsOnSiteByType]);
 
   const expectedByCategory = useMemo(() => {
     const sum = (cat: string) =>
@@ -365,19 +350,18 @@ export const useExpectedStock = (): ExpectedStock => {
         .filter((t) => t.category === cat)
         .reduce((a, t) => a + (expectedByType[t.id] || 0), 0);
     return {
-      skip: sum("skip") + onSiteOther.skip,
-      roro: sum("roro") + onSiteOther.roro,
+      skip: sum("skip") + clewsOnSiteOther.skip,
+      roro: sum("roro") + clewsOnSiteOther.roro,
     };
-  }, [containerTypes, expectedByType, onSiteOther]);
+  }, [containerTypes, expectedByType, clewsOnSiteOther]);
 
   // Persist the latest expected totals so the public inventory share page can
   // show "% of expected bins catalogued". Writes at most once per browser
   // session, and only when the figures changed.
   useEffect(() => {
-    if (loading || error || settingsLoading || snapshotWritten) return;
+    if (loading || error || settingsLoading) return;
     const total = expectedByCategory.skip + expectedByCategory.roro;
     if (total <= 0) return;
-    snapshotWritten = true;
     (async () => {
       // Working tallies already exclude out-of-service bins.
       const adjSkip = Math.max(0, expectedByCategory.skip);
@@ -407,6 +391,9 @@ export const useExpectedStock = (): ExpectedStock => {
   return {
     loading: loading || settingsLoading,
     error,
+    refresh,
+    clewsOnSiteByType,
+    clewsOnSiteOther,
     containerTypes,
     inYardByType,
     onSiteByType,
