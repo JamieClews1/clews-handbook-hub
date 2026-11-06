@@ -456,6 +456,13 @@
       "when": 1793894532834,
       "tag": "0064_snapshot_update_policy",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1793958114534,
+      "tag": "0065_site_standing_bins",
+      "breakpoints": true
     }
   ]
 }
