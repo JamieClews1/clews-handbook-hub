@@ -22,7 +22,9 @@ describe("standing bins", () => {
   });
 
   it("a confirmed rule of 2 shows 2 bins on site", () => {
-    assert.equal(onSite(withStandingBins(exchanges, [rule], "2026-11-06")), 2);
+    const augmented = withStandingBins(exchanges, [rule], "2026-11-06");
+    assert.equal(augmented.filter(j => j.id.startsWith("standing:")).length, 2);
+    assert.equal(onSite(augmented), 1); // only the serviced real ticket has a known rental clock
   });
 
   it("a later real collection reduces the confirmed count to 1", () => {
@@ -31,7 +33,9 @@ describe("standing bins", () => {
 
   it("another waste stream's exchange does not absorb a confirmed bin", () => {
     const mixed = [...exchanges, job("2026-10-25", "Exchange", "20 03 01")];
-    assert.equal(onSite(withStandingBins(mixed, [rule], "2026-11-06")), 3);
+    const augmented = withStandingBins(mixed, [rule], "2026-11-06");
+    assert.equal(augmented.filter(j => j.id.startsWith("standing:")).length, 2);
+    assert.equal(onSite(augmented), 2); // third bin's rental commencement is unknown
   });
 
   it("two real deliveries followed by a collection leave one, not two", () => {
@@ -50,6 +54,6 @@ describe("standing bins", () => {
 
   it("uncompleted deliveries do not suppress the two established bins", () => {
     const pending = { ...job("2026-11-05", "Deliver"), rental_status: "N" };
-    assert.equal(onSite(withStandingBins([...exchanges, pending], [rule], "2026-11-06")), 2);
+    assert.equal(withStandingBins([...exchanges, pending], [rule], "2026-11-06").filter(j => j.id.startsWith("standing:")).length, 2);
   });
 });
