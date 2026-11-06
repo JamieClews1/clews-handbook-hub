@@ -26,6 +26,8 @@ type MovementLike = {
   container_type: string | null;
   movement_type: string | null;
   ewc: string | null;
+  rental_status?: string | null;
+  raw?: unknown;
 };
 
 const norm = (s: string | null | undefined) => (s ?? "").toLowerCase().replace(/\s+/g, " ").trim();
@@ -51,14 +53,21 @@ export function withStandingBins<T extends MovementLike>(jobs: T[], rules: Stand
   const extra: T[] = [];
   for (const rule of rules) {
     if (!rule.active || rule.bin_count < 1) continue;
-    const matched = jobs.filter(j => j.job_date && j.job_date <= today && !isStandingBinJob(j) && standingRuleMatches(rule, j));
+    const matched = jobs.filter(j => {
+      const status = String(j.rental_status ?? (j.raw as { Status?: string } | null)?.Status ?? "").trim().toUpperCase();
+      const completed = status === "" || status === "Y" || (status === "Q" && (j.movement_type === "Collect" || j.movement_type === "Exchange"));
+      return completed && j.job_date && j.job_date <= today && !isStandingBinJob(j) && standingRuleMatches(rule, j);
+    });
     if (!matched.length) continue;
+    // A historical establishing quantity is not a permanent minimum: collections
+    // must consume it, never create another backdated delivery to replenish it.
+    if (!matched.some(j => ["Deliver", "Exchange", "Tip/Return"].includes(j.movement_type ?? ""))) continue;
     const delivered = matched.filter(j => j.movement_type === "Deliver").length;
-    const collected = matched.filter(j => j.movement_type === "Collect").length;
-    const current = delivered === 0 && collected === 0 ? 0 : Math.max(delivered - collected, 0);
-    const missing = rule.bin_count - current;
+    const missing = rule.bin_count - delivered;
     if (missing <= 0) continue;
-    const start = matched.reduce((min, j) => (j.job_date! < min ? j.job_date! : min), matched[0].job_date!);
+    const dates = matched.map(j => j.job_date).filter((date): date is string => Boolean(date)).sort();
+    const start = dates[0];
+    if (!start) continue;
     const template = [...matched].sort((a, b) => (b.job_date ?? "").localeCompare(a.job_date ?? ""))[0];
     for (let i = 0; i < missing; i++) {
       extra.push({ ...template, id: `${STANDING_PREFIX}${rule.id}:${i}`, job_number: "0", job_date: start, movement_type: "Deliver", rental_status: "Y" } as T);

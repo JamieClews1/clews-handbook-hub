@@ -33,4 +33,23 @@ describe("standing bins", () => {
     const mixed = [...exchanges, job("2026-10-25", "Exchange", "20 03 01")];
     assert.equal(onSite(withStandingBins(mixed, [rule], "2026-11-06")), 3);
   });
+
+  it("two real deliveries followed by a collection leave one, not two", () => {
+    const movements = [job("2026-10-01", "Deliver"), job("2026-10-01", "Deliver"), job("2026-11-05", "Collect")];
+    assert.equal(onSite(withStandingBins(movements, [rule], "2026-11-06")), 1);
+  });
+
+  it("two collections clear two delivered bins without replenishment", () => {
+    const movements = [job("2026-10-01", "Deliver"), job("2026-10-01", "Deliver"), job("2026-11-04", "Collect"), job("2026-11-05", "Collect")];
+    assert.equal(onSite(withStandingBins(movements, [rule], "2026-11-06")), 0);
+  });
+
+  it("a collection-only history does not manufacture standing deliveries", () => {
+    assert.equal(withStandingBins([job("2026-11-05", "Collect")], [rule], "2026-11-06").length, 1);
+  });
+
+  it("uncompleted deliveries do not suppress the two established bins", () => {
+    const pending = { ...job("2026-11-05", "Deliver"), rental_status: "N" };
+    assert.equal(onSite(withStandingBins([...exchanges, pending], [rule], "2026-11-06")), 2);
+  });
 });
