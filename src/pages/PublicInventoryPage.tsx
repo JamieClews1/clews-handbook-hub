@@ -45,6 +45,7 @@ interface Item {
   value: number | null;
   office_verified: boolean;
   within_fleet?: boolean;
+  fleet_type_id?: string | null;
 }
 
 const money = (n: number) => `£${Math.round(n).toLocaleString()}`;
@@ -162,6 +163,13 @@ const PublicInventoryPage = () => {
     [items, summaryIncludeUnverified],
   );
   const underReview = items.filter((i) => i.within_fleet === false && (summaryIncludeUnverified || i.office_verified));
+  const assumedRows = (valuation?.rows ?? []).map((r) => {
+    const counted = summaryItems.filter((i) => i.fleet_type_id === r.id).length;
+    const qty = Math.max(0, r.fleet - counted);
+    const rated = r.fairRate != null && r.goodRate != null;
+    return { category: r.category, qty, value: rated ? qty * ((r.fairRate! + r.goodRate!) / 2) : 0, unvalued: rated ? 0 : qty };
+  });
+  const assumedBy = (cat?: string) => assumedRows.filter((a) => !cat || a.category === cat).reduce((s, a) => ({ qty: s.qty + a.qty, value: s.value + a.value, unvalued: s.unvalued + a.unvalued }), { qty: 0, value: 0, unvalued: 0 });
   const summaryValue = summaryItems.reduce((s, r) => s + (r.value || 0), 0);
 
   const breakdown = useMemo(() => {
@@ -529,7 +537,8 @@ const PublicInventoryPage = () => {
                         <TableCell className="min-w-48 text-sm">{condition === "Fair" ? "May need replacing soon" : condition === "Poor" || condition === "Damaged" ? "Review repair / replacement needs" : condition === "Unknown" ? "Condition needs confirmation" : "—"}</TableCell>
                       </TableRow>;
                     })}
-                    <TableRow className="bg-muted/50 font-semibold"><TableCell>Total</TableCell><TableCell className="text-right tabular-nums">{summaryItems.filter(i => i.asset_type === "skip").length}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(summaryItems.filter(i => i.asset_type === "skip").reduce((s,i) => s+(i.value ?? 0),0))}</TableCell>}<TableCell className="text-right tabular-nums">{summaryItems.filter(i => i.asset_type === "roro").length}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(summaryItems.filter(i => i.asset_type === "roro").reduce((s,i) => s+(i.value ?? 0),0))}</TableCell>}<TableCell className="text-right tabular-nums">{summaryItems.length}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(summaryValue)}</TableCell>}<TableCell /></TableRow>
+                    {valuation && assumedBy().qty > 0 && <TableRow className="bg-muted/30"><TableCell><Badge variant="secondary">Assumed – to find</Badge></TableCell><TableCell className="text-right tabular-nums">{assumedBy("skip").qty}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(assumedBy("skip").value)}</TableCell>}<TableCell className="text-right tabular-nums">{assumedBy("roro").qty}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(assumedBy("roro").value)}</TableCell>}<TableCell className="text-right font-semibold tabular-nums">{assumedBy().qty}</TableCell>{showValues && <TableCell className="text-right font-semibold tabular-nums">{money(assumedBy().value)}{assumedBy().unvalued > 0 && <span className="block text-xs text-muted-foreground">{assumedBy().unvalued} not valued</span>}</TableCell>}<TableCell className="text-sm">Expected bins not yet profiled · 50% Good / 50% Fair</TableCell></TableRow>}
+                    <TableRow className="bg-muted/50 font-semibold"><TableCell>Total</TableCell><TableCell className="text-right tabular-nums">{summaryItems.filter(i => i.asset_type === "skip").length + assumedBy("skip").qty}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(summaryItems.filter(i => i.asset_type === "skip").reduce((s,i) => s+(i.value ?? 0),0) + assumedBy("skip").value)}</TableCell>}<TableCell className="text-right tabular-nums">{summaryItems.filter(i => i.asset_type === "roro").length + assumedBy("roro").qty}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(summaryItems.filter(i => i.asset_type === "roro").reduce((s,i) => s+(i.value ?? 0),0) + assumedBy("roro").value)}</TableCell>}<TableCell className="text-right tabular-nums">{summaryItems.length + assumedBy().qty}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(summaryValue + assumedBy().value)}</TableCell>}<TableCell /></TableRow>
                     {underReview.length > 0 && <TableRow className="text-muted-foreground italic"><TableCell>Above expected fleet</TableCell><TableCell className="text-right tabular-nums">{underReview.filter(i => i.asset_type === "skip").length}</TableCell>{showValues && <TableCell />}<TableCell className="text-right tabular-nums">{underReview.filter(i => i.asset_type === "roro").length}</TableCell>{showValues && <TableCell />}<TableCell className="text-right tabular-nums">{underReview.length}</TableCell>{showValues && <TableCell className="text-right text-xs">Not counted or valued</TableCell>}<TableCell className="text-sm">Under review — likely duplicates, ownership or size mismatches</TableCell></TableRow>}
                   </TableBody>
                 </Table>
