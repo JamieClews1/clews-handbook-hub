@@ -74,7 +74,8 @@ const PublicInventoryPage = () => {
   const [typeFilter, setTypeFilter] = useState<"all" | "skip" | "roro">("all");
   const [conditionFilter, setConditionFilter] = useState<string>("all");
   const [photoItem, setPhotoItem] = useState<Item | null>(null);
-  const [activeTab, setActiveTab] = useState("total");
+  const [activeTab, setActiveTab] = useState("summary");
+  const [summaryIncludeUnverified, setSummaryIncludeUnverified] = useState(false);
   const [valuation, setValuation] = useState<ReturnType<typeof buyerValuation> | null>(null);
 
   useEffect(() => {
@@ -154,12 +155,18 @@ const PublicInventoryPage = () => {
     };
   }, [items, expected]);
 
+  const summaryItems = useMemo(
+    () => (summaryIncludeUnverified ? items : items.filter((i) => i.office_verified)),
+    [items, summaryIncludeUnverified],
+  );
+  const summaryValue = summaryItems.reduce((s, r) => s + (r.value || 0), 0);
+
   const breakdown = useMemo(() => {
     const map = new Map<
       string,
       { type: string; size: string; counts: Record<string, number>; count: number; value: number; unvalued: number }
     >();
-    items.forEach((i) => {
+    summaryItems.forEach((i) => {
       const key = `${i.asset_type}|${i.size || "—"}`;
       const row =
         map.get(key) ??
@@ -183,7 +190,7 @@ const PublicInventoryPage = () => {
         a.type.localeCompare(b.type) ||
         a.size.localeCompare(b.size, undefined, { numeric: true }),
     );
-  }, [items]);
+  }, [summaryItems]);
 
   const exportCsv = () => {
     const head = [
@@ -347,9 +354,9 @@ const PublicInventoryPage = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="print:hidden h-auto flex flex-wrap w-fit max-w-full">
-            <TabsTrigger value="assets">Profiles ({items.length})</TabsTrigger>
-            <TabsTrigger value="unverified">Not office verified ({items.filter(i => !i.office_verified).length})</TabsTrigger>
             <TabsTrigger value="summary">Summary</TabsTrigger>
+            <TabsTrigger value="assets">Profiles ({items.length})</TabsTrigger>
+            <TabsTrigger value="unverified">Unverified ({items.filter(i => !i.office_verified).length})</TabsTrigger>
             <TabsTrigger value="total">Total Report</TabsTrigger>
           </TabsList>
 
@@ -496,8 +503,8 @@ const PublicInventoryPage = () => {
 
           <TabsContent value="summary" className="space-y-6">
             <div>
-              <h2 className="text-lg font-semibold">Condition report summary</h2>
-              <p className="text-sm text-muted-foreground">{items.length} visible profiles{showValues ? ` · ${money(portfolioValue)} recorded profile value` : ""}. Recorded conditions only; assumed fleet values are separate in Total Report.</p>
+              <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">Condition report summary — {summaryIncludeUnverified ? "verified + unverified" : "office verified only"}</h2><label className="flex items-center gap-2 text-sm print:hidden"><Switch checked={summaryIncludeUnverified} onCheckedChange={setSummaryIncludeUnverified} />Include unverified</label></div>
+              <p className="text-sm text-muted-foreground">{summaryItems.length} profiles{showValues ? ` · ${money(summaryValue)} recorded profile value` : ""}. Recorded conditions only; assumed fleet values are separate in Total Report.</p>
             </div>
             <section className="space-y-3">
               <h3 className="font-semibold">Total by condition and value</h3>
@@ -506,7 +513,7 @@ const PublicInventoryPage = () => {
                   <TableHeader><TableRow><TableHead>Condition</TableHead><TableHead className="text-right">Skips</TableHead>{showValues && <TableHead className="text-right">Skip value</TableHead>}<TableHead className="text-right">RoRos</TableHead>{showValues && <TableHead className="text-right">RoRo value</TableHead>}<TableHead className="text-right">Total bins</TableHead>{showValues && <TableHead className="text-right">Total value</TableHead>}<TableHead>Buyer consideration</TableHead></TableRow></TableHeader>
                   <TableBody>
                     {["New", "Good", "Fair", "Poor", "Damaged", "Unknown", ...conditions.filter(c => !["New", "Good", "Fair", "Poor", "Damaged", "Unknown"].includes(c))].map(condition => {
-                      const group = items.filter(i => (i.condition || "Unknown") === condition);
+                      const group = summaryItems.filter(i => (i.condition || "Unknown") === condition);
                       const skips = group.filter(i => i.asset_type === "skip");
                       const roros = group.filter(i => i.asset_type === "roro");
                       const value = (rows: Item[]) => rows.reduce((sum,i) => sum + (i.value ?? 0),0);
@@ -519,7 +526,7 @@ const PublicInventoryPage = () => {
                         <TableCell className="min-w-48 text-sm">{condition === "Fair" ? "May need replacing soon" : condition === "Poor" || condition === "Damaged" ? "Review repair / replacement needs" : condition === "Unknown" ? "Condition needs confirmation" : "—"}</TableCell>
                       </TableRow>;
                     })}
-                    <TableRow className="bg-muted/50 font-semibold"><TableCell>Total</TableCell><TableCell className="text-right tabular-nums">{items.filter(i => i.asset_type === "skip").length}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(items.filter(i => i.asset_type === "skip").reduce((s,i) => s+(i.value ?? 0),0))}</TableCell>}<TableCell className="text-right tabular-nums">{items.filter(i => i.asset_type === "roro").length}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(items.filter(i => i.asset_type === "roro").reduce((s,i) => s+(i.value ?? 0),0))}</TableCell>}<TableCell className="text-right tabular-nums">{items.length}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(portfolioValue)}</TableCell>}<TableCell /></TableRow>
+                    <TableRow className="bg-muted/50 font-semibold"><TableCell>Total</TableCell><TableCell className="text-right tabular-nums">{summaryItems.filter(i => i.asset_type === "skip").length}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(summaryItems.filter(i => i.asset_type === "skip").reduce((s,i) => s+(i.value ?? 0),0))}</TableCell>}<TableCell className="text-right tabular-nums">{summaryItems.filter(i => i.asset_type === "roro").length}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(summaryItems.filter(i => i.asset_type === "roro").reduce((s,i) => s+(i.value ?? 0),0))}</TableCell>}<TableCell className="text-right tabular-nums">{summaryItems.length}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(summaryValue)}</TableCell>}<TableCell /></TableRow>
                   </TableBody>
                 </Table>
               </div>
