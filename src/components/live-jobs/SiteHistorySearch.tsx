@@ -15,7 +15,7 @@ import { parseLoadReportDate } from "@/lib/load-report-dates";
 import type { StandingBinRule } from "@/lib/standing-bins";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
-type SiteResult = { key: string; site: string; customers: string[]; names: string[]; address: string; postcode: string; source: HistorySource };
+type SiteResult = { key: string; site: string; customers: string[]; names: string[]; address: string; postcode: string; source: HistorySource; jobCount?: number };
 type MappedSite = { site_name: string; data_hub_customer: string | null; data_hub_site: string | null; data_hub_site_2: string | null; data_hub_site_3: string | null; data_hub_site_4: string | null; data_hub_site_5: string | null; address_1: string | null; address_2: string | null; postcode: string | null };
 const dateLabel = (value: string | null) => { const date = parseLoadReportDate(value); return date ? date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }) : "Undated"; };
 async function readPages<T>(read: (from: number, to: number) => PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T[]> {
@@ -85,9 +85,9 @@ export default function SiteHistorySearch({ settings, startSite, onStartSiteHand
     try {
       const filters = siteHistorySearchFilters(term);
       const [rows, mappings] = await Promise.all([
-        supabase.rpc("search_site_history", { p_term: term, p_source: source }).then(({ data, error }) => {
+        supabase.rpc("search_site_history_ranked", { p_term: term, p_source: source }).then(({ data, error }) => {
           if (error) throw error;
-          return (data ?? []) as Pick<HistoryJob,"customer"|"site"|"postcode"|"address"|"address2"|"address3">[];
+          return (data ?? []) as (Pick<HistoryJob,"customer"|"site"|"postcode"|"address"|"address2"|"address3"> & { job_count?: number })[];
         }),
         source === "skiptrak" ? readPages<MappedSite>((from,to) => supabase.from("customer_sites").select("site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,address_1,address_2,postcode").or(filters.mappings).order("id").range(from,to)) : Promise.resolve([]),
       ]);
@@ -100,6 +100,7 @@ export default function SiteHistorySearch({ settings, startSite, onStartSiteHand
         if (j.customer && !result.customers.includes(j.customer)) result.customers.push(j.customer);
         result.address ||= [j.address,j.address2,j.address3].filter(Boolean).join(", ");
         result.postcode ||= j.postcode ?? "";
+        result.jobCount = (result.jobCount ?? 0) + Number(j.job_count ?? 0);
         sites.set(key,result);
       }
       for (const m of mappings) {
@@ -112,7 +113,7 @@ export default function SiteHistorySearch({ settings, startSite, onStartSiteHand
         result.postcode = m.postcode || result.postcode;
         sites.set(result.key,result);
       }
-      if (id === request.current) setResults([...sites.values()].sort((a,b)=>a.site.localeCompare(b.site)));
+      if (id === request.current) setResults([...sites.values()].sort((a,b)=>(b.jobCount??0)-(a.jobCount??0) || a.site.localeCompare(b.site)));
     } catch { if (id === request.current) setError("Site search could not be completed. Please try again."); }
     finally { if (id === request.current) setBusy(false); }
   };
@@ -158,7 +159,7 @@ export default function SiteHistorySearch({ settings, startSite, onStartSiteHand
     </form>
     {error && <div role="alert" className="flex items-center gap-3 text-destructive"><span>{error}</span><Button variant="outline" onClick={()=>selected?void openSite(selected):void search()}>Try again</Button></div>}
     {busy && <div role="status" className="flex gap-2 items-center py-10 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin"/>{selected ? "Loading complete site history…" : "Searching sites…"}</div>}
-    {!busy && !selected && searched && !error && <div><h2 className="text-lg font-semibold mb-3">Sites <span className="text-muted-foreground">({results.length})</span></h2>{results.length===0 ? <p className="text-muted-foreground">No sites found.</p> : <Table><TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Company</TableHead><TableHead>Site</TableHead><TableHead>Address</TableHead><TableHead>Postcode</TableHead><TableHead/></TableRow></TableHeader><TableBody>{results.map(s=><TableRow key={s.key}><TableCell><Badge variant="outline">{historySourceLabel(s.source)}</Badge></TableCell><TableCell>{s.customers.join(" / ") || "—"}</TableCell><TableCell className="font-medium">{s.site}</TableCell><TableCell>{s.address || "—"}</TableCell><TableCell className="whitespace-nowrap">{s.postcode || "—"}</TableCell><TableCell><Button variant="outline" size="sm" onClick={()=>void openSite(s)}><History className="mr-2 h-4 w-4"/>History</Button></TableCell></TableRow>)}</TableBody></Table>}</div>}
+    {!busy && !selected && searched && !error && <div><h2 className="text-lg font-semibold mb-3">Sites <span className="text-muted-foreground">({results.length})</span></h2>{results.length===0 ? <p className="text-muted-foreground">No sites found.</p> : <Table><TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Company</TableHead><TableHead>Site</TableHead><TableHead>Address</TableHead><TableHead>Postcode</TableHead><TableHead className="text-right">Jobs</TableHead><TableHead/></TableRow></TableHeader><TableBody>{results.map(s=><TableRow key={s.key}><TableCell><Badge variant="outline">{historySourceLabel(s.source)}</Badge></TableCell><TableCell>{s.customers.join(" / ") || "—"}</TableCell><TableCell className="font-medium">{s.site}</TableCell><TableCell>{s.address || "—"}</TableCell><TableCell className="whitespace-nowrap">{s.postcode || "—"}</TableCell><TableCell className="text-right tabular-nums">{s.jobCount ?? 0}</TableCell><TableCell><Button variant="outline" size="sm" onClick={()=>void openSite(s)}><History className="mr-2 h-4 w-4"/>History</Button></TableCell></TableRow>)}</TableBody></Table>}</div>}
     {selected && !busy && !error && <>
       <div className="flex flex-wrap gap-4 items-start"><Button variant="ghost" size="icon" aria-label="Back to search results" onClick={()=>setSelected(null)}><ArrowLeft className="h-5 w-5"/></Button><div><h2 className="text-xl font-semibold">{selected.site}</h2><Badge variant="outline">{historySourceLabel(selected.source)}</Badge><p className="text-muted-foreground text-sm">{selected.customers.join(" / ")}</p><p className="text-muted-foreground text-sm">{[selected.address,selected.postcode].filter(Boolean).join(", ")}</p></div></div>
       {selected.source === "skiptrak" && <div className="border-y border-border py-5 space-y-4"><div className="flex flex-wrap gap-3 items-baseline"><h3 className="font-semibold">On site now</h3><span className="text-2xl font-semibold tabular-nums">{current.reduce((n,t)=>n+t.count,0)}</span><span className="text-sm text-muted-foreground">Estimated from Live Jobs · {dateLabel(today)}</span></div>{current.length===0 ? <p className="text-muted-foreground">No containers currently identified on site.</p> : <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">{current.map(t=>{const own=selected.names.some(n=>ownKeys.has(`${n.toLowerCase().trim()}|||${t.container.toLowerCase().trim()}`));return <div key={t.container} className="border border-border rounded-md p-4 bg-card"><div className="flex justify-between gap-2"><span className="font-semibold">{t.count} × {t.container}</span><Badge variant="outline">{own?"Own":"Clews"}</Badge></div><p className="text-sm text-muted-foreground mt-2">{t.wastes.join(" / ") || "Waste type not recorded"}</p></div>;})}</div>}</div>}
