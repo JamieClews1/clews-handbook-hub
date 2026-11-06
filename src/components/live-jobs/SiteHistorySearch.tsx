@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { currentSiteContainers, HISTORY_FIELDS, historyStatus, type HistoryJob } from "@/lib/site-history";
+import { currentSiteContainers, HISTORY_FIELDS, HISTORY_SEARCH_FIELDS, siteHistorySearchFilters, historyStatus, type HistoryJob } from "@/lib/site-history";
 import { londonCalendarKey } from "@/lib/ui-calendar";
 import { parseLoadReportDate } from "@/lib/load-report-dates";
 import type { StandingBinRule } from "@/lib/standing-bins";
@@ -80,10 +80,10 @@ export default function SiteHistorySearch({ settings, startSite, onStartSiteHand
     const id = ++request.current;
     setBusy(true); setError(null); setSelected(null); setResults([]); setSearched(true);
     try {
-      const filter = `customer.ilike.%${term}%,site.ilike.%${term}%,postcode.ilike.%${term}%,raw->>Location Postc_1.ilike.%${term}%`;
+      const filters = siteHistorySearchFilters(term);
       const [rows, mappings] = await Promise.all([
-        readPages<HistoryJob>((from,to) => supabase.from("data_hub_jobs").select(HISTORY_FIELDS).eq("source","skiptrak").or(filter).order("id").range(from,to)),
-        readPages<MappedSite>((from,to) => supabase.from("customer_sites").select("site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,address_1,address_2,postcode").or(`site_name.ilike.%${term}%,data_hub_customer.ilike.%${term}%,address_1.ilike.%${term}%,address_2.ilike.%${term}%,postcode.ilike.%${term}%`).order("id").range(from,to)),
+        readPages<Pick<HistoryJob,"customer"|"site"|"postcode"|"address"|"address2"|"address3">>((from,to) => supabase.from("data_hub_jobs").select(HISTORY_SEARCH_FIELDS).eq("source","skiptrak").or(filters.jobs).order("id").range(from,to)),
+        readPages<MappedSite>((from,to) => supabase.from("customer_sites").select("site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,address_1,address_2,postcode").or(filters.mappings).order("id").range(from,to)),
       ]);
       const sites = new Map<string, SiteResult>();
       for (const j of rows) {
@@ -91,6 +91,8 @@ export default function SiteHistorySearch({ settings, startSite, onStartSiteHand
         const key = j.site.toLowerCase().trim();
         const result = sites.get(key) ?? { key, site:j.site, customers:[], names:[j.site], address:[j.address,j.address2,j.address3].filter(Boolean).join(", "), postcode:j.postcode ?? "" };
         if (j.customer && !result.customers.includes(j.customer)) result.customers.push(j.customer);
+        result.address ||= [j.address,j.address2,j.address3].filter(Boolean).join(", ");
+        result.postcode ||= j.postcode ?? "";
         sites.set(key,result);
       }
       for (const m of mappings) {
@@ -98,6 +100,7 @@ export default function SiteHistorySearch({ settings, startSite, onStartSiteHand
         const existing = names.map(n=>sites.get(n.toLowerCase().trim())).find(Boolean);
         const result = existing ?? {key:m.site_name.toLowerCase().trim(),site:m.site_name,customers:m.data_hub_customer ? [m.data_hub_customer] : [],names,address:"",postcode:""};
         result.names = [...new Set([...result.names,...names])];
+        if (m.data_hub_customer && !result.customers.includes(m.data_hub_customer)) result.customers.push(m.data_hub_customer);
         result.address = [m.address_1,m.address_2].filter(Boolean).join(", ") || result.address;
         result.postcode = m.postcode || result.postcode;
         sites.set(result.key,result);

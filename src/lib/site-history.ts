@@ -6,6 +6,16 @@ import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
 export type HistoryJob = OverRentalJob & { source: string; address?: string | null; address2?: string | null; address3?: string | null; driver?: string | null; weight_t?: number | null };
 export const HISTORY_FIELDS = "id,source,job_number,job_date,customer,site,postcode,container_type,movement_type,waste_description,vehicle_registration,ewc,weight_t,driver,rental_status:raw->>Status,address:raw->>Location Postc_1,address2:raw->>Address 2nd LIne,address3:raw->>Address 3";
+// Search only needs site identity; load full ticket evidence after choosing a site.
+export const HISTORY_SEARCH_FIELDS = "id,customer,site,postcode,address:raw->>Location Postc_1,address2:raw->>Address 2nd LIne,address3:raw->>Address 3";
+export function siteHistorySearchFilters(term: string) {
+  const pattern = `%${term.trim().replace(/[,%_()"\\]/g, " ").trim().replace(/\s+/g, "%")}%`;
+  const match = (fields: string[]) => fields.map(field => `${field}.ilike.${pattern}`).join(",");
+  return {
+    jobs: match(["customer", "site", "postcode", "raw->>Location Postc_1", "raw->>Address 2nd LIne", "raw->>Address 3"]),
+    mappings: match(["site_name", "data_hub_customer", "data_hub_site", "data_hub_site_2", "data_hub_site_3", "data_hub_site_4", "data_hub_site_5", "address_1", "address_2", "postcode"]),
+  };
+}
 export function historySearchText(job: HistoryJob) {
   return [job.customer, job.site, job.postcode, job.address, job.address2, job.address3].filter(Boolean).join(" ");
 }
