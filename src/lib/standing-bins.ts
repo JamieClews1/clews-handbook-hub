@@ -58,8 +58,7 @@ export function withStandingBins<T extends MovementLike>(jobs: T[], rules: Stand
     const current = delivered === 0 && collected === 0 ? 0 : Math.max(delivered - collected, 0);
     const missing = rule.bin_count - current;
     if (missing <= 0) continue;
-    const siteJobs = jobs.filter(j => j.job_date && norm(j.site) === norm(rule.site));
-    const start = siteJobs.reduce((min, j) => (j.job_date! < min ? j.job_date! : min), matched[0].job_date!);
+    const start = matched.reduce((min, j) => (j.job_date! < min ? j.job_date! : min), matched[0].job_date!);
     const template = [...matched].sort((a, b) => (b.job_date ?? "").localeCompare(a.job_date ?? ""))[0];
     for (let i = 0; i < missing; i++) {
       extra.push({ ...template, id: `${STANDING_PREFIX}${rule.id}:${i}`, job_number: "0", job_date: start, movement_type: "Deliver", rental_status: "Y" } as T);

@@ -125,7 +125,14 @@ export function openRentalBins(
     const sameSize = group.slots.findIndex(s => s.size === size);
     const index = sameSizeEwc >= 0 ? sameSizeEwc : sameSize >= 0 ? sameSize : 0;
     const slot: Slot = { job, date: job.job_date, ewc, size };
-    if (job.movement_type === "Deliver") group.slots.push({ ...slot, pinned: job.id.startsWith("standing:") });
+    if (job.movement_type === "Deliver") {
+      // A confirmed standing bin takes over an unpinned same-size bin already open
+      // (e.g. the stream switched EWC), otherwise it adds the missing container.
+      const standing = job.id.startsWith("standing:");
+      const takeOver = standing ? group.slots.findIndex(s => s.size === size && !s.pinned) : -1;
+      if (takeOver >= 0) group.slots.splice(takeOver, 1, { ...slot, pinned: true });
+      else group.slots.push({ ...slot, pinned: standing });
+    }
     if (job.movement_type === "Collect" && group.slots.length) group.slots.splice(index, 1);
     if (job.movement_type === "Exchange" || job.movement_type === "Tip/Return") {
       // Staff-confirmed standing bins (pinned) are only replaced by their own waste
