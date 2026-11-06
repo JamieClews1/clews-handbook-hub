@@ -1313,7 +1313,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
 
   const skips = rows.filter((r) => r.asset_type === "skip").length;
   const roros = rows.filter(
-    (r) => r.asset_type === "roro" && r.condition !== "Scrapped" && r.condition !== "Yard Use",
+    (r) => r.asset_type === "roro",
   ).length;
   const needRepair = rows.filter((r) => r.repairs_required).length;
   const totalValue = rows.reduce((s, r) => s + valueOf(r), 0);
@@ -1849,7 +1849,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
             variant="outline"
             size="sm"
             className="gap-2"
-            onClick={() => refetch()}
+            onClick={() => { expected.refresh(); void refetch(); }}
             disabled={isFetching}
           >
             <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} /> Refresh
