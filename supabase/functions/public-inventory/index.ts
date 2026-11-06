@@ -21,23 +21,7 @@ Deno.serve(async (req) => {
       token = typeof body?.token === "string" ? body.token : "";
     }
     if (!/^[a-zA-Z0-9_-]{8,128}$/.test(token)) {
-      const withinFleet = snapshot?.total_report?.rowsByType ? fleetAllocation(snapshot.total_report.rowsByType, rows as any[], types ?? []) : null;
-    const items = visibleRows.map((r) => ({
-      id: r.id,
-      asset_number: r.asset_number,
-      asset_type: r.asset_type,
-      size: r.size,
-      condition: r.condition,
-      repairs_required: r.repairs_required,
-      repair_notes: r.repair_notes,
-      last_location: r.last_location,
-      last_cataloged_at: r.last_cataloged_at,
-      office_verified: r.office_verified === true,
-      photos: link.show_photos ? photoUrls(r.photos) : [],
-      value: link.show_values ? valueFor(r) : null,
-      within_fleet: withinFleet ? withinFleet.has(r.id) : true,
-    }));
-
+  
     return json({ error: "Invalid link" }, 400);
     }
 
@@ -54,23 +38,7 @@ Deno.serve(async (req) => {
 
     if (linkError) throw linkError;
     if (!link || !link.is_active) {
-      const withinFleet = snapshot?.total_report?.rowsByType ? fleetAllocation(snapshot.total_report.rowsByType, rows as any[], types ?? []) : null;
-    const items = visibleRows.map((r) => ({
-      id: r.id,
-      asset_number: r.asset_number,
-      asset_type: r.asset_type,
-      size: r.size,
-      condition: r.condition,
-      repairs_required: r.repairs_required,
-      repair_notes: r.repair_notes,
-      last_location: r.last_location,
-      last_cataloged_at: r.last_cataloged_at,
-      office_verified: r.office_verified === true,
-      photos: link.show_photos ? photoUrls(r.photos) : [],
-      value: link.show_values ? valueFor(r) : null,
-      within_fleet: withinFleet ? withinFleet.has(r.id) : true,
-    }));
-
+  
     return json({ error: "This link is no longer available" }, 404);
     }
 
@@ -126,6 +94,7 @@ Deno.serve(async (req) => {
     const valuation = link.show_values && snapshot?.total_report?.rowsByType
       ? buyerValuation(snapshot.total_report.rowsByType, rows, values ?? [], types ?? []) : null;
 
+
     const withinFleet = snapshot?.total_report?.rowsByType ? fleetAllocation(snapshot.total_report.rowsByType, rows as any[], types ?? []) : null;
     const items = visibleRows.map((r) => ({
       id: r.id,
@@ -142,7 +111,6 @@ Deno.serve(async (req) => {
       value: link.show_values ? valueFor(r) : null,
       within_fleet: withinFleet ? withinFleet.has(r.id) : true,
     }));
-
     return json({
       label: link.label,
       show_values: link.show_values,
@@ -154,22 +122,6 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("public-inventory error", e);
-    const withinFleet = snapshot?.total_report?.rowsByType ? fleetAllocation(snapshot.total_report.rowsByType, rows as any[], types ?? []) : null;
-    const items = visibleRows.map((r) => ({
-      id: r.id,
-      asset_number: r.asset_number,
-      asset_type: r.asset_type,
-      size: r.size,
-      condition: r.condition,
-      repairs_required: r.repairs_required,
-      repair_notes: r.repair_notes,
-      last_location: r.last_location,
-      last_cataloged_at: r.last_cataloged_at,
-      office_verified: r.office_verified === true,
-      photos: link.show_photos ? photoUrls(r.photos) : [],
-      value: link.show_values ? valueFor(r) : null,
-      within_fleet: withinFleet ? withinFleet.has(r.id) : true,
-    }));
 
     return json({ error: "Unable to load inventory" }, 500);
   }
