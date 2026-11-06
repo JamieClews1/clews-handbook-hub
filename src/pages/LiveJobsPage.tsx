@@ -1,3 +1,4 @@
+import StandingBinsSettings from "@/components/live-jobs/StandingBinsSettings";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -126,6 +127,7 @@ const LiveJobsPage = () => {
             <TabsContent value="settings" className="mt-6">
               <div className="space-y-6">
                 <LiveJobsSettings settings={settings} onSave={async (key, value) => { await updateSetting(key, value); await refetch(); }} />
+                <StandingBinsSettings />
                 <ZonesSettings
                   zones={zones}
                   onUpdate={updateZone}
