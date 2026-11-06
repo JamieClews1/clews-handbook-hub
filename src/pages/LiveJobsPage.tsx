@@ -102,6 +102,7 @@ const LiveJobsPage = () => {
                 <MapPin className="h-4 w-4 mr-1.5" /> Zone Report
               </TabsTrigger>
               <TabsTrigger value="history"><History className="h-4 w-4 mr-1.5" /> Site History</TabsTrigger>
+              <TabsTrigger value="map"><MapPinned className="h-4 w-4 mr-1.5" /> Site Map</TabsTrigger>
               <TabsTrigger value="trends" className="border border-border bg-background text-foreground shadow-sm rounded-full px-5 font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <TrendingUp className="h-4 w-4 mr-1.5" /> Zone Trends
               </TabsTrigger>
@@ -112,7 +113,22 @@ const LiveJobsPage = () => {
             <TabsContent value="dashboard" className="mt-6">
               <LiveJobsDashboard settings={settings} />
             </TabsContent>
-            <TabsContent value="history" className="mt-6"><SiteHistorySearch settings={settings} /></TabsContent>
+            <TabsContent value="history" className="mt-6">
+              <SiteHistorySearch
+                settings={settings}
+                startSite={startSite}
+                onStartSiteHandled={() => setStartSite(null)}
+              />
+            </TabsContent>
+            <TabsContent value="map" className="mt-6">
+              <SiteMapView
+                settings={settings}
+                onOpenHistory={site => {
+                  setStartSite(site);
+                  setActiveTab("history");
+                }}
+              />
+            </TabsContent>
             <TabsContent value="zones" className="mt-6">
               <ZoneReport zones={zones} settings={settings} onAssignZone={async (zoneId, postcode) => {
                 const zone = zones.find(z => z.id === zoneId);
