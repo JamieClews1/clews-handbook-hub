@@ -17,7 +17,7 @@ export function historyStatus(job: HistoryJob, today: string) {
 
 /** Same window, completed movements, per-waste estimate and type clamp as Live Jobs. */
 export function currentSiteContainers(jobs: HistoryJob[], rules: StandingBinRule[], settings: LiveJobsSettings, since: string, today: string) {
-  const recent = jobs.filter(j => j.job_date && j.job_date >= since && isCompletedRentalMovement(j, today));
+  const recent = jobs.filter(j => j.job_date && j.job_date >= since && ["Deliver", "Exchange", "Collect", "Tip/Return"].includes(j.movement_type ?? "") && isCompletedRentalMovement(j, today));
   const types = new Map<string, { container: string; category: string; wastes: Set<string>; positions: Map<string, ClampPos> }>();
   for (const j of withStandingBins(recent, rules, today)) {
     const category = categoriseContainer(j.container_type, j.vehicle_registration, settings);
