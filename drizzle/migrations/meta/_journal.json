@@ -484,6 +484,13 @@
       "when": 1793977110723,
       "tag": "0068_site_history_search_ranked",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1793980584456,
+      "tag": "0069_rebate_message_wording",
+      "breakpoints": true
     }
   ]
 }

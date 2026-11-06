@@ -3616,6 +3616,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          message_html: string | null
           sender_email: string
           sender_name: string
           subject_template: string
@@ -3630,6 +3631,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          message_html?: string | null
           sender_email?: string
           sender_name?: string
           subject_template: string
@@ -3644,6 +3646,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          message_html?: string | null
           sender_email?: string
           sender_name?: string
           subject_template?: string
