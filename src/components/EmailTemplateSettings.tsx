@@ -265,6 +265,30 @@ export const EmailTemplateSettings = () => {
                   </div>
                 )}
 
+                {template.template_key === "rebate_notification" && (
+                  <div className="rounded-md border bg-muted/40 p-3 space-y-1">
+                    <p className="text-sm font-medium">Standard wording used for {"{{body}}"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Filled in automatically for each site when you send from Rebates; you can still edit it in the send box before sending.
+                    </p>
+                    <pre className="whitespace-pre-wrap text-xs font-mono text-foreground pt-1">{`Dear [Contact name],
+
+We are writing to inform you that rebates have been calculated for [Site name] for [Period].
+
+Total Rebate Due: £[Total]
+
+Please submit an invoice for this amount at your earliest convenience.
+
+Material Breakdown:
+- [Material]: [Weight]t @ £[Rate]/t = £[Rebate]
+
+If you have any questions, please don't hesitate to contact us.
+
+Best regards,
+Clews Recycling Limited`}</pre>
+                  </div>
+                )}
+
                 <Separator />
 
                 {/* Sender details */}
