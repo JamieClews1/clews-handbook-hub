@@ -421,7 +421,7 @@ const PublicInventoryPage = () => {
                         {showPhotos && (
                           <TableCell>
                             {r.photos?.length ? (
-                              <button onClick={() => setPhotoItem(r)} className="relative block">
+                              <Button variant="ghost" onClick={() => setPhotoItem(r)} className="relative block h-auto p-0" aria-label={`View photos for ${r.asset_number}`}>
                                 <img
                                   src={r.photos[0]}
                                   alt={`Asset ${r.asset_number} ${r.asset_type === "roro" ? "RoRo" : "skip"} container`}
