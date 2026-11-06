@@ -115,6 +115,8 @@ export const useExpectedStock = (): ExpectedStock => {
   const [jobs, setJobs] = useState<JobRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [yardImports, setYardImports] = useState<JobRow[]>([]);
+  const [nativeOnSite, setNativeOnSite] = useState<JobRow[]>([]);
   const [nativeMovements, setNativeMovements] = useState<StockMovement[]>([]);
   const [reclassRules, setReclassRules] = useState<EwcReclassRule[]>([]);
   // Bins manually marked collected in Rentals — excluded from Live Jobs counts,
@@ -195,9 +197,18 @@ export const useExpectedStock = (): ExpectedStock => {
           "route_one_jobs", "id, job_number, container_type, container_size, job_type, site_name, scheduled_date, customer_name, ewc_code, status, completed_at, updated_at, own_container", "id",
           q => q.eq("is_test", false).eq("status", "completed").gt("completed_at", baseline),
         );
+        if (cancelled) return;
         setNativeMovements(native.filter(j => !j.own_container).map((j): StockMovement => ({ id: j.id, job_number: j.job_number, source: "routeone", container_type: [containerSize(j.container_size ?? "")?.label ?? j.container_size, j.container_type].filter(Boolean).join(" "), movement_type: j.job_type, site: j.site_name, customer: j.customer_name, job_date: j.scheduled_date, ewc: j.ewc_code, completed: j.status === "completed", completedAt: j.completed_at, updatedAt: j.updated_at })));
       }
+      const [yardRows, nativeHistory] = await Promise.all([
+        latestCheck ? fetchAllRows<JobRow>("data_hub_jobs", "id,job_number,raw,updated_at,site,container_type,movement_type,job_date,ewc,customer", "id", q => q.eq("source","skiptrak").gte("job_date",londonCalendarKey(new Date(latestCheck.updated_at || latestCheck.created_at || latestCheck.check_date))).lte("job_date",londonCalendarKey()).in("movement_type",["Deliver","Exchange","Collect","Tip/Return"])) : Promise.resolve([]),
+        fetchAllRows<{id:string;job_number:string;container_type:string|null;container_size:string|null;job_type:string;site_name:string|null;customer_name:string|null;scheduled_date:string;completed_at:string|null;updated_at:string;ewc_code:string|null;own_container:boolean|null}>("route_one_jobs","id,job_number,container_type,container_size,job_type,site_name,customer_name,scheduled_date,completed_at,updated_at,ewc_code,own_container","id",q=>q.eq("is_test",false).eq("status","completed").gte("scheduled_date",since).lte("scheduled_date",londonCalendarKey())),
+      ]);
       if (cancelled) return;
+      const importedNumbers = new Set(all.map(j=>j.job_number.trim().toUpperCase()));
+      const movementNames: Record<string,string> = {delivery:"Deliver",collection:"Collect",exchange:"Exchange",tip_return:"Tip/Return"};
+      setNativeOnSite(nativeHistory.filter(j=>!j.own_container && !importedNumbers.has(j.job_number.trim().toUpperCase()) && movementNames[j.job_type]).map(j=>({id:j.id,job_number:j.job_number,raw:null,rental_status:"Y",updated_at:j.updated_at,site:j.site_name,customer:j.customer_name,container_type:[containerSize(j.container_size ?? "")?.label ?? j.container_size,j.container_type].filter(Boolean).join(" "),movement_type:movementNames[j.job_type],job_date:j.scheduled_date,ewc:j.ewc_code})));
+      setYardImports(yardRows);
       setJobs(all); setError(null);
       } catch (cause) {
         if (cancelled) return;
@@ -219,7 +230,7 @@ export const useExpectedStock = (): ExpectedStock => {
     if (!latestCheckDate) return map;
     const baselineDay = londonCalendarKey(new Date(latestCheckDate));
     const movements = uniqueStockMovements([
-      ...jobs.map((j): StockMovement => ({ ...j, source: "skiptrak", completed: String((j.raw as { Status?: string } | null)?.Status ?? "").trim().toUpperCase() === "Y" && Boolean(j.job_date && j.job_date <= londonCalendarKey()), completedAt: null, updatedAt: j.updated_at })),
+      ...yardImports.map((j): StockMovement => ({ ...j, source: "skiptrak", completed: String((j.raw as { Status?: string } | null)?.Status ?? "").trim().toUpperCase() === "Y" && Boolean(j.job_date && j.job_date <= londonCalendarKey()), completedAt: null, updatedAt: j.updated_at })),
       ...nativeMovements,
     ]);
     for (const job of movements) {
@@ -233,11 +244,11 @@ export const useExpectedStock = (): ExpectedStock => {
       map[key] += stockMovementDelta(job.movement_type);
     }
     return map;
-  }, [containerTypes, latestItems, latestCheckDate, jobs, nativeMovements, excludedSites, reclassRules]);
+  }, [containerTypes, latestItems, latestCheckDate, yardImports, nativeMovements, excludedSites, reclassRules]);
 
   const { onSiteByType, ownOnSiteByType, onSiteOther, clewsOnSiteOther, siteDetail } = useMemo(() => {
     const positions: Record<string, Pos> = {};
-    for (const job of withStandingBins(jobs, standingRules)) {
+    for (const job of withStandingBins([...jobs,...nativeOnSite], standingRules)) {
       if (!isCompletedRentalMovement({ ...job, rental_status: job.rental_status ?? (job.raw as { Status?: string } | null)?.Status, waste_description: null, vehicle_registration: null })) continue;
       if (!job.container_type) continue;
       if (excludedSites.some((s) => job.site?.toLowerCase().includes(s.toLowerCase()))) continue;
@@ -332,7 +343,7 @@ export const useExpectedStock = (): ExpectedStock => {
       a.site.localeCompare(b.site) || a.typeName.localeCompare(b.typeName)
     );
     return { onSiteByType: byType, ownOnSiteByType: ownByType, onSiteOther: other, clewsOnSiteOther: clewsOther, siteDetail: detail };
-  }, [containerTypes, jobs, excludedSites, liveSettings, collectedBinKeys, ownBinKeys, standingRules, reclassRules]);
+  }, [containerTypes, jobs, nativeOnSite, excludedSites, liveSettings, collectedBinKeys, ownBinKeys, standingRules, reclassRules]);
 
   const clewsOnSiteByType = useMemo(() => Object.fromEntries(containerTypes.map(t => [t.id, Math.max(0,(onSiteByType[t.id] ?? 0)-(ownOnSiteByType[t.id] ?? 0))])), [containerTypes,onSiteByType,ownOnSiteByType]);
 
@@ -356,8 +367,7 @@ export const useExpectedStock = (): ExpectedStock => {
   }, [containerTypes, expectedByType, clewsOnSiteOther]);
 
   // Persist the latest expected totals so the public inventory share page can
-  // show "% of expected bins catalogued". Writes at most once per browser
-  // session, and only when the figures changed.
+  // show "% of expected bins catalogued", only when the figures changed.
   useEffect(() => {
     if (loading || error || settingsLoading) return;
     const total = expectedByCategory.skip + expectedByCategory.roro;

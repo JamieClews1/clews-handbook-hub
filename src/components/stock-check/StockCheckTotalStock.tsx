@@ -80,7 +80,7 @@ export const StockCheckTotalStock = () => {
       "Last Collection",
     ];
     const lines = [header.map(esc).join(",")];
-    for (const r of siteDetail) {
+    for (const r of siteDetail.filter(row => !row.own)) {
       lines.push(
         [
           r.site,
