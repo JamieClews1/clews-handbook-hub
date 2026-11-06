@@ -152,6 +152,9 @@ export function openRentalBins(
   for (const [groupKey, { category, slots }] of groups) {
     const overdueBySize = new Map<string, Slot[]>();
     for (const s of slots) {
+      // Quantity evidence is not a known rental commencement or service date.
+      // Only real tickets can establish a chaseable rental clock.
+      if (s.job.id.startsWith("standing:")) continue;
       const date = parseLoadReportDate(s.date);
       if (!date || s.date < windowStart || (todayDate.getTime() - date.getTime()) / 86400000 <= settings.rental_free_days) continue;
       overdueBySize.set(s.size, [...(overdueBySize.get(s.size) ?? []), s]);

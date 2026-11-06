@@ -40,8 +40,7 @@ export default function StandingBinsSettings() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Layers className="h-5 w-5" /> Multi-bin sites</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Number of identical containers confirmed on a site for one waste type. Used by Live Jobs, Rentals and Stock Check.
-          A real collection still reduces the count automatically.
+          Historical opening quantities by site and waste type, before recorded collections. Rental dates remain unknown for unserviced bins.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -49,7 +48,7 @@ export default function StandingBinsSettings() {
           <TableHeader>
             <TableRow>
               <TableHead>Customer</TableHead><TableHead>Site</TableHead><TableHead>Container</TableHead>
-              <TableHead>EWC</TableHead><TableHead className="w-24">Bins</TableHead><TableHead>Notes</TableHead><TableHead />
+              <TableHead>EWC</TableHead><TableHead className="w-24">Opening bins</TableHead><TableHead>Notes</TableHead><TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>

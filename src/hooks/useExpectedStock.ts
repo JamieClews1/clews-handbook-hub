@@ -9,6 +9,7 @@ import { movementAfterTally, stockMovementDelta, uniqueStockMovements, type Stoc
 import { londonCalendarKey } from "@/lib/ui-calendar";
 import { fetchAllRows } from "@/lib/fetch-all";
 import { containerSize } from "@/lib/container-taxonomy";
+import { isCompletedRentalMovement } from "@/lib/rental-open-movements";
 
 export interface ExpectedContainerType {
   id: string;
@@ -205,6 +206,7 @@ export const useExpectedStock = (): ExpectedStock => {
           .gte("job_date", since)
           .in("movement_type", ["Deliver", "Exchange", "Collect", "Tip/Return"])
           .order("job_date", { ascending: false })
+          .order("id", { ascending: true })
           .range(from, from + pageSize - 1);
         if (error) throw error;
         all.push(...((data ?? []) as JobRow[]));
@@ -257,6 +259,7 @@ export const useExpectedStock = (): ExpectedStock => {
   const { onSiteByType, ownOnSiteByType, onSiteOther, siteDetail } = useMemo(() => {
     const positions: Record<string, Pos> = {};
     for (const job of withStandingBins(jobs, standingRules)) {
+      if (!isCompletedRentalMovement({ ...job, rental_status: (job.raw as { Status?: string } | null)?.Status, waste_description: null, vehicle_registration: null })) continue;
       if (!job.container_type) continue;
       if (excludedSites.some((s) => job.site?.toLowerCase().includes(s.toLowerCase()))) continue;
       const cat = categoriseContainer(job.container_type, null, liveSettings);
