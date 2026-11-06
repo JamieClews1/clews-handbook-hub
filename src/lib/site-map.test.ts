@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
 import { filterSiteMapEntries, siteMapEntries, siteMapPostcodes, type SiteMapEntry } from "./site-map";
 import type { HistoryJob } from "./site-history";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
@@ -60,15 +61,15 @@ describe("siteMapEntries", () => {
       SINCE,
       TODAY,
     );
-    expect(entries.map(e => e.site)).toEqual(["Ford IPR", "Willoughby Park"]);
+    assert.deepEqual(entries.map(e => e.site), ["Ford IPR", "Willoughby Park"]);
     const ford = entries.find(e => e.site === "Ford IPR")!;
-    expect(ford.total).toBe(2);
-    expect(ford.postcode).toBe("NN11 8NT");
-    expect(ford.customers).toEqual(["IPR"]);
+    assert.equal(ford.total, 2);
+    assert.equal(ford.postcode, "NN11 8NT");
+    assert.deepEqual(ford.customers, ["IPR"]);
     const willoughby = entries.find(e => e.site === "Willoughby Park")!;
-    expect(willoughby.total).toBe(1);
-    expect(willoughby.postcode).toBe("CV23 8AJ");
-    expect(willoughby.containers[0].category).toBe("skip");
+    assert.equal(willoughby.total, 1);
+    assert.equal(willoughby.postcode, "CV23 8AJ");
+    assert.equal(willoughby.containers[0].category, "skip");
   });
 
   it("reports zero for a site whose container was collected, and ignores future bookings", () => {
@@ -83,12 +84,12 @@ describe("siteMapEntries", () => {
       SINCE,
       TODAY,
     );
-    expect(entries.find(e => e.site === "Cleared Site")!.total).toBe(0);
-    expect(entries.find(e => e.site === "Booked Site")!.total).toBe(0);
+    assert.equal(entries.find(e => e.site === "Cleared Site")!.total, 0);
+    assert.equal(entries.find(e => e.site === "Booked Site")!.total, 0);
   });
 
   it("ignores job rows with no site name", () => {
-    expect(siteMapEntries([job({ site: null })], [], settings, SINCE, TODAY)).toEqual([]);
+    assert.deepEqual(siteMapEntries([job({ site: null })], [], settings, SINCE, TODAY), []);
   });
 });
 
@@ -99,19 +100,19 @@ describe("filterSiteMapEntries", () => {
   ];
 
   it("matches company, site name and address text", () => {
-    expect(filterSiteMapEntries(entries, "vehicle components").map(e => e.key)).toEqual(["a"]);
-    expect(filterSiteMapEntries(entries, "willoughby").map(e => e.key)).toEqual(["b"]);
-    expect(filterSiteMapEntries(entries, "onley grounds").map(e => e.key)).toEqual(["b"]);
+    assert.deepEqual(filterSiteMapEntries(entries, "vehicle components").map(e => e.key), ["a"]);
+    assert.deepEqual(filterSiteMapEntries(entries, "willoughby").map(e => e.key), ["b"]);
+    assert.deepEqual(filterSiteMapEntries(entries, "onley grounds").map(e => e.key), ["b"]);
   });
 
   it("matches a postcode with or without its space", () => {
-    expect(filterSiteMapEntries(entries, "CV238AJ").map(e => e.key)).toEqual(["b"]);
-    expect(filterSiteMapEntries(entries, "cv23 8aj").map(e => e.key)).toEqual(["b"]);
-    expect(filterSiteMapEntries(entries, "nn11").map(e => e.key)).toEqual(["a"]);
+    assert.deepEqual(filterSiteMapEntries(entries, "CV238AJ").map(e => e.key), ["b"]);
+    assert.deepEqual(filterSiteMapEntries(entries, "cv23 8aj").map(e => e.key), ["b"]);
+    assert.deepEqual(filterSiteMapEntries(entries, "nn11").map(e => e.key), ["a"]);
   });
 
   it("returns everything for a blank search", () => {
-    expect(filterSiteMapEntries(entries, "   ")).toEqual(entries);
+    assert.deepEqual(filterSiteMapEntries(entries, "   "), entries);
   });
 });
 
@@ -123,6 +124,6 @@ describe("siteMapPostcodes", () => {
       entry({ key: "c", postcode: "" }),
       entry({ key: "d", postcode: "CV21" }),
     ]);
-    expect(postcodes).toEqual(["CV238AJ"]);
+    assert.deepEqual(postcodes, ["CV238AJ"]);
   });
 });
