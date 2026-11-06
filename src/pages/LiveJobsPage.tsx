@@ -1,9 +1,10 @@
 import StandingBinsSettings from "@/components/live-jobs/StandingBinsSettings";
+import SiteHistorySearch from "@/components/live-jobs/SiteHistorySearch";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Radio, Settings, MapPin, TrendingUp } from "lucide-react";
+import { ArrowLeft, Radio, Settings, MapPin, TrendingUp, History } from "lucide-react";
 import { PageHeading } from "@/components/PageHeading";
 import LiveJobsDashboard from "@/components/live-jobs/LiveJobsDashboard";
 import LiveJobsSettings from "@/components/live-jobs/LiveJobsSettings";
@@ -91,13 +92,14 @@ const LiveJobsPage = () => {
           <PageHeading title="Live Jobs" description="Estimated live containers on-site" />
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
+            <TabsList className="h-auto flex-wrap">
               <TabsTrigger value="dashboard">
                 <Radio className="h-4 w-4 mr-1.5" /> Dashboard
               </TabsTrigger>
               <TabsTrigger value="zones">
                 <MapPin className="h-4 w-4 mr-1.5" /> Zone Report
               </TabsTrigger>
+              <TabsTrigger value="history"><History className="h-4 w-4 mr-1.5" /> Site History</TabsTrigger>
               <TabsTrigger value="trends" className="border border-border bg-background text-foreground shadow-sm rounded-full px-5 font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <TrendingUp className="h-4 w-4 mr-1.5" /> Zone Trends
               </TabsTrigger>
@@ -108,6 +110,7 @@ const LiveJobsPage = () => {
             <TabsContent value="dashboard" className="mt-6">
               <LiveJobsDashboard settings={settings} />
             </TabsContent>
+            <TabsContent value="history" className="mt-6"><SiteHistorySearch settings={settings} /></TabsContent>
             <TabsContent value="zones" className="mt-6">
               <ZoneReport zones={zones} settings={settings} onAssignZone={async (zoneId, postcode) => {
                 const zone = zones.find(z => z.id === zoneId);
