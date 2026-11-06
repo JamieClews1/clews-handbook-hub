@@ -89,7 +89,7 @@ export function filterSiteMapEntries(entries: SiteMapEntry[], term: string): Sit
   return entries.filter(entry => {
     const haystack = [entry.site, entry.customers.join(" "), entry.address].join(" ").toLowerCase();
     if (haystack.includes(needle)) return true;
-    const postcode = normalisePostcode(entry.postcode);
+    const postcode = normalisePostcode(entry.postcode).toLowerCase();
     return postcode.length >= 3 && (postcode.includes(compact) || compact.includes(postcode));
   });
 }

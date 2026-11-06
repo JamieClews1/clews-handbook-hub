@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FunctionsHttpError, supabase } from "@/integrations/supabase/client";
+import { FunctionsHttpError } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 import { normalisePostcode } from "@/hooks/usePostcodeCoords";
 
 // Resolves site postcodes to map coordinates. Coordinates already cached in the
