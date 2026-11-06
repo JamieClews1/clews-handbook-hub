@@ -18,6 +18,7 @@ import { isCompletedRentalMovement, isPlannedRentalService, RENTAL_JOB_FIELDS } 
 import { computeOverRentalBins, containerTypeCap } from "@/lib/overRental";
 import { loadRentalJobPages } from "@/lib/rental-job-loading";
 import { agreementCoversBin, type RentalCoverage } from "@/lib/rental-agreements";
+import { liveBinOwnership } from "@/lib/live-bin-ownership";
 
 type Job = {
   id: string;
@@ -386,8 +387,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
           // Rentals (Own Skip) — nothing is inferred from the raw data.
           ownOnSite = Object.entries(s.containerTypeBreakdown).reduce((sum, [ct, ctb]) => {
             const key = `${s.site.toLowerCase().trim()}|||${ct.toLowerCase().trim()}`;
-            if (!ownBinKeys.has(key)) return sum;
-            return sum + typeOnSite(ctb.positions);
+            return sum + liveBinOwnership(key, typeOnSite(ctb.positions), ownBinKeys, collectedBinKeys).own;
           }, 0);
           clewsOnSite = Math.max(0, netOnSite - ownOnSite);
         }
@@ -728,13 +728,13 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         </TabsList>
 
         <TabsContent value="skips">
-          <SiteTable sites={skipSites} label="Skip" ownBinKeys={ownBinKeys} />
+          <SiteTable sites={skipSites} label="Skip" ownBinKeys={ownBinKeys} collectedBinKeys={collectedBinKeys} />
         </TabsContent>
         <TabsContent value="roros">
-          <SiteTable sites={roroSites} label="RoRo" ownBinKeys={ownBinKeys} />
+          <SiteTable sites={roroSites} label="RoRo" ownBinKeys={ownBinKeys} collectedBinKeys={collectedBinKeys} />
         </TabsContent>
         <TabsContent value="artics">
-          <SiteTable sites={wasteTruckSites} label="Waste Truck" ownBinKeys={ownBinKeys} />
+          <SiteTable sites={wasteTruckSites} label="Waste Truck" ownBinKeys={ownBinKeys} collectedBinKeys={collectedBinKeys} />
         </TabsContent>
         <TabsContent value="over-rental">
           <OverRentalTable sites={overRentalSites} />
@@ -801,7 +801,7 @@ function primaryContainerSize(containerTypes: string[]): number {
   return Math.max(...containerTypes.map(extractBinSize));
 }
 
-function SiteTable({ sites, label, ownBinKeys }: { sites: Array<{ customer: string; site: string; netOnSite: number; ownOnSite?: number; delivered: number; collected: number; exchanged: number; containerTypes: string[]; wasteTypes: string[]; plannedCollections?: { jobNumber: string; date: string; containerType: string | null }[]; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; positions: Record<string, PosCounts> }> }>; label: string; ownBinKeys: Set<string> }) {
+function SiteTable({ sites, label, ownBinKeys, collectedBinKeys }: { sites: Array<{ customer: string; site: string; netOnSite: number; ownOnSite?: number; delivered: number; collected: number; exchanged: number; containerTypes: string[]; wasteTypes: string[]; plannedCollections?: { jobNumber: string; date: string; containerType: string | null }[]; containerTypeBreakdown: Record<string, { delivered: number; collected: number; exchanged: number; positions: Record<string, PosCounts> }> }>; label: string; ownBinKeys: Set<string>; collectedBinKeys: Set<string> }) {
   const [sortField, setSortField] = useState<SortField>("netOnSite");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
@@ -878,14 +878,16 @@ function SiteTable({ sites, label, ownBinKeys }: { sites: Array<{ customer: stri
         for (const ct of matchingTypes) {
           const b = s.containerTypeBreakdown[ct];
           if (b) {
-            delivered += b.delivered; collected += b.collected; exchanged += b.exchanged; netOnSite += typeOnSite(b.positions);
-            if (ownBinKeys.has(`${s.site.toLowerCase().trim()}|||${ct.toLowerCase().trim()}`)) ownOnSite += typeOnSite(b.positions);
+            delivered += b.delivered; collected += b.collected; exchanged += b.exchanged;
+            const ownership = liveBinOwnership(`${s.site.toLowerCase().trim()}|||${ct.toLowerCase().trim()}`, typeOnSite(b.positions), ownBinKeys, collectedBinKeys);
+            netOnSite += ownership.onSite;
+            ownOnSite += ownership.own;
           }
         }
         return { ...s, containerTypes: matchingTypes, netOnSite, ownOnSite, delivered, collected, exchanged };
       })
       .filter((s): s is NonNullable<typeof s> => s !== null && s.netOnSite > 0);
-  }, [sites, selectedTypes, selectedSizes, wasteSearchLower, ownBinKeys]);
+  }, [sites, selectedTypes, selectedSizes, wasteSearchLower, ownBinKeys, collectedBinKeys]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
