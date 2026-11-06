@@ -305,7 +305,7 @@ const PublicInventoryPage = () => {
               </CardHeader>
               <CardContent>
                 <span className="text-3xl font-bold">{valuation ? money(valuation.confirmedValue + valuation.assumedValue) : "—"}</span>
-                {valuation && <p className="text-xs text-muted-foreground">{valuation.unvalued > 0 ? `${valuation.unvalued} containers unvalued · partial estimate` : "Verified + Fair assumptions"}</p>}
+                {valuation && <p className="text-xs text-muted-foreground">{valuation.unvalued > 0 ? `${valuation.unvalued} containers unvalued · partial estimate` : "Verified + 50% Good / 50% Fair"}</p>}
               </CardContent>
             </Card>
           )}
@@ -554,12 +554,13 @@ const PublicInventoryPage = () => {
                       <h2 className="font-semibold">Fleet valuation</h2>
                       <div className="grid sm:grid-cols-3 gap-4">
                         <div><p className="text-sm text-muted-foreground">Office-verified profiles ({valuation.verified})</p><p className="text-2xl font-bold tabular-nums">{money(valuation.confirmedValue)}</p></div>
-                        <div><p className="text-sm text-muted-foreground">Remaining containers at Fair ({valuation.assumed})</p><p className="text-2xl font-bold tabular-nums">{money(valuation.assumedValue)}</p></div>
+                        <div><p className="text-sm text-muted-foreground">Remaining containers ({valuation.assumed})</p><p className="text-2xl font-bold tabular-nums">{money(valuation.assumedValue)}</p><Badge variant="secondary">50% Good · 50% Fair</Badge></div>
                         <div><p className="text-sm text-muted-foreground">Combined indicative value</p><p className="text-2xl font-bold tabular-nums">{money(valuation.confirmedValue + valuation.assumedValue)}</p></div>
                       </div>
-                      <p className="text-xs text-muted-foreground">Unverified and unprofiled containers use the configured Fair-condition rate for their size. This is an estimate, not a physical count or formal valuation.</p>
+                      <p className="text-sm font-medium text-primary">Assumed valuation by bin type: 50% Good and 50% Fair.</p>
+                      <p className="text-xs text-muted-foreground">Remaining containers include unverified profiles and bins still to be found. Each type uses an equal blend of its configured Good and Fair rates. Half-bin quantities for odd totals are valuation weights only, not physical counts. This is not a formal valuation.</p>
                       {(valuation.unvalued > 0 || valuation.surplus > 0 || valuation.unmatchedVerified > 0) && <p className="text-sm text-destructive">{valuation.unvalued} containers without a valuation · {valuation.surplus} excess verified profiles · {valuation.unmatchedVerified} verified profiles with unmatched sizes. Differences remain unresolved.</p>}
-                      <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Verified</TableHead><TableHead>Verified value</TableHead><TableHead>Assumed</TableHead><TableHead>Fair / bin</TableHead><TableHead>Assumed value</TableHead></TableRow></TableHeader><TableBody>{valuation.rows.map(t => <TableRow key={t.id}><TableCell>{t.name}</TableCell><TableCell>{t.verified}</TableCell><TableCell>{money(t.confirmedValue)}</TableCell><TableCell>{t.assumed}</TableCell><TableCell>{t.fairRate == null ? "Not set" : money(t.fairRate)}</TableCell><TableCell>{t.assumedValue == null ? "Not valued" : money(t.assumedValue)}</TableCell></TableRow>)}</TableBody></Table></div>
+                      <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Bin type</TableHead><TableHead>Verified</TableHead><TableHead>Verified value</TableHead><TableHead>To find / verify</TableHead><TableHead>50% Good</TableHead><TableHead>Good / bin</TableHead><TableHead>50% Fair</TableHead><TableHead>Fair / bin</TableHead><TableHead>Assumed value</TableHead></TableRow></TableHeader><TableBody>{valuation.rows.map(t => <TableRow key={t.id}><TableCell>{t.name}</TableCell><TableCell>{t.verified}</TableCell><TableCell>{money(t.confirmedValue)}</TableCell><TableCell className="font-semibold">{t.assumed}</TableCell><TableCell>{t.assumedGood}</TableCell><TableCell>{t.goodRate == null ? "Not set" : money(t.goodRate)}</TableCell><TableCell>{t.assumedFair}</TableCell><TableCell>{t.fairRate == null ? "Not set" : money(t.fairRate)}</TableCell><TableCell>{t.assumedValue == null ? "Not valued" : money(t.assumedValue)}</TableCell></TableRow>)}</TableBody></Table></div>
                     </section>}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {[
