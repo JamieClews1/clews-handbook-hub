@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
 import { withStandingBins, type StandingBinRule } from "./standing-bins";
 import { openRentalBins } from "./rental-open-movements";
 import { categoriseContainer } from "./overRental";
@@ -17,19 +18,19 @@ describe("standing bins", () => {
   const exchanges = [job("2026-10-21", "Exchange"), job("2026-10-21", "Exchange"), job("2026-11-03", "Exchange")];
 
   it("exchange-only position counts as one bin without a rule", () => {
-    expect(onSite(exchanges)).toBe(1);
+    assert.equal(onSite(exchanges), 1);
   });
 
   it("a confirmed rule of 2 shows 2 bins on site", () => {
-    expect(onSite(withStandingBins(exchanges, [rule], "2026-11-06"))).toBe(2);
+    assert.equal(onSite(withStandingBins(exchanges, [rule], "2026-11-06")), 2);
   });
 
   it("a later real collection reduces the confirmed count to 1", () => {
-    expect(onSite(withStandingBins([...exchanges, job("2026-11-05", "Collect")], [rule], "2026-11-06"))).toBe(1);
+    assert.equal(onSite(withStandingBins([...exchanges, job("2026-11-05", "Collect")], [rule], "2026-11-06")), 1);
   });
 
   it("another waste stream's exchange does not absorb a confirmed bin", () => {
     const mixed = [...exchanges, job("2026-10-25", "Exchange", "20 03 01")];
-    expect(onSite(withStandingBins(mixed, [rule], "2026-11-06"))).toBe(3);
+    assert.equal(onSite(withStandingBins(mixed, [rule], "2026-11-06")), 3);
   });
 });
