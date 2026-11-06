@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { loadGoogleMaps } from "@/lib/google-maps-loader";
 import { fetchAllRows } from "@/lib/fetch-all";
 import { HISTORY_FIELDS, type HistoryJob } from "@/lib/site-history";
-import { filterSiteMapEntries, siteMapEntries, siteMapPostcodes, type SiteMapEntry } from "@/lib/site-map";
+import { filterSiteMapEntries, siteMapEntries, siteMapPostcodes } from "@/lib/site-map";
 import { normalisePostcode } from "@/hooks/usePostcodeCoords";
 import { useSiteCoords } from "@/hooks/useSiteCoords";
 import { londonCalendarKey } from "@/lib/ui-calendar";
