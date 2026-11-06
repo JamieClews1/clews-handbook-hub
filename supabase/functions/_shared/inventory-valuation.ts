@@ -42,3 +42,14 @@ export function buyerValuation(rows: FleetRow[], profiles: InventoryProfile[], b
   const unmatched = active.filter(p => p.office_verified && !rows.some(r => profileType(p.size ?? '', p.asset_type, types)?.id === r.id));
   return { rows: byType, fleet: rows.reduce((s,r) => s+r.fleet,0), yard: rows.reduce((s,r) => s+r.inYard,0), out: rows.reduce((s,r) => s+r.onSiteClews,0), confirmedValue: byType.reduce((s,r) => s+r.confirmedValue,0), assumedValue: byType.reduce((s,r) => s+(r.assumedValue ?? 0),0), assumed: byType.reduce((s,r) => s+r.assumed,0), verified: byType.reduce((s,r) => s+r.verified,0), unvalued: byType.reduce((s,r) => s+r.unvalued,0), surplus: byType.reduce((s,r) => s+r.surplus,0), unmatchedVerified: unmatched.length };
 }
+/** Caps counted profiles at each type's expected fleet: verified first, then most recently catalogued. Extra or unmatched profiles are returned as "under review", never deleted. */
+export function fleetAllocation<P extends InventoryProfile & { id: string; last_cataloged_at?: string | null }>(rows: FleetRow[], profiles: P[], types: FleetType[]) {
+  const within = new Set<string>();
+  const active = profiles.filter(p => !['Scrapped', 'Yard Use'].includes(p.condition ?? ''));
+  for (const row of rows) {
+    const matched = active.filter(p => profileType(p.size ?? '', p.asset_type, types)?.id === row.id)
+      .sort((a, b) => Number(!!b.office_verified) - Number(!!a.office_verified) || String(b.last_cataloged_at ?? '').localeCompare(String(a.last_cataloged_at ?? '')));
+    matched.slice(0, Math.max(0, row.fleet)).forEach(p => within.add(p.id));
+  }
+  return within;
+}
