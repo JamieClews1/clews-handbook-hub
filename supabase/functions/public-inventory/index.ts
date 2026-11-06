@@ -1,6 +1,6 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { buyerValuation, profileValue } from "../_shared/inventory-valuation.ts";
+import { buyerValuation, fleetAllocation, profileValue } from "../_shared/inventory-valuation.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -21,7 +21,8 @@ Deno.serve(async (req) => {
       token = typeof body?.token === "string" ? body.token : "";
     }
     if (!/^[a-zA-Z0-9_-]{8,128}$/.test(token)) {
-      return json({ error: "Invalid link" }, 400);
+  
+    return json({ error: "Invalid link" }, 400);
     }
 
     const backendUrl = Deno.env.get("SUPABASE_URL");
@@ -37,7 +38,8 @@ Deno.serve(async (req) => {
 
     if (linkError) throw linkError;
     if (!link || !link.is_active) {
-      return json({ error: "This link is no longer available" }, 404);
+  
+    return json({ error: "This link is no longer available" }, 404);
     }
 
     const rows = [];
@@ -73,21 +75,6 @@ Deno.serve(async (req) => {
           (r.asset_type === "roro" ? link.show_unverified_roros !== false : link.show_unverified_skips !== false)),
     );
 
-    const items = visibleRows.map((r) => ({
-      id: r.id,
-      asset_number: r.asset_number,
-      asset_type: r.asset_type,
-      size: r.size,
-      condition: r.condition,
-      repairs_required: r.repairs_required,
-      repair_notes: r.repair_notes,
-      last_location: r.last_location,
-      last_cataloged_at: r.last_cataloged_at,
-      office_verified: r.office_verified === true,
-      photos: link.show_photos ? photoUrls(r.photos) : [],
-      value: link.show_values ? valueFor(r) : null,
-    }));
-
     await supabase
       .from("inventory_share_links")
       .update({ view_count: (link.view_count ?? 0) + 1, last_viewed_at: new Date().toISOString() })
@@ -107,6 +94,23 @@ Deno.serve(async (req) => {
     const valuation = link.show_values && snapshot?.total_report?.rowsByType
       ? buyerValuation(snapshot.total_report.rowsByType, rows, values ?? [], types ?? []) : null;
 
+
+    const withinFleet = snapshot?.total_report?.rowsByType ? fleetAllocation(snapshot.total_report.rowsByType, rows as any[], types ?? []) : null;
+    const items = visibleRows.map((r) => ({
+      id: r.id,
+      asset_number: r.asset_number,
+      asset_type: r.asset_type,
+      size: r.size,
+      condition: r.condition,
+      repairs_required: r.repairs_required,
+      repair_notes: r.repair_notes,
+      last_location: r.last_location,
+      last_cataloged_at: r.last_cataloged_at,
+      office_verified: r.office_verified === true,
+      photos: link.show_photos ? photoUrls(r.photos) : [],
+      value: link.show_values ? valueFor(r) : null,
+      within_fleet: withinFleet ? withinFleet.has(r.id) : true,
+    }));
     return json({
       label: link.label,
       show_values: link.show_values,
@@ -118,6 +122,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("public-inventory error", e);
+
     return json({ error: "Unable to load inventory" }, 500);
   }
 });
