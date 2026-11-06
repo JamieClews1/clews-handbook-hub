@@ -107,7 +107,7 @@ describe("filterSiteMapEntries", () => {
   it("matches a postcode with or without its space", () => {
     expect(filterSiteMapEntries(entries, "CV238AJ").map(e => e.key)).toEqual(["b"]);
     expect(filterSiteMapEntries(entries, "cv23 8aj").map(e => e.key)).toEqual(["b"]);
-    expect(filterSiteMapEntries(entries, "nn11")).toEqual(entries);
+    expect(filterSiteMapEntries(entries, "nn11").map(e => e.key)).toEqual(["a"]);
   });
 
   it("returns everything for a blank search", () => {
