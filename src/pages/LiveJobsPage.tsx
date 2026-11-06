@@ -1,10 +1,11 @@
 import StandingBinsSettings from "@/components/live-jobs/StandingBinsSettings";
 import SiteHistorySearch from "@/components/live-jobs/SiteHistorySearch";
+import SiteMapView from "@/components/live-jobs/SiteMapView";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Radio, Settings, MapPin, TrendingUp, History } from "lucide-react";
+import { ArrowLeft, Radio, Settings, MapPin, MapPinned, TrendingUp, History } from "lucide-react";
 import { PageHeading } from "@/components/PageHeading";
 import LiveJobsDashboard from "@/components/live-jobs/LiveJobsDashboard";
 import LiveJobsSettings from "@/components/live-jobs/LiveJobsSettings";
@@ -34,6 +35,7 @@ const LiveJobsPage = () => {
   const [trendsLoading, setTrendsLoading] = useState(false);
   const [trendsLoaded, setTrendsLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [startSite, setStartSite] = useState<{ key: string; site: string; customer: string | null; postcode: string; address: string } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -100,6 +102,7 @@ const LiveJobsPage = () => {
                 <MapPin className="h-4 w-4 mr-1.5" /> Zone Report
               </TabsTrigger>
               <TabsTrigger value="history"><History className="h-4 w-4 mr-1.5" /> Site History</TabsTrigger>
+              <TabsTrigger value="map"><MapPinned className="h-4 w-4 mr-1.5" /> Site Map</TabsTrigger>
               <TabsTrigger value="trends" className="border border-border bg-background text-foreground shadow-sm rounded-full px-5 font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <TrendingUp className="h-4 w-4 mr-1.5" /> Zone Trends
               </TabsTrigger>
@@ -110,7 +113,22 @@ const LiveJobsPage = () => {
             <TabsContent value="dashboard" className="mt-6">
               <LiveJobsDashboard settings={settings} />
             </TabsContent>
-            <TabsContent value="history" className="mt-6"><SiteHistorySearch settings={settings} /></TabsContent>
+            <TabsContent value="history" className="mt-6">
+              <SiteHistorySearch
+                settings={settings}
+                startSite={startSite}
+                onStartSiteHandled={() => setStartSite(null)}
+              />
+            </TabsContent>
+            <TabsContent value="map" className="mt-6">
+              <SiteMapView
+                settings={settings}
+                onOpenHistory={site => {
+                  setStartSite(site);
+                  setActiveTab("history");
+                }}
+              />
+            </TabsContent>
             <TabsContent value="zones" className="mt-6">
               <ZoneReport zones={zones} settings={settings} onAssignZone={async (zoneId, postcode) => {
                 const zone = zones.find(z => z.id === zoneId);

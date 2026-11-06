@@ -463,6 +463,13 @@
       "when": 1793958114534,
       "tag": "0065_site_standing_bins",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1793960704533,
+      "tag": "0066_create_site_geocodes",
+      "breakpoints": true
     }
   ]
 }

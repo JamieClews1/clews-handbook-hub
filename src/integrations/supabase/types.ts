@@ -9156,6 +9156,42 @@ export type Database = {
         }
         Relationships: []
       }
+      site_geocodes: {
+        Row: {
+          attempts: number
+          geocoded_at: string
+          label: string | null
+          latitude: number | null
+          location_type: string | null
+          longitude: number | null
+          postcode: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          geocoded_at?: string
+          label?: string | null
+          latitude?: number | null
+          location_type?: string | null
+          longitude?: number | null
+          postcode: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          geocoded_at?: string
+          label?: string | null
+          latitude?: number | null
+          location_type?: string | null
+          longitude?: number | null
+          postcode?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       site_inspection_reports: {
         Row: {
           actions_required: string | null
