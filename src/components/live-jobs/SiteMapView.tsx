@@ -49,12 +49,12 @@ export default function SiteMapView({ settings, onOpenHistory }: Props) {
   const [term, setTerm] = useState("");
   const [showEmpty, setShowEmpty] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [maps, setMaps] = useState<typeof google.maps | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const mapsRef = useRef<typeof google.maps | null>(null);
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const fittedRef = useRef(false);
 
@@ -95,17 +95,8 @@ export default function SiteMapView({ settings, onOpenHistory }: Props) {
   useEffect(() => {
     let cancelled = false;
     loadGoogleMaps()
-      .then(maps => {
-        if (cancelled || !containerRef.current) return;
-        mapsRef.current = maps;
-        mapRef.current = new maps.Map(containerRef.current, {
-          center: { lat: 52.33, lng: -1.35 },
-          zoom: 9,
-          clickableIcons: false,
-          mapTypeControl: false,
-          streetViewControl: false,
-        });
-        setMapReady(true);
+      .then(m => {
+        if (!cancelled) setMaps(m);
       })
       .catch(() => {
         if (!cancelled) setMapError("The map could not be loaded. Please try again.");
@@ -114,6 +105,21 @@ export default function SiteMapView({ settings, onOpenHistory }: Props) {
       cancelled = true;
     };
   }, []);
+
+  // The map needs a sized container, and that container only exists once the
+  // site list has been read, so the map is created when both are ready — in
+  // whichever order they arrive.
+  useEffect(() => {
+    if (!maps || !containerRef.current || mapRef.current) return;
+    mapRef.current = new maps.Map(containerRef.current, {
+      center: { lat: 52.33, lng: -1.35 },
+      zoom: 9,
+      clickableIcons: false,
+      mapTypeControl: false,
+      streetViewControl: false,
+    });
+    setMapReady(true);
+  }, [maps, loading]);
 
   const entries = useMemo(
     () => siteMapEntries(jobs, rules, settings, since, today),
@@ -136,7 +142,6 @@ export default function SiteMapView({ settings, onOpenHistory }: Props) {
 
   useEffect(() => {
     const map = mapRef.current;
-    const maps = mapsRef.current;
     if (!map || !maps) return;
     const markers = markersRef.current;
     const keep = new Set<string>();
@@ -181,18 +186,10 @@ export default function SiteMapView({ settings, onOpenHistory }: Props) {
       map.fitBounds(bounds, 40);
       fittedRef.current = true;
     }
-  }, [visible, coords, selectedKey, mapReady]);
+  }, [visible, coords, selectedKey, mapReady, maps]);
 
   const plottable = visible.filter(e => e.postcode).length;
   const located = visible.filter(e => e.postcode && coords.has(normalisePostcode(e.postcode))).length;
-
-  if (loading) {
-    return (
-      <div role="status" className="flex items-center gap-2 py-16 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin" /> Loading sites…
-      </div>
-    );
-  }
 
   return (
     <section className="space-y-4" aria-label="Site map">
@@ -211,7 +208,7 @@ export default function SiteMapView({ settings, onOpenHistory }: Props) {
           {showEmpty ? "Showing all sites" : "Show sites with nothing on site"}
         </Button>
         <span className="text-sm text-muted-foreground tabular-nums">
-          {visible.length} site{visible.length === 1 ? "" : "s"}
+          {loading ? "Loading sites…" : `${visible.length} site${visible.length === 1 ? "" : "s"}`}
         </span>
       </div>
 
@@ -231,6 +228,14 @@ export default function SiteMapView({ settings, onOpenHistory }: Props) {
           </Button>
         </div>
       )}
+      {coordsError && (
+        <div role="alert" className="flex items-center gap-3 text-destructive">
+          <span>{coordsError}</span>
+          <Button variant="outline" onClick={locateMore}>
+            Try again
+          </Button>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-4">
         <div className="relative">
@@ -239,19 +244,25 @@ export default function SiteMapView({ settings, onOpenHistory }: Props) {
             aria-label="Map of sites"
             className="h-[70vh] min-h-[520px] rounded-lg border border-border bg-muted/40"
           />
-          {(coordsLoading || unresolvedCount > 0) && (
+          {(loading || coordsLoading || unresolvedCount > 0) && (
             <div className="absolute left-3 bottom-3 z-10 flex flex-wrap items-center gap-3 rounded-md border border-border bg-card/95 px-3 py-2 text-sm shadow-sm">
-              {coordsLoading ? (
+              {loading ? (
+                <span role="status" className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading sites…
+                </span>
+              ) : coordsLoading ? (
                 <span role="status" className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" /> Locating sites… {located}/{plottable}
                 </span>
               ) : (
                 <span>
                   {located}/{plottable} sites placed
-                  {unresolvedCount > 0 ? ` · ${unresolvedCount} postcode${unresolvedCount === 1 ? "" : "s"} not looked up yet` : ""}
+                  {unresolvedCount > 0
+                    ? ` · ${unresolvedCount} postcode${unresolvedCount === 1 ? "" : "s"} not looked up yet`
+                    : ""}
                 </span>
               )}
-              {!coordsLoading && unresolvedCount > 0 && (
+              {!loading && !coordsLoading && unresolvedCount > 0 && (
                 <Button size="sm" variant="outline" onClick={locateMore}>
                   Locate {Math.min(unresolvedCount, 100)} more
                 </Button>
@@ -278,7 +289,9 @@ export default function SiteMapView({ settings, onOpenHistory }: Props) {
 
               <div className="flex items-baseline gap-2 border-y border-border py-3">
                 <span className="text-2xl font-semibold tabular-nums">{selected.total}</span>
-                <span className="text-sm text-muted-foreground">container{selected.total === 1 ? "" : "s"} on site now</span>
+                <span className="text-sm text-muted-foreground">
+                  container{selected.total === 1 ? "" : "s"} on site now
+                </span>
               </div>
 
               {selected.containers.length === 0 ? (
@@ -297,7 +310,9 @@ export default function SiteMapView({ settings, onOpenHistory }: Props) {
                           </span>
                           <Badge variant="outline">{own ? "Own" : "Clews"}</Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1">{c.wastes.join(" / ") || "Waste type not recorded"}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {c.wastes.join(" / ") || "Waste type not recorded"}
+                        </p>
                       </li>
                     );
                   })}
@@ -353,7 +368,7 @@ export default function SiteMapView({ settings, onOpenHistory }: Props) {
                   Showing the first {LIST_LIMIT} — narrow the search to see more.
                 </p>
               )}
-              {visible.length === 0 && (
+              {visible.length === 0 && !loading && (
                 <p className="px-4 py-3 text-sm text-muted-foreground">No sites match this search.</p>
               )}
             </div>
