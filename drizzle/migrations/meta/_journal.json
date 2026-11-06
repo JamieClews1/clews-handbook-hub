@@ -470,6 +470,13 @@
       "when": 1793960704533,
       "tag": "0066_create_site_geocodes",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1793976965387,
+      "tag": "0067_site_history_search_rpc",
+      "breakpoints": true
     }
   ]
 }
