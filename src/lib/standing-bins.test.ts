@@ -56,4 +56,10 @@ describe("standing bins", () => {
     const pending = { ...job("2026-11-05", "Deliver"), rental_status: "N" };
     assert.equal(withStandingBins([...exchanges, pending], [rule], "2026-11-06").filter(j => j.id.startsWith("standing:")).length, 2);
   });
+
+  it("unserviced quantity evidence never invents a rental start", () => {
+    const augmented = withStandingBins([job("2026-10-21", "Exchange")], [rule], "2026-11-06");
+    assert.equal(onSite(augmented), 1);
+    assert.equal(openRentalBins(augmented, settings, "2026-01-01", categoriseContainer, "2026-11-06")[0]?.lastJobNumber, augmented.find(j => !j.id.startsWith("standing:"))?.job_number);
+  });
 });
