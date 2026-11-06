@@ -11,10 +11,12 @@ import { useState } from "react";
 export const StockCheckTotalStock = () => {
   const {
     loading,
+    error,
+    refresh,
     containerTypes,
     inYardByType,
-    onSiteByType,
-    onSiteOther,
+    clewsOnSiteByType: onSiteByType,
+    clewsOnSiteOther: onSiteOther,
     siteDetail,
     latestCheckDate,
   } = useExpectedStock();
@@ -27,6 +29,8 @@ export const StockCheckTotalStock = () => {
       </div>
     );
   }
+
+  if (error) return <div role="alert" className="flex items-center gap-3 text-destructive"><span>{error}</span><Button variant="outline" onClick={refresh}>Try again</Button></div>;
 
   if (containerTypes.length === 0) {
     return (
@@ -110,7 +114,7 @@ export const StockCheckTotalStock = () => {
           <h2 className="text-xl font-bold text-foreground">Total Stock</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Total fleet owned by type — what is out on site plus what is In Yard from the Current Stock Overview.
-            On-site counts use the same categorisation as Live Jobs.
+            Customer Own containers are excluded; working tallies already exclude Scrapped and Yard Use.
           </p>
           {latestCheckDate && (
             <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">

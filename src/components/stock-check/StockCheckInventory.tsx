@@ -91,6 +91,7 @@ import { SizeFilter } from "./SizeFilter";
 import { sizeOptionsFromValues, type SizeFilterOption } from "@/lib/stock-check-size-filter";
 import { totalReportTotals, totalReportType } from "@/lib/stock-check-total-report";
 import { isSuspectProfile, suspectCsv } from "@/lib/stock-check-suspect";
+import { fetchAllRows } from "@/lib/fetch-all";
 import { downloadCsv } from "@/lib/csv-download";
 
 interface InventoryRow {
@@ -1157,15 +1158,13 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
     data: allRows = [],
     isLoading,
     isFetching,
+    isError: inventoryError,
     refetch,
   } = useQuery({
     queryKey: ["skip-inventory"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("skip_inventory")
-        .select("*")
-        .order("asset_number", { ascending: true });
-      if (error) throw error;
+      const data = await fetchAllRows<InventoryRow>("skip_inventory", "*", "id");
+      data.sort((a,b)=>compareAssetNumbers(a.asset_number,b.asset_number));
       // Photos can be stored either as plain URL strings (office uploads) or as
       // { url, label } objects (driver app captures) — normalise to URL strings.
       return ((data || []) as any[]).map((r) => ({
@@ -1378,7 +1377,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
     // Only bins matched to an expected size count, capped per size so a surplus
     // in one size can't hide a shortfall in another (headline never exceeds 100%).
     const totalCatalogued = perType.reduce((s, t) => s + Math.min(t.catalogued, t.expected), 0);
-    const totalExpected = perType.reduce((s, t) => s + t.expected, 0);
+    const totalExpected = perType.reduce((s, t) => s + t.expected, 0) + expected.clewsOnSiteOther.skip + expected.clewsOnSiteOther.roro;
     return {
       perType,
       unmatched,
@@ -1386,7 +1385,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
       totalExpected,
       pct: totalExpected > 0 ? Math.round((totalCatalogued / totalExpected) * 100) : null,
     };
-  }, [allRows, expected.containerTypes, expected.expectedByType, expected.inYardByType, expected.onSiteByType, expected.ownOnSiteByType]);
+  }, [allRows, expected.containerTypes, expected.expectedByType, expected.inYardByType, expected.onSiteByType, expected.ownOnSiteByType, expected.clewsOnSiteOther]);
 
   // Total report: working Clews fleet only. Customer "Own" skips need no
   // profile; working tallies and active catalogued profiles already exclude
@@ -1404,19 +1403,23 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
         catalogued: t.catalogued,
       }),
     );
+    for (const category of ["skip", "roro"] as const) {
+      const count = expected.clewsOnSiteOther[category];
+      if (count > 0) rowsByType.push(totalReportType({id:`unclassified-${category}`,name:"Other / unclassified",category,inYard:0,onSite:count,ownOnSite:0,outOfService:0,catalogued:0}));
+    }
     return {
       rowsByType,
       skip: totalReportTotals(rowsByType, "skip"),
       roro: totalReportTotals(rowsByType, "roro"),
-      excluded: accounted.perType.reduce((a, t) => a + t.outOfService, 0),
+      excluded: outOfServiceCount,
     };
-  }, [accounted.perType]);
+  }, [accounted.perType, outOfServiceCount, expected.clewsOnSiteOther]);
 
   // Share the Total Report with External View links as a read-only snapshot,
   // written only when the figures change.
   const reportKey = JSON.stringify(report);
   useEffect(() => {
-    if (scope !== "active" || expected.loading || expected.error || report.rowsByType.length === 0) return;
+    if (isLoading || isFetching || inventoryError || scope !== "active" || expected.loading || expected.error || report.rowsByType.length === 0) return;
     const t = setTimeout(async () => {
       const payload = { ...report, computed_at: new Date().toISOString() };
       const { data: latest } = await supabase
@@ -1433,7 +1436,7 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
     }, 1500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reportKey, scope, expected.loading, expected.error]);
+  }, [reportKey, scope, expected.loading, expected.error, isLoading, isFetching, inventoryError]);
 
   const conditionCounts = useMemo(() => {
     const counts: Record<string, number> = { Good: 0, Fair: 0, Poor: 0, Damaged: 0, Unknown: 0 };
@@ -1608,6 +1611,8 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Comparing with expected stock…
             </div>
+          ) : expected.error || inventoryError ? (
+            <p role="alert" className="text-destructive">Stock comparison could not be loaded in full. <Button variant="outline" onClick={()=>{expected.refresh();void refetch();}}>Try again</Button></p>
           ) : accounted.pct === null ? (
             <p className="text-sm text-muted-foreground">
               No expected stock yet — complete a stock take in the Live tab first.
@@ -1660,12 +1665,12 @@ const InventoryList = ({ scope = "active" }: { scope?: "active" | "out-of-servic
       )}
 
       {scope === "active" && expected.error && <p role="alert" className="text-destructive">{expected.error}</p>}
-      {scope === "active" && !expected.loading && !expected.error && accounted.pct !== null && (
+      {scope === "active" && !isLoading && !inventoryError && !expected.loading && !expected.error && accounted.pct !== null && (
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Total Report</CardTitle>
           <p className="text-xs text-muted-foreground">
-            Yard starts from the latest working-stock tally plus completed movements; Scrapped / Yard Use are already excluded from the tally. Customer Own skips/RoRos are excluded from Live Jobs, and {report.excluded} Scrapped / Yard Use profiles are excluded from Profiles.
+            Yard starts from the latest working-stock tally plus completed movements; Scrapped / Yard Use are already excluded from the tally. Customer Own skips/RoRos are excluded from these fleet totals, and {report.excluded} Scrapped / Yard Use profiles are excluded from Profiles.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">

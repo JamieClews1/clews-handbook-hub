@@ -12,6 +12,8 @@ import { stockCheckAvailability, stockMovementDelta, movementAfterTally, uniqueS
 import { fetchAllRows } from "@/lib/fetch-all";
 import { londonCalendarKey } from "@/lib/ui-calendar";
 import { containerSize } from "@/lib/container-taxonomy";
+import { bestStockType } from "@/lib/stock-check-matching";
+import { useExpectedStock } from "@/hooks/useExpectedStock";
 import { SizeFilter } from "@/components/stock-check/SizeFilter";
 import { filterTypesBySize, type SizeFilterOption } from "@/lib/stock-check-size-filter";
 
@@ -39,6 +41,7 @@ interface ProjectionJob {
 }
 
 export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?: (checkId: string) => void; headerAction?: ReactNode } = {}) => {
+  const expectedStock = useExpectedStock();
   const [latestCheckId, setLatestCheckId] = useState<string | null>(null);
   const [containerTypes, setContainerTypes] = useState<ContainerType[]>([]);
   const [latestItems, setLatestItems] = useState<StockCheckItem[]>([]);
@@ -147,25 +150,14 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
         projMap[t.id] = { toCollect: 0, toDeliver: 0, toExchange: 0, collectJobs: [], deliverJobs: [], exchangeJobs: [] };
         deltas[t.id] = 0;
       }
-      const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       for (const job of jobs) {
         if (!job.container_type || excludedSites.some(s => job.site?.toLowerCase().includes(s.toLowerCase()))) continue;
-        let bestType: ContainerType | undefined;
-        let bestLen = 0;
-        for (const type of containerTypes) {
-          for (const kw of [...(type.data_hub_keywords || []), type.name]) {
-            const key = stockContainerKey(kw);
-            if (key.length > bestLen && new RegExp(`(^|\\W)${escapeRegex(key)}(\\W|$)`, "i").test(stockContainerKey(job.container_type))) {
-              bestType = type;
-              bestLen = key.length;
-            }
-          }
-        }
+        const bestType = bestStockType(job.container_type, containerTypes);
         if (!bestType) continue;
         const target = applyEwcReclass(bestType.id, job.ewc, reclassRules);
         const key = projMap[target] ? target : bestType.id;
         if (movementAfterTally(job, latestCheckDate, baselineDay)) deltas[key] += stockMovementDelta(job.movement_type);
-        if (job.completed || !job.job_date || job.job_date < todayKey || job.job_date > endKey) continue;
+        if (job.completed || (job.source === "routeone" && !native.some(n => n.id === job.id && ["unassigned", "assigned", "in_progress"].includes(n.status))) || !job.job_date || job.job_date < todayKey || job.job_date > endKey) continue;
         const bucket = projMap[key];
         const movement = (job.movement_type ?? "").toLowerCase();
         if (movement.includes("exchange")) { bucket.toExchange++; bucket.exchangeJobs.push(job); }
@@ -180,7 +172,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
     }
   };
 
-  if (loading) {
+  if (loading || expectedStock.loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -208,11 +200,11 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
 
   const getItem = (typeId: string) => latestItems.find((i) => i.container_type_id === typeId);
   const getProjection = (typeId: string) => projections[typeId] || { toCollect: 0, toDeliver: 0, toExchange: 0, collectJobs: [], deliverJobs: [], exchangeJobs: [] };
-  const getInYard = (typeId: string) => stockCheckAvailability(getItem(typeId), 0, yardDeltas[typeId] ?? 0).inYard;
+  const getInYard = (typeId: string) => expectedStock.inYardByType[typeId] ?? 0;
   const calcBookingsAllowed = (typeId: string) => {
     const item = getItem(typeId);
     const proj = getProjection(typeId);
-    return stockCheckAvailability(item, proj.toDeliver, yardDeltas[typeId] ?? 0, proj.toCollect).bookingsAllowed;
+    return stockCheckAvailability(item, proj.toDeliver, getInYard(typeId) - (item?.in_yard ?? 0), proj.toCollect).bookingsAllowed;
   };
 
   return (
@@ -269,14 +261,14 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
         </div>
       </div>
 
-      {movementError && (
+      {(movementError || expectedStock.error) && (
         <div role="alert" className="flex items-center gap-3 text-destructive">
-          <span>{movementError}</span>
-          <Button variant="outline" size="sm" onClick={() => void loadProjections()}>Try again</Button>
+          <span>{movementError || expectedStock.error}</span>
+          <Button variant="outline" size="sm" onClick={() => { expectedStock.refresh(); void loadProjections(); }}>Try again</Button>
         </div>
       )}
       {/* Skips */}
-      <div hidden={Boolean(movementError) || skips.length === 0}>
+      <div hidden={Boolean(movementError || expectedStock.error) || skips.length === 0}>
         <div className="flex items-center gap-2 mb-3">
           <Truck className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-bold text-foreground">Skips</h3>
@@ -294,7 +286,7 @@ export const StockCheckDashboard = ({ onEditLast, headerAction }: { onEditLast?:
       </div>
 
       {/* RoRos */}
-      <div hidden={Boolean(movementError) || roros.length === 0}>
+      <div hidden={Boolean(movementError || expectedStock.error) || roros.length === 0}>
         <div className="flex items-center gap-2 mb-3">
           <Container className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-bold text-foreground">RoRos</h3>
