@@ -1,3 +1,4 @@
+import { useStandingBinRules, withStandingBins } from "@/lib/standing-bins";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -94,6 +95,8 @@ export default function RentalsDashboard() {
   const [jobsLoading, setJobsLoading] = useState(true);
   const [jobsError, setJobsError] = useState(false);
   const [jobsReload, setJobsReload] = useState(0);
+  const standingRules = useStandingBinRules();
+  const replayJobs = useMemo(() => withStandingBins(jobs, standingRules), [jobs, standingRules]);
   const [chases, setChases] = useState<Record<string, Chase>>({});
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [officeProfiles, setOfficeProfiles] = useState<Profile[]>([]);
@@ -260,24 +263,24 @@ export default function RentalsDashboard() {
     // and bins where the customer supplies their own skip. Containers with a
     // collection or exchange already booked for today or later are dropped too:
     // the truck is coming, so there is nothing to chase.
-    return computeOverRentalBins(jobs, settings, undefined, jobs)
+    return computeOverRentalBins(replayJobs, settings, undefined, jobs)
       .filter((b) => !chases[b.binKey]?.collected && !chases[b.binKey]?.own_skip);
-  }, [jobs, settings, settingsLoading, chases]);
+  }, [replayJobs, jobs, settings, settingsLoading, chases]);
 
   // Bins the customer has confirmed are their own — pulled off the chase list but
   // kept visible for reference.
   const ownSkipBins = useMemo(() => {
     if (settingsLoading) return [];
-    return computeOverRentalBins(jobs, settings)
+    return computeOverRentalBins(replayJobs, settings)
       .filter((b) => chases[b.binKey]?.own_skip && !chases[b.binKey]?.collected);
-  }, [jobs, settings, settingsLoading, chases]);
+  }, [replayJobs, jobs, settings, settingsLoading, chases]);
 
   // Bins covered by an active rental agreement (e.g. open-ended ones) are pulled out
   // of the main Over Rental list — they are no longer being chased — but we still track
   // how long they've been over so they remain visible.
   const coveredBins = useMemo(
-    () => trackedAgreementBins(jobs, settings).filter((b) => !chases[b.binKey]?.collected && !chases[b.binKey]?.own_skip && agreements.some((a) => agreementCoversBin(a, b))),
-    [jobs, settings, chases, agreements],
+    () => trackedAgreementBins(replayJobs, settings).filter((b) => !chases[b.binKey]?.collected && !chases[b.binKey]?.own_skip && agreements.some((a) => agreementCoversBin(a, b))),
+    [replayJobs, settings, chases, agreements],
   );
 
   const bins = useMemo(

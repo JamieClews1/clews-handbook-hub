@@ -1,3 +1,4 @@
+import { isStandingBinJob, useStandingBinRules, withStandingBins } from "@/lib/standing-bins";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -136,6 +137,8 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
   // movements, so the bookings are kept separately and passed to the shared
   // over-rental calculator, which drops the bins they attend.
   const [plannedJobs, setPlannedJobs] = useState<Job[]>([]);
+  const standingRules = useStandingBinRules();
+  const replayJobs = useMemo(() => withStandingBins(jobs, standingRules), [jobs, standingRules]);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -203,7 +206,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
 
     const recentJobs: Job[] = [];
 
-    for (const job of jobs) {
+    for (const job of replayJobs) {
       const cat = categoriseContainer(job.container_type, job.vehicle_registration, settings);
       if (!cat) continue;
 
@@ -332,8 +335,8 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
         }
       }
 
-      // Monthly chart data
-      if (job.job_date) {
+      // Monthly chart data (confirmed standing bins are not real movements)
+      if (job.job_date && !isStandingBinJob(job)) {
         const monthKey = job.job_date.substring(0, 7);
         if (!monthlyMap[monthKey]) {
           monthlyMap[monthKey] = { month: monthKey, deliveries: 0, exchanges: 0, collections: 0 };
@@ -430,7 +433,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
     // Uses the shared computeOverRentalBins so the Rentals section produces IDENTICAL
     // results (same data window, same logic). Do not reimplement inline.
     // Also hide bins staff manually confirmed as collected in Rentals, so both views match.
-    const overRental = computeOverRentalBins(jobs, settings, undefined, plannedJobs).filter(b =>
+    const overRental = computeOverRentalBins(replayJobs, settings, undefined, plannedJobs).filter(b =>
       !collectedBinKeys.has(b.binKey) && !ownBinKeys.has(b.binKey)
       && !agreements.some(agreement => agreementCoversBin(agreement, b)));
 
@@ -442,7 +445,7 @@ export default function LiveJobsDashboard({ settings }: { settings: LiveJobsSett
       recentActivity: recentJobs.slice(0, 100),
       overRentalSites: overRental,
     };
-  }, [jobs, settings, collectedBinKeys, ownBinKeys, agreements, plannedJobs]);
+  }, [replayJobs, settings, collectedBinKeys, ownBinKeys, agreements, plannedJobs]);
 
   const skipSites = useMemo(() => liveSites.filter(s => s.category === "skip"), [liveSites]);
   const roroSites = useMemo(() => liveSites.filter(s => s.category === "roro"), [liveSites]);
