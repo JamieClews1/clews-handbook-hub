@@ -2003,11 +2003,10 @@ export function MonthlyRebateGenerationV2() {
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Message</Label>
-                      <Textarea
-                        value={draft.body}
-                        rows={8}
-                        className="font-mono text-xs"
-                        onChange={(e) => updateDraft(i, { body: e.target.value })}
+                      <CompactRichTextEditor
+                        content={draft.body}
+                        onChange={(html) => updateDraft(i, { body: html })}
+                        minHeight="200px"
                       />
                     </div>
                   </div>
