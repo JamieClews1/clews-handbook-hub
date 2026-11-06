@@ -44,6 +44,7 @@ interface Item {
   photos: string[];
   value: number | null;
   office_verified: boolean;
+  within_fleet?: boolean;
 }
 
 const money = (n: number) => `£${Math.round(n).toLocaleString()}`;
@@ -157,9 +158,10 @@ const PublicInventoryPage = () => {
   }, [items, expected]);
 
   const summaryItems = useMemo(
-    () => (summaryIncludeUnverified ? items : items.filter((i) => i.office_verified)),
+    () => items.filter((i) => i.within_fleet !== false && (summaryIncludeUnverified || i.office_verified)),
     [items, summaryIncludeUnverified],
   );
+  const underReview = items.filter((i) => i.within_fleet === false && (summaryIncludeUnverified || i.office_verified));
   const summaryValue = summaryItems.reduce((s, r) => s + (r.value || 0), 0);
 
   const breakdown = useMemo(() => {
@@ -505,7 +507,7 @@ const PublicInventoryPage = () => {
           <TabsContent value="summary" className="space-y-6">
             <div>
               <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">Condition report summary — {summaryIncludeUnverified ? "verified + unverified" : "office verified only"}</h2><label className="flex items-center gap-2 text-sm print:hidden"><Switch checked={summaryIncludeUnverified} onCheckedChange={setSummaryIncludeUnverified} />Include unverified</label></div>
-              <p className="text-sm text-muted-foreground">{summaryItems.length} profiles{showValues ? ` · ${money(summaryValue)} recorded profile value` : ""}. Recorded conditions only; assumed fleet values are separate in Total Report.</p>
+              <p className="text-sm text-muted-foreground">{summaryItems.length} profiles{showValues ? ` · ${money(summaryValue)} recorded profile value` : ""}. Recorded conditions only; assumed fleet values are separate in Total Report. Counts are capped at the expected fleet{expected?.expected_total ? ` (${expected.expected_total})` : ""}; extra profiles are listed separately as under review.</p>
             </div>
             <section className="space-y-3">
               <h3 className="font-semibold">Total by condition and value</h3>
@@ -528,6 +530,7 @@ const PublicInventoryPage = () => {
                       </TableRow>;
                     })}
                     <TableRow className="bg-muted/50 font-semibold"><TableCell>Total</TableCell><TableCell className="text-right tabular-nums">{summaryItems.filter(i => i.asset_type === "skip").length}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(summaryItems.filter(i => i.asset_type === "skip").reduce((s,i) => s+(i.value ?? 0),0))}</TableCell>}<TableCell className="text-right tabular-nums">{summaryItems.filter(i => i.asset_type === "roro").length}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(summaryItems.filter(i => i.asset_type === "roro").reduce((s,i) => s+(i.value ?? 0),0))}</TableCell>}<TableCell className="text-right tabular-nums">{summaryItems.length}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(summaryValue)}</TableCell>}<TableCell /></TableRow>
+                    {underReview.length > 0 && <TableRow className="text-muted-foreground italic"><TableCell>Above expected fleet</TableCell><TableCell className="text-right tabular-nums">{underReview.filter(i => i.asset_type === "skip").length}</TableCell>{showValues && <TableCell />}<TableCell className="text-right tabular-nums">{underReview.filter(i => i.asset_type === "roro").length}</TableCell>{showValues && <TableCell />}<TableCell className="text-right tabular-nums">{underReview.length}</TableCell>{showValues && <TableCell className="text-right text-xs">Not counted or valued</TableCell>}<TableCell className="text-sm">Under review — likely duplicates, ownership or size mismatches</TableCell></TableRow>}
                   </TableBody>
                 </Table>
               </div>
