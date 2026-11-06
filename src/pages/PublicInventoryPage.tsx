@@ -498,6 +498,32 @@ const PublicInventoryPage = () => {
               <h2 className="text-lg font-semibold">Condition report summary</h2>
               <p className="text-sm text-muted-foreground">{items.length} visible profiles{showValues ? ` · ${money(portfolioValue)} recorded profile value` : ""}. Recorded conditions only; assumed fleet values are separate in Total Report.</p>
             </div>
+            <section className="space-y-3">
+              <h3 className="font-semibold">Total by condition and value</h3>
+              <div className="rounded-lg border overflow-x-auto">
+                <Table>
+                  <TableHeader><TableRow><TableHead>Condition</TableHead><TableHead className="text-right">Skips</TableHead>{showValues && <TableHead className="text-right">Skip value</TableHead>}<TableHead className="text-right">RoRos</TableHead>{showValues && <TableHead className="text-right">RoRo value</TableHead>}<TableHead className="text-right">Total bins</TableHead>{showValues && <TableHead className="text-right">Total value</TableHead>}<TableHead>Buyer consideration</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {["New", "Good", "Fair", "Poor", "Damaged", "Unknown", ...conditions.filter(c => !["New", "Good", "Fair", "Poor", "Damaged", "Unknown"].includes(c))].map(condition => {
+                      const group = items.filter(i => (i.condition || "Unknown") === condition);
+                      const skips = group.filter(i => i.asset_type === "skip");
+                      const roros = group.filter(i => i.asset_type === "roro");
+                      const value = (rows: Item[]) => rows.reduce((sum,i) => sum + (i.value ?? 0),0);
+                      const unvalued = group.filter(i => i.value == null).length;
+                      return <TableRow key={condition} className={condition === "Fair" ? "bg-warning/10 hover:bg-warning/15" : ""}>
+                        <TableCell><Badge variant="outline" className={conditionStyle[condition]}>{condition}</Badge></TableCell>
+                        <TableCell className="text-right tabular-nums">{skips.length}</TableCell>{showValues && <TableCell className="text-right tabular-nums whitespace-nowrap">{money(value(skips))}</TableCell>}
+                        <TableCell className="text-right tabular-nums">{roros.length}</TableCell>{showValues && <TableCell className="text-right tabular-nums whitespace-nowrap">{money(value(roros))}</TableCell>}
+                        <TableCell className="text-right font-semibold tabular-nums">{group.length}</TableCell>{showValues && <TableCell className="text-right font-semibold tabular-nums whitespace-nowrap">{money(value(group))}{unvalued > 0 && <span className="block text-xs text-muted-foreground">{unvalued} not valued</span>}</TableCell>}
+                        <TableCell className="min-w-48 text-sm">{condition === "Fair" ? "May need replacing soon" : condition === "Poor" || condition === "Damaged" ? "Review repair / replacement needs" : condition === "Unknown" ? "Condition needs confirmation" : "—"}</TableCell>
+                      </TableRow>;
+                    })}
+                    <TableRow className="bg-muted/50 font-semibold"><TableCell>Total</TableCell><TableCell className="text-right tabular-nums">{items.filter(i => i.asset_type === "skip").length}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(items.filter(i => i.asset_type === "skip").reduce((s,i) => s+(i.value ?? 0),0))}</TableCell>}<TableCell className="text-right tabular-nums">{items.filter(i => i.asset_type === "roro").length}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(items.filter(i => i.asset_type === "roro").reduce((s,i) => s+(i.value ?? 0),0))}</TableCell>}<TableCell className="text-right tabular-nums">{items.length}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(portfolioValue)}</TableCell>}<TableCell /></TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+              <p className="text-xs text-muted-foreground">Fair-condition bins are highlighted for potential near-term replacement review. {showValues ? "Values are current indicative asset values, not the cost of buying replacements. " : ""}Condition alone does not confirm when replacement will be needed.</p>
+            </section>
             {(["skip", "roro"] as const).map(type => {
               const rows = breakdown.filter(b => b.type === type);
               const columns = ["New", "Good", "Fair", "Poor", "Damaged", "Unknown", ...conditions.filter(c => !["New", "Good", "Fair", "Poor", "Damaged", "Unknown"].includes(c))];
