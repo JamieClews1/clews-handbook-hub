@@ -1,6 +1,6 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { buyerValuation, fleetAllocation, profileValue } from "../_shared/inventory-valuation.ts";
+import { buyerValuation, fleetAllocation, profileType, profileValue } from "../_shared/inventory-valuation.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -110,6 +110,7 @@ Deno.serve(async (req) => {
       photos: link.show_photos ? photoUrls(r.photos) : [],
       value: link.show_values ? valueFor(r) : null,
       within_fleet: withinFleet ? withinFleet.has(r.id) : true,
+      fleet_type_id: profileType(r.size ?? "", r.asset_type, types ?? [])?.id ?? null,
     }));
     return json({
       label: link.label,
