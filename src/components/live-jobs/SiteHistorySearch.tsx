@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { format, startOfMonth, subMonths } from "date-fns";
 import { ArrowLeft, ArrowDown, ArrowUp, Search, History, Loader2, Package, ArrowRightLeft, Truck, CheckCircle2, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +28,13 @@ async function readPages<T>(read: (from: number, to: number) => PromiseLike<{ da
   }
 }
 
-export default function SiteHistorySearch({ settings }: { settings: LiveJobsSettings }) {
+type StartSite = { key: string; site: string; customer: string | null; postcode: string; address: string };
+
+export default function SiteHistorySearch({ settings, startSite, onStartSiteHandled }: {
+  settings: LiveJobsSettings;
+  startSite?: StartSite | null;
+  onStartSiteHandled?: () => void;
+}) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SiteResult[]>([]);
   const [searched, setSearched] = useState(false);
@@ -44,6 +50,27 @@ export default function SiteHistorySearch({ settings }: { settings: LiveJobsSett
   const [oldestFirst, setOldestFirst] = useState(false);
   const [visible, setVisible] = useState(100);
   const request = useRef(0);
+  const handledStart = useRef<string | null>(null);
+
+  // Opened straight from a pin on the site map.
+  useEffect(() => {
+    if (!startSite) {
+      handledStart.current = null;
+      return;
+    }
+    if (handledStart.current === startSite.key) return;
+    handledStart.current = startSite.key;
+    void openSite({
+      key: startSite.key,
+      site: startSite.site,
+      customers: startSite.customer ? [startSite.customer] : [],
+      names: [startSite.site],
+      address: startSite.address,
+      postcode: startSite.postcode,
+    });
+    onStartSiteHandled?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startSite]);
   const today = londonCalendarKey();
   const since = format(startOfMonth(subMonths(new Date(), 11)), "yyyy-MM-dd");
 

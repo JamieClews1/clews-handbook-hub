@@ -1,10 +1,11 @@
 import StandingBinsSettings from "@/components/live-jobs/StandingBinsSettings";
 import SiteHistorySearch from "@/components/live-jobs/SiteHistorySearch";
+import SiteMapView from "@/components/live-jobs/SiteMapView";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Radio, Settings, MapPin, TrendingUp, History } from "lucide-react";
+import { ArrowLeft, Radio, Settings, MapPin, MapPinned, TrendingUp, History } from "lucide-react";
 import { PageHeading } from "@/components/PageHeading";
 import LiveJobsDashboard from "@/components/live-jobs/LiveJobsDashboard";
 import LiveJobsSettings from "@/components/live-jobs/LiveJobsSettings";
@@ -34,6 +35,7 @@ const LiveJobsPage = () => {
   const [trendsLoading, setTrendsLoading] = useState(false);
   const [trendsLoaded, setTrendsLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [startSite, setStartSite] = useState<{ key: string; site: string; customer: string | null; postcode: string; address: string } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
