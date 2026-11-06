@@ -156,28 +156,31 @@ const PublicInventoryPage = () => {
   const breakdown = useMemo(() => {
     const map = new Map<
       string,
-      { type: string; size: string; condition: string; count: number; value: number }
+      { type: string; size: string; counts: Record<string, number>; count: number; value: number; unvalued: number }
     >();
     items.forEach((i) => {
-      const key = `${i.asset_type}|${i.size || "—"}|${i.condition || "—"}`;
+      const key = `${i.asset_type}|${i.size || "—"}`;
       const row =
         map.get(key) ??
         {
           type: i.asset_type,
           size: i.size || "—",
-          condition: i.condition || "—",
+          counts: {},
           count: 0,
           value: 0,
+          unvalued: 0,
         };
       row.count += 1;
+      const condition = i.condition || "Unknown";
+      row.counts[condition] = (row.counts[condition] || 0) + 1;
+      if (i.value == null) row.unvalued += 1;
       row.value += i.value || 0;
       map.set(key, row);
     });
     return Array.from(map.values()).sort(
       (a, b) =>
         a.type.localeCompare(b.type) ||
-        a.size.localeCompare(b.size) ||
-        a.condition.localeCompare(b.condition),
+        a.size.localeCompare(b.size, undefined, { numeric: true }),
     );
   }, [items]);
 
@@ -490,49 +493,29 @@ const PublicInventoryPage = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="summary">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Fleet breakdown by type, size and condition</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
+          <TabsContent value="summary" className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold">Condition report summary</h2>
+              <p className="text-sm text-muted-foreground">{items.length} visible profiles{showValues ? ` · ${money(portfolioValue)} recorded profile value` : ""}. Recorded conditions only; assumed fleet values are separate in Total Report.</p>
+            </div>
+            {(["skip", "roro"] as const).map(type => {
+              const rows = breakdown.filter(b => b.type === type);
+              const columns = ["New", "Good", "Fair", "Poor", "Damaged", "Unknown", ...conditions.filter(c => !["New", "Good", "Fair", "Poor", "Damaged", "Unknown"].includes(c))];
+              const count = rows.reduce((sum, r) => sum + r.count, 0);
+              const value = rows.reduce((sum, r) => sum + r.value, 0);
+              return <section key={type} className="space-y-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2"><h3 className="font-semibold">{type === "roro" ? "RoRos" : "Skips"}</h3><p className="text-sm text-muted-foreground tabular-nums">{count} profiles{showValues ? ` · ${money(value)}` : ""}</p></div>
+                <div className="rounded-lg border overflow-x-auto">
                   <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Size</TableHead>
-                        <TableHead>Condition</TableHead>
-                        <TableHead className="text-right">Units</TableHead>
-                        {showValues && <TableHead className="text-right">Value</TableHead>}
-                      </TableRow>
-                    </TableHeader>
+                    <TableHeader><TableRow><TableHead className="min-w-40">Bin size / type</TableHead>{columns.map(c => <TableHead key={c} className="text-right"><span className={cn("font-medium", conditionStyle[c]?.split(" ").find(s => s.startsWith("text-")))}>{c}</span></TableHead>)}<TableHead className="text-right">Total</TableHead>{showValues && <TableHead className="text-right">Profile value</TableHead>}</TableRow></TableHeader>
                     <TableBody>
-                      {breakdown.map((b) => (
-                        <TableRow key={`${b.type}-${b.size}-${b.condition}`}>
-                          <TableCell className="capitalize">
-                            {b.type === "roro" ? "RoRo" : "Skip"}
-                          </TableCell>
-                          <TableCell>{b.size}</TableCell>
-                          <TableCell>{b.condition}</TableCell>
-                          <TableCell className="text-right font-medium">{b.count}</TableCell>
-                          {showValues && (
-                            <TableCell className="text-right font-medium">{money(b.value)}</TableCell>
-                          )}
-                        </TableRow>
-                      ))}
-                      <TableRow className="bg-muted/50 font-semibold">
-                        <TableCell colSpan={3}>Total</TableCell>
-                        <TableCell className="text-right">{items.length}</TableCell>
-                        {showValues && (
-                          <TableCell className="text-right">{money(portfolioValue)}</TableCell>
-                        )}
-                      </TableRow>
+                      {rows.map(r => <TableRow key={r.size}><TableCell className="font-medium whitespace-nowrap">{r.size === "—" ? "Size not recorded" : r.size.replace(/CU YD/gi, "yd")}</TableCell>{columns.map(c => <TableCell key={c} className="text-right tabular-nums">{r.counts[c] || <span className="text-muted-foreground">—</span>}</TableCell>)}<TableCell className="text-right font-semibold tabular-nums">{r.count}</TableCell>{showValues && <TableCell className="text-right tabular-nums whitespace-nowrap">{money(r.value)}{r.unvalued > 0 && <span className="block text-xs text-muted-foreground">{r.unvalued} not valued</span>}</TableCell>}</TableRow>)}
+                      <TableRow className="bg-muted/50 font-semibold"><TableCell>Total {type === "roro" ? "RoRos" : "Skips"}</TableCell>{columns.map(c => <TableCell key={c} className="text-right tabular-nums">{rows.reduce((sum,r) => sum + (r.counts[c] || 0),0)}</TableCell>)}<TableCell className="text-right tabular-nums">{count}</TableCell>{showValues && <TableCell className="text-right tabular-nums">{money(value)}</TableCell>}</TableRow>
                     </TableBody>
                   </Table>
                 </div>
-              </CardContent>
-            </Card>
+              </section>;
+            })}
           </TabsContent>
 
           <TabsContent value="total">
