@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Add Live Jobs Site History: company/address/postcode search, current container estimates using Live Jobs rules, and all retained paginated Skiptrak history with ticket details; verify signed-in search and timeline.
 - [x] Review all 34 PDF pages (33 populated) against completed historical jobs; correct collection replenishment and unknown rental-age handling, add nine opening-position rules across Amazon/Budbrooke/Lawton/Pet Cremation/Colas, and replace future evidence references. Signed-in site rows and Total Stock verified; 49 tests pass. Yard tally unchanged. Site-history recommendation supplied, not built.
 - [ ] Resolve PDF discrepancies before further quantity changes: Farnborough mixed 2 versus 3, Taylor Allard dormant-bin annotation scope, CERCONS surviving chain and Spitfire claimed 12yd; blocked on physical/driver confirmation or missing chain evidence.
 - [x] Correct Inventory yard to preserve working-stock tally and replay completed movements only after its latest update; 21 tests pass and signed-in Total Report confirms 35/40yd = 4, without double-subtracting Scrapped / Yard Use profiles.
