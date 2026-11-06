@@ -1,0 +1,3 @@
+ALTER TABLE public.email_templates ADD COLUMN IF NOT EXISTS message_html text;
+UPDATE public.email_templates SET message_html = '<p>Dear {{contactName}},</p><p>We are writing to inform you that rebates have been calculated for <strong>{{siteName}}</strong> for {{period}}.</p><p><strong>Total Rebate Due: £{{totalRebate}}</strong></p><p>Please submit an invoice for this amount at your earliest convenience.</p><p><strong>Material Breakdown:</strong></p>{{materialBreakdown}}<p>If you have any questions, please don''t hesitate to contact us.</p><p>Best regards,<br>Clews Recycling Limited</p>'
+WHERE template_key = 'rebate_notification' AND message_html IS NULL;
