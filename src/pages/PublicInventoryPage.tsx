@@ -17,15 +17,16 @@ import {
 import { Boxes, Download, ImageIcon, Loader2, Printer, Search } from "lucide-react";
 import { cn, compareAssetNumbers } from "@/lib/utils";
 import { format } from "date-fns";
+import type { buyerValuation } from "../../supabase/functions/_shared/inventory-valuation";
 
 const conditionStyle: Record<string, string> = {
-  New: "bg-lime-500/15 text-lime-700 border-lime-500/30",
-  Good: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
-  Fair: "bg-amber-500/15 text-amber-700 border-amber-500/30",
-  Poor: "bg-orange-500/15 text-orange-700 border-orange-500/30",
-  Damaged: "bg-red-500/15 text-red-700 border-red-500/30",
-  Scrapped: "bg-red-600 text-white border-red-700",
-  "Yard Use": "bg-blue-500/15 text-blue-700 border-blue-500/30",
+  New: "bg-primary/10 text-primary border-primary/30",
+  Good: "bg-primary/10 text-primary border-primary/30",
+  Fair: "bg-warning/10 text-warning border-warning/30",
+  Poor: "bg-warning/10 text-warning border-warning/30",
+  Damaged: "bg-destructive/10 text-destructive border-destructive/30",
+  Scrapped: "bg-destructive text-destructive-foreground border-destructive",
+  "Yard Use": "bg-info/10 text-info border-info/30",
 };
 
 interface Item {
@@ -40,6 +41,7 @@ interface Item {
   last_cataloged_at: string | null;
   photos: string[];
   value: number | null;
+  office_verified: boolean;
 }
 
 const money = (n: number) => `£${Math.round(n).toLocaleString()}`;
@@ -71,6 +73,8 @@ const PublicInventoryPage = () => {
   const [typeFilter, setTypeFilter] = useState<"all" | "skip" | "roro">("all");
   const [conditionFilter, setConditionFilter] = useState<string>("all");
   const [photoItem, setPhotoItem] = useState<Item | null>(null);
+  const [activeTab, setActiveTab] = useState("total");
+  const [valuation, setValuation] = useState<ReturnType<typeof buyerValuation> | null>(null);
 
   useEffect(() => {
     document.title = "Skip & RoRo Asset Inventory | WasteOne";
@@ -94,6 +98,7 @@ const PublicInventoryPage = () => {
           setShowPhotos(!!body.show_photos);
           setItems(body.items || []);
           setExpected(body.expected ?? null);
+          setValuation(body.valuation ?? null);
         }
       } catch {
         setError("Unable to load inventory");
@@ -112,6 +117,7 @@ const PublicInventoryPage = () => {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return items.filter((r) => {
+      if (activeTab === "unverified" && r.office_verified) return false;
       if (typeFilter !== "all" && r.asset_type !== typeFilter) return false;
       if (conditionFilter !== "all" && (r.condition || "") !== conditionFilter) return false;
       if (!q) return true;
@@ -119,10 +125,11 @@ const PublicInventoryPage = () => {
         r.asset_number.toLowerCase().includes(q) ||
         (r.last_location || "").toLowerCase().includes(q) ||
         (r.size || "").toLowerCase().includes(q) ||
+        (r.repair_notes || "").toLowerCase().includes(q) ||
         (r.condition || "").toLowerCase().includes(q)
       );
     });
-  }, [items, search, typeFilter, conditionFilter]);
+  }, [items, search, typeFilter, conditionFilter, activeTab]);
 
   const sortedFiltered = useMemo(
     () => [...filtered].sort((a, b) => compareAssetNumbers(a.asset_number, b.asset_number)),
@@ -184,6 +191,7 @@ const PublicInventoryPage = () => {
       "Repair notes",
       "Last location",
       "Last catalogued",
+      "Office verified",
       ...(showValues ? ["Value (GBP)"] : []),
     ];
     const rows = sortedFiltered.map((r) => [
@@ -195,6 +203,7 @@ const PublicInventoryPage = () => {
       r.repair_notes || "",
       r.last_location || "",
       r.last_cataloged_at ? format(new Date(r.last_cataloged_at), "yyyy-MM-dd") : "",
+      r.office_verified ? "Yes" : "No",
       ...(showValues ? [String(r.value ?? 0)] : []),
     ]);
     const csv = [head, ...rows]
@@ -250,10 +259,11 @@ const PublicInventoryPage = () => {
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total assets</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Estimated owned fleet</CardTitle>
             </CardHeader>
             <CardContent>
-              <span className="text-3xl font-bold">{items.length}</span>
+              <span className="text-3xl font-bold">{expected?.total_report ? expected.total_report.skip.out + expected.total_report.skip.yard + expected.total_report.roro.out + expected.total_report.roro.yard : "—"}</span>
+              <p className="text-xs text-muted-foreground">On site + counted yard</p>
             </CardContent>
           </Card>
           <Card>
@@ -262,7 +272,7 @@ const PublicInventoryPage = () => {
             </CardHeader>
             <CardContent>
               <span className="text-3xl font-bold">
-                {items.filter((i) => i.asset_type === "skip").length}
+                {expected?.total_report ? expected.total_report.skip.out + expected.total_report.skip.yard : "—"}
               </span>
             </CardContent>
           </Card>
@@ -272,7 +282,7 @@ const PublicInventoryPage = () => {
             </CardHeader>
             <CardContent>
               <span className="text-3xl font-bold">
-                {items.filter((i) => i.asset_type === "roro").length}
+                {expected?.total_report ? expected.total_report.roro.out + expected.total_report.roro.yard : "—"}
               </span>
             </CardContent>
           </Card>
@@ -290,11 +300,12 @@ const PublicInventoryPage = () => {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Indicative value
+                  Estimated fleet value
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <span className="text-3xl font-bold">{money(portfolioValue)}</span>
+                <span className="text-3xl font-bold">{valuation ? money(valuation.confirmedValue + valuation.assumedValue) : "—"}</span>
+                {valuation && <p className="text-xs text-muted-foreground">{valuation.unvalued > 0 ? `${valuation.unvalued} containers unvalued · partial estimate` : "Verified + Fair assumptions"}</p>}
               </CardContent>
             </Card>
           )}
@@ -312,10 +323,10 @@ const PublicInventoryPage = () => {
                     className={cn(
                       "h-full rounded-full",
                       (accounted.totalPct ?? 0) >= 90
-                        ? "bg-emerald-500"
+                        ? "bg-primary"
                         : (accounted.totalPct ?? 0) >= 60
-                          ? "bg-amber-500"
-                          : "bg-red-500",
+                          ? "bg-warning"
+                          : "bg-destructive",
                     )}
                     style={{ width: `${accounted.totalPct ?? 0}%` }}
                   />
@@ -330,14 +341,15 @@ const PublicInventoryPage = () => {
           )}
         </div>
 
-        <Tabs defaultValue="assets">
-          <TabsList className="print:hidden">
-            <TabsTrigger value="assets">Asset list</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="print:hidden h-auto flex flex-wrap w-fit max-w-full">
+            <TabsTrigger value="assets">Profiles ({items.length})</TabsTrigger>
+            <TabsTrigger value="unverified">Not office verified ({items.filter(i => !i.office_verified).length})</TabsTrigger>
             <TabsTrigger value="summary">Summary</TabsTrigger>
             <TabsTrigger value="total">Total Report</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="assets" className="space-y-4">
+          <TabsContent value={activeTab === "unverified" ? "unverified" : "assets"} className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-3 sm:items-center print:hidden">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -350,7 +362,7 @@ const PublicInventoryPage = () => {
               </div>
               <div className="flex rounded-lg border p-0.5 w-fit">
                 {(["all", "skip", "roro"] as const).map((t) => (
-                  <button
+                  <Button variant="ghost"
                     key={t}
                     onClick={() => setTypeFilter(t)}
                     className={cn(
@@ -359,12 +371,12 @@ const PublicInventoryPage = () => {
                     )}
                   >
                     {t === "roro" ? "RoRo" : t}
-                  </button>
+                  </Button>
                 ))}
               </div>
               <div className="flex flex-wrap gap-1">
                 {["all", ...conditions].map((c) => (
-                  <button
+                  <Button variant="ghost"
                     key={c}
                     onClick={() => setConditionFilter(c)}
                     className={cn(
@@ -375,7 +387,7 @@ const PublicInventoryPage = () => {
                     )}
                   >
                     {c === "all" ? "All conditions" : c}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -385,7 +397,7 @@ const PublicInventoryPage = () => {
               {showValues ? ` · ${money(totalValue)} filtered value` : ""}
             </p>
 
-            <Card>
+            <div className="border rounded-lg min-w-0">
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -395,6 +407,7 @@ const PublicInventoryPage = () => {
                       <TableHead>Type</TableHead>
                       <TableHead>Size</TableHead>
                       <TableHead>Condition</TableHead>
+                      <TableHead>Office verified</TableHead>
                       <TableHead>Repairs</TableHead>
                       <TableHead>Notes</TableHead>
                       <TableHead>Last location</TableHead>
@@ -408,7 +421,7 @@ const PublicInventoryPage = () => {
                         {showPhotos && (
                           <TableCell>
                             {r.photos?.length ? (
-                              <button onClick={() => setPhotoItem(r)} className="relative block">
+                              <Button variant="ghost" onClick={() => setPhotoItem(r)} className="relative block h-auto p-0" aria-label={`View photos for ${r.asset_number}`}>
                                 <img
                                   src={r.photos[0]}
                                   alt={`Asset ${r.asset_number} ${r.asset_type === "roro" ? "RoRo" : "skip"} container`}
@@ -420,7 +433,7 @@ const PublicInventoryPage = () => {
                                     {r.photos.length}
                                   </span>
                                 )}
-                              </button>
+                              </Button>
                             ) : (
                               <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
                             )}
@@ -447,9 +460,10 @@ const PublicInventoryPage = () => {
                             <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
+                        <TableCell><Badge variant={r.office_verified ? "secondary" : "outline"}>{r.office_verified ? "Verified" : "Not verified"}</Badge></TableCell>
                         <TableCell className="text-sm">
                           {r.repairs_required ? (
-                            <span className="text-red-600 font-medium">Required</span>
+                            <span className="text-destructive font-medium">Required</span>
                           ) : (
                             "—"
                           )}
@@ -465,7 +479,7 @@ const PublicInventoryPage = () => {
                         </TableCell>
                         {showValues && (
                           <TableCell className="text-right font-medium">
-                            {money(r.value || 0)}
+                            {r.value == null ? "Not valued" : money(r.value)}
                           </TableCell>
                         )}
                       </TableRow>
@@ -473,7 +487,7 @@ const PublicInventoryPage = () => {
                   </TableBody>
                 </Table>
               </div>
-            </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="summary">
@@ -525,7 +539,7 @@ const PublicInventoryPage = () => {
             {!expected?.total_report ? (
               <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">The Total Report isn't available yet.</CardContent></Card>
             ) : (() => {
-              const r = expected.total_report!;
+              const r = expected.total_report;
               return (
                 <Card>
                   <CardHeader className="pb-3">
@@ -536,6 +550,17 @@ const PublicInventoryPage = () => {
                     </p>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {valuation && showValues && <section className="space-y-3 border-b pb-4">
+                      <h2 className="font-semibold">Fleet valuation</h2>
+                      <div className="grid sm:grid-cols-3 gap-4">
+                        <div><p className="text-sm text-muted-foreground">Office-verified profiles ({valuation.verified})</p><p className="text-2xl font-bold tabular-nums">{money(valuation.confirmedValue)}</p></div>
+                        <div><p className="text-sm text-muted-foreground">Remaining containers at Fair ({valuation.assumed})</p><p className="text-2xl font-bold tabular-nums">{money(valuation.assumedValue)}</p></div>
+                        <div><p className="text-sm text-muted-foreground">Combined indicative value</p><p className="text-2xl font-bold tabular-nums">{money(valuation.confirmedValue + valuation.assumedValue)}</p></div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Unverified and unprofiled containers use the configured Fair-condition rate for their size. This is an estimate, not a physical count or formal valuation.</p>
+                      {(valuation.unvalued > 0 || valuation.surplus > 0 || valuation.unmatchedVerified > 0) && <p className="text-sm text-destructive">{valuation.unvalued} containers without a valuation · {valuation.surplus} excess verified profiles · {valuation.unmatchedVerified} verified profiles with unmatched sizes. Differences remain unresolved.</p>}
+                      <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Verified</TableHead><TableHead>Verified value</TableHead><TableHead>Assumed</TableHead><TableHead>Fair / bin</TableHead><TableHead>Assumed value</TableHead></TableRow></TableHeader><TableBody>{valuation.rows.map(t => <TableRow key={t.id}><TableCell>{t.name}</TableCell><TableCell>{t.verified}</TableCell><TableCell>{money(t.confirmedValue)}</TableCell><TableCell>{t.assumed}</TableCell><TableCell>{t.fairRate == null ? "Not set" : money(t.fairRate)}</TableCell><TableCell>{t.assumedValue == null ? "Not valued" : money(t.assumedValue)}</TableCell></TableRow>)}</TableBody></Table></div>
+                    </section>}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {[
                         { label: "Out on Live Jobs (exc. Own)", k: "out" as const },
