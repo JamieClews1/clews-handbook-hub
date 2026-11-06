@@ -1,3 +1,4 @@
+import { useStandingBinRules, withStandingBins } from "@/lib/standing-bins";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, subMonths } from "date-fns";
@@ -139,6 +140,7 @@ export const useExpectedStock = (): ExpectedStock => {
   // so they must be excluded here too (same site|||container_type key).
   const [collectedBinKeys, setCollectedBinKeys] = useState<Set<string>>(new Set());
   const [ownBinKeys, setOwnBinKeys] = useState<Set<string>>(new Set());
+  const standingRules = useStandingBinRules();
 
   useEffect(() => {
     const load = async () => {
@@ -254,7 +256,7 @@ export const useExpectedStock = (): ExpectedStock => {
 
   const { onSiteByType, ownOnSiteByType, onSiteOther, siteDetail } = useMemo(() => {
     const positions: Record<string, Pos> = {};
-    for (const job of jobs) {
+    for (const job of withStandingBins(jobs, standingRules)) {
       if (!job.container_type) continue;
       if (excludedSites.some((s) => job.site?.toLowerCase().includes(s.toLowerCase()))) continue;
       const cat = categoriseContainer(job.container_type, null, liveSettings);
@@ -344,7 +346,7 @@ export const useExpectedStock = (): ExpectedStock => {
       a.site.localeCompare(b.site) || a.typeName.localeCompare(b.typeName)
     );
     return { onSiteByType: byType, ownOnSiteByType: ownByType, onSiteOther: other, siteDetail: detail };
-  }, [containerTypes, jobs, excludedSites, liveSettings, collectedBinKeys, ownBinKeys]);
+  }, [containerTypes, jobs, excludedSites, liveSettings, collectedBinKeys, ownBinKeys, standingRules]);
 
   const expectedByType = useMemo(() => {
     const map: Record<string, number> = {};
