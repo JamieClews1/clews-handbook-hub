@@ -58,7 +58,7 @@ export function plannedServiceIndex(
   return index;
 }
 
-type Slot = { job: OverRentalJob; date: string; ewc: string; size: string };
+type Slot = { job: OverRentalJob; date: string; ewc: string; size: string; pinned?: boolean };
 
 /** Remove only a non-address contact prefix before an explicit numbered street.
  * House numbers, units and customer identity remain part of the physical key. */
@@ -124,11 +124,23 @@ export function openRentalBins(
     const sameSizeEwc = group.slots.findIndex(s => s.size === size && s.ewc === ewc);
     const sameSize = group.slots.findIndex(s => s.size === size);
     const index = sameSizeEwc >= 0 ? sameSizeEwc : sameSize >= 0 ? sameSize : 0;
-    const slot = { job, date: job.job_date, ewc, size };
-    if (job.movement_type === "Deliver") group.slots.push(slot);
+    const slot: Slot = { job, date: job.job_date, ewc, size };
+    if (job.movement_type === "Deliver") {
+      // A confirmed standing bin takes over an unpinned same-size bin already open
+      // (e.g. the stream switched EWC), otherwise it adds the missing container.
+      const standing = job.id.startsWith("standing:");
+      const takeOver = standing ? group.slots.findIndex(s => s.size === size && !s.pinned) : -1;
+      if (takeOver >= 0) group.slots.splice(takeOver, 1, { ...slot, pinned: true });
+      else group.slots.push({ ...slot, pinned: standing });
+    }
     if (job.movement_type === "Collect" && group.slots.length) group.slots.splice(index, 1);
     if (job.movement_type === "Exchange" || job.movement_type === "Tip/Return") {
-      if (group.slots.length) group.slots.splice(index, 1, slot);
+      // Staff-confirmed standing bins (pinned) are only replaced by their own waste
+      // stream, so a different bin's exchange cannot absorb them.
+      const freeSize = group.slots.findIndex(s => s.size === size && !s.pinned);
+      const freeAny = group.slots.findIndex(s => !s.pinned);
+      const swap = sameSizeEwc >= 0 ? sameSizeEwc : freeSize >= 0 ? freeSize : freeAny;
+      if (swap >= 0) group.slots.splice(swap, 1, { ...slot, pinned: group.slots[swap].pinned });
       else group.slots.push(slot); // establishing delivery may predate the read window
     }
     group.slots.sort((a, b) => a.date.localeCompare(b.date));

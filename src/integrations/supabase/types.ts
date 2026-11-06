@@ -9306,6 +9306,48 @@ export type Database = {
         }
         Relationships: []
       }
+      site_standing_bins: {
+        Row: {
+          active: boolean
+          bin_count: number
+          container_type: string
+          created_at: string
+          created_by: string | null
+          customer: string | null
+          ewc: string
+          id: string
+          notes: string | null
+          site: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          bin_count?: number
+          container_type: string
+          created_at?: string
+          created_by?: string | null
+          customer?: string | null
+          ewc?: string
+          id?: string
+          notes?: string | null
+          site: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          bin_count?: number
+          container_type?: string
+          created_at?: string
+          created_by?: string | null
+          customer?: string | null
+          ewc?: string
+          id?: string
+          notes?: string | null
+          site?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       skip_inventory: {
         Row: {
           asset_number: string
