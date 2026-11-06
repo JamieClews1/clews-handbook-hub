@@ -419,49 +419,58 @@ const LoadReportsPage = () => {
     }
   };
 
+  const autoAssignedSiteRef = useRef<string | null>(null);
   const autoAssignSiteFromJob = async (jobNum: string) => {
     const trimmed = jobNum.trim();
-    if (!trimmed) return;
-    if (selectedSiteId) return; // don't override user selection
-    if (!sites.length) return;
+    if (!trimmed || !sites.length) return;
+    // Never override a site the user picked by hand
+    if (selectedSiteId && selectedSiteId !== autoAssignedSiteRef.current) return;
 
     const { data: jobs } = await supabase
       .from("data_hub_jobs")
-      .select("customer, site, source")
+      .select("customer, site, source, job_number")
       .eq("job_number", trimmed)
+      .in("source", ["skiptrak", "midweigh"])
       .limit(5);
     if (!jobs || jobs.length === 0) return;
 
-    // Prefer skiptrak record if present
     const job = jobs.find((j: any) => j.source === "skiptrak") || jobs[0];
-    const jobSite = (job.site || "").trim().toLowerCase();
-    const jobCustomer = (job.customer || "").trim().toLowerCase();
+    const key = (s: string | null | undefined) => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+    const jobSite = key(job.site);
+    const jobCustomer = key(job.customer);
     if (!jobSite && !jobCustomer) return;
 
-    const siteIds = sites.map((s) => s.id);
     const { data: mappings } = await supabase
       .from("customer_sites")
-      .select("id, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
-      .in("id", siteIds);
+      .select("id, site_name, data_hub_customer, data_hub_site, data_hub_site_2, data_hub_site_3, data_hub_site_4, data_hub_site_5")
+      .in("id", sites.map((s) => s.id));
     if (!mappings) return;
 
-    const norm = (s: string | null | undefined) => (s || "").trim().toLowerCase();
-    const match = mappings.find((m: any) => {
-      const siteMatches = [
-        m.data_hub_site,
-        m.data_hub_site_2,
-        m.data_hub_site_3,
-        m.data_hub_site_4,
-        m.data_hub_site_5,
-      ].map(norm).some((s) => s && s === jobSite);
-      if (siteMatches) return true;
-      // Fallback: unique customer match when job has no site
-      if (!jobSite && jobCustomer && norm(m.data_hub_customer) === jobCustomer) return true;
-      return false;
-    });
+    const names = (m: any) => [m.data_hub_site, m.data_hub_site_2, m.data_hub_site_3, m.data_hub_site_4, m.data_hub_site_5].map(key).filter(Boolean);
+    // 1. exact site mapping, 2. site name, 3. partial site text, 4. only site for that customer
+    let match: any = jobSite ? mappings.find((m: any) => names(m).includes(jobSite)) : null;
+    if (!match && jobSite) match = mappings.find((m: any) => key(m.site_name) === jobSite);
+    if (!match && jobSite && jobSite.length >= 5) {
+      const partial = mappings.filter((m: any) => [...names(m), key(m.site_name)].some((n) => n.length >= 5 && (n.includes(jobSite) || jobSite.includes(n))));
+      if (partial.length === 1) match = partial[0];
+    }
+    if (!match && jobCustomer) {
+      const byCustomer = mappings.filter((m: any) => key(m.data_hub_customer) === jobCustomer);
+      if (byCustomer.length === 1) match = byCustomer[0];
+    }
 
-    if (match) setSelectedSiteId(match.id);
+    if (match) {
+      autoAssignedSiteRef.current = match.id;
+      setSelectedSiteId(match.id);
+      checkSiteMismatch(trimmed, match.id);
+    }
   };
+
+  // Re-run matching once the site list loads (e.g. job number entered first)
+  useEffect(() => {
+    if (jobNumber.trim() && sites.length) autoAssignSiteFromJob(jobNumber);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sites]);
 
   // Flag when the selected site doesn't match the site on the job ticket
   const checkSiteMismatch = async (jobNum: string, siteId: string) => {
@@ -475,6 +484,7 @@ const LoadReportsPage = () => {
       .from("data_hub_jobs")
       .select("customer, site, source")
       .eq("job_number", trimmed)
+      .in("source", ["skiptrak", "midweigh"])
       .limit(5);
     if (!jobs || jobs.length === 0) {
       setSiteMismatch(null);
@@ -514,6 +524,7 @@ const LoadReportsPage = () => {
   };
 
   const handleSiteChange = (siteId: string) => {
+    autoAssignedSiteRef.current = null;
     setSelectedSiteId(siteId);
     checkSiteMismatch(jobNumber, siteId);
   };
