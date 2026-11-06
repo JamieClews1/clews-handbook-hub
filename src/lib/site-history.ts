@@ -8,6 +8,14 @@ export type HistoryJob = OverRentalJob & { source: string; address?: string | nu
 export const HISTORY_FIELDS = "id,source,job_number,job_date,customer,site,postcode,container_type,movement_type,waste_description,vehicle_registration,ewc,weight_t,driver,rental_status:raw->>Status,address:raw->>Location Postc_1,address2:raw->>Address 2nd LIne,address3:raw->>Address 3";
 // Search only needs site identity; load full ticket evidence after choosing a site.
 export const HISTORY_SEARCH_FIELDS = "id,customer,site,postcode,address:raw->>Location Postc_1,address2:raw->>Address 2nd LIne,address3:raw->>Address 3";
+export type HistorySource = "skiptrak" | "midweigh";
+export const historySourceLabel = (source: HistorySource) => source === "skiptrak" ? "Skip" : "Weighbridge";
+export function historySiteIdentity(job: Pick<HistoryJob, "customer" | "site">, source: HistorySource) {
+  if (!job.site && (source === "skiptrak" || !job.customer)) return null;
+  const site = job.site || "Site not recorded";
+  const key = source === "midweigh" ? `${job.customer?.toLowerCase().trim() ?? ""}|||${site.toLowerCase().trim()}` : site.toLowerCase().trim();
+  return { key, site };
+}
 export function siteHistorySearchFilters(term: string) {
   const pattern = `%${term.trim().replace(/[,%_()"\\]/g, " ").trim().replace(/\s+/g, "%")}%`;
   const match = (fields: string[]) => fields.map(field => `${field}.ilike.${pattern}`).join(",");
@@ -20,6 +28,7 @@ export function historySearchText(job: HistoryJob) {
   return [job.customer, job.site, job.postcode, job.address, job.address2, job.address3].filter(Boolean).join(" ");
 }
 export function historyStatus(job: HistoryJob, today: string) {
+  if (job.source === "midweigh") return "Recorded";
   if (isCompletedRentalMovement(job, today)) return "Completed";
   if (job.job_date && job.job_date > today) return "Booked";
   return "Not completed";

@@ -1,10 +1,20 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { currentSiteContainers, historySearchText, siteHistorySearchFilters, historyStatus, type HistoryJob } from "./site-history";
+import { currentSiteContainers, historySiteIdentity, historySourceLabel, historySearchText, siteHistorySearchFilters, historyStatus, type HistoryJob } from "./site-history";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 const settings = { skip_container_keywords: ["yard"], roro_container_keywords: ["ro ro"], artic_container_keywords: [], artic_vehicle_regs: [] } as unknown as LiveJobsSettings;
 const job = (movement: string, date = "2026-11-05"): HistoryJob => ({id: movement+date,source:"skiptrak",job_number:"123",job_date:date,customer:"IPR Environmental",site:"Ford Motor Company",postcode:"NN11 8NT",address:"Royal Oak Way",container_type:"40 yd Ro Ro",movement_type:movement,waste_description:"Vehicle components",vehicle_registration:null,ewc:"16 01 22",rental_status:"Y"});
 describe("site history", () => {
+  it("distinguishes Skip from Weighbridge records", () => {
+    assert.equal(historySourceLabel("skiptrak"), "Skip");
+    assert.equal(historySourceLabel("midweigh"), "Weighbridge");
+    assert.equal(historyStatus({...job("INWARD"),source:"midweigh"}, "2026-11-06"), "Recorded");
+  });
+  it("keeps unlocated Weighbridge customers separate without inventing sites", () => {
+    assert.equal(historySiteIdentity({customer:"Element",site:null}, "midweigh")?.site, "Site not recorded");
+    assert.notEqual(historySiteIdentity({customer:"Element",site:null}, "midweigh")?.key, historySiteIdentity({customer:"Biffa",site:null}, "midweigh")?.key);
+    assert.equal(historySiteIdentity({customer:"Element",site:null}, "skiptrak"), null);
+  });
   it("searches every company, address line, postcode and saved site alias", () => {
     const filters = siteHistorySearchFilters("nn11");
     for (const field of ["customer", "site", "postcode", "raw->>Location Postc_1", "raw->>Address 2nd LIne", "raw->>Address 3"]) assert.ok(filters.jobs.split(",").includes(`${field}.ilike.%nn11%`));
