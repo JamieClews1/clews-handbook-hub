@@ -123,6 +123,7 @@ export const EmailTemplateSettings = () => {
           body_html: (changes.body_html ?? template.body_html) as string,
           sender_name: (changes.sender_name ?? template.sender_name) as string,
           sender_email: (changes.sender_email ?? template.sender_email) as string,
+          message_html: (changes.message_html ?? template.message_html ?? null) as string | null,
         })
         .eq("id", template.id);
 
@@ -270,7 +271,7 @@ export const EmailTemplateSettings = () => {
                   <div className="space-y-2">
                     <Label>Message wording</Label>
                     <p className="text-xs text-muted-foreground">
-                      This is the message customers read. Click a box below to add it where your cursor is not needed — just type it, e.g. {"{{siteName}}"}. Each send box starts with this wording, and you can still change it before sending.
+                      This is the message customers read. Type a placeholder below (e.g. {"{{siteName}}"}) and it is filled in for each site. Each send box starts with this wording, and you can still change it before sending.
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {["contactName", "siteName", "period", "totalRebate", "materialBreakdown"].map((v) => (
