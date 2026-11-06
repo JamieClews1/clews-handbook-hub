@@ -569,7 +569,71 @@ const PublicInventoryPage = () => {
                       <p className="text-sm font-medium text-primary">Assumed valuation by bin type: 50% Good and 50% Fair.</p>
                       <p className="text-xs text-muted-foreground">Remaining containers include unverified profiles and bins still to be found. Each type uses an equal blend of its configured Good and Fair rates. Half-bin quantities for odd totals are valuation weights only, not physical counts. This is not a formal valuation.</p>
                       {(valuation.unvalued > 0 || valuation.surplus > 0 || valuation.unmatchedVerified > 0) && <p className="text-sm text-destructive">{valuation.unvalued} containers without a valuation · {valuation.surplus} excess verified profiles · {valuation.unmatchedVerified} verified profiles with unmatched sizes. Differences remain unresolved.</p>}
-                      <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Bin type</TableHead><TableHead>Verified</TableHead><TableHead>Verified value</TableHead><TableHead>To find / verify</TableHead><TableHead>50% Good</TableHead><TableHead>Good / bin</TableHead><TableHead>50% Fair</TableHead><TableHead>Fair / bin</TableHead><TableHead>Assumed value</TableHead></TableRow></TableHeader><TableBody>{valuation.rows.map(t => <TableRow key={t.id}><TableCell>{t.name}</TableCell><TableCell>{t.verified}</TableCell><TableCell>{money(t.confirmedValue)}</TableCell><TableCell className="font-semibold">{t.assumed}</TableCell><TableCell>{t.assumedGood}</TableCell><TableCell>{t.goodRate == null ? "Not set" : money(t.goodRate)}</TableCell><TableCell>{t.assumedFair}</TableCell><TableCell>{t.fairRate == null ? "Not set" : money(t.fairRate)}</TableCell><TableCell>{t.assumedValue == null ? "Not valued" : money(t.assumedValue)}</TableCell></TableRow>)}</TableBody></Table></div>
+                      {(() => {
+                        const qty = (n: number) => (Number.isInteger(n) ? n.toLocaleString("en-GB") : n.toFixed(1));
+                        const t = valuation.rows.reduce(
+                          (a, r) => ({
+                            verified: a.verified + r.verified,
+                            confirmedValue: a.confirmedValue + r.confirmedValue,
+                            assumed: a.assumed + r.assumed,
+                            assumedGood: a.assumedGood + r.assumedGood,
+                            assumedFair: a.assumedFair + r.assumedFair,
+                            assumedValue: a.assumedValue + (r.assumedValue ?? 0),
+                            unvalued: a.unvalued + (r.assumedValue == null ? r.assumed : 0),
+                          }),
+                          { verified: 0, confirmedValue: 0, assumed: 0, assumedGood: 0, assumedFair: 0, assumedValue: 0, unvalued: 0 },
+                        );
+                        const band = "bg-primary/[0.08]";
+                        const bandL = "border-l border-primary/30";
+                        const bandR = "border-r border-primary/30";
+                        return (
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Bin type</TableHead>
+                                  <TableHead className={cn(band, bandL, "border-t")}>Verified</TableHead>
+                                  <TableHead className={cn(band, bandR, "border-t")}>Verified value</TableHead>
+                                  <TableHead>To find / verify</TableHead>
+                                  <TableHead>50% Good</TableHead>
+                                  <TableHead>Good / bin</TableHead>
+                                  <TableHead>50% Fair</TableHead>
+                                  <TableHead>Fair / bin</TableHead>
+                                  <TableHead>Assumed value</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {valuation.rows.map((r) => (
+                                  <TableRow key={r.id}>
+                                    <TableCell>{r.name}</TableCell>
+                                    <TableCell className={cn(band, bandL)}>{r.verified}</TableCell>
+                                    <TableCell className={cn(band, bandR)}>{money(r.confirmedValue)}</TableCell>
+                                    <TableCell className="font-semibold">{qty(r.assumed)}</TableCell>
+                                    <TableCell>{qty(r.assumedGood)}</TableCell>
+                                    <TableCell>{r.goodRate == null ? "Not set" : money(r.goodRate)}</TableCell>
+                                    <TableCell>{qty(r.assumedFair)}</TableCell>
+                                    <TableCell>{r.fairRate == null ? "Not set" : money(r.fairRate)}</TableCell>
+                                    <TableCell>{r.assumedValue == null ? "Not valued" : money(r.assumedValue)}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                              <TableFooter>
+                                <TableRow>
+                                  <TableCell className="font-semibold">Total ({valuation.rows.length} bin types)</TableCell>
+                                  <TableCell className={cn(band, bandL, "font-semibold tabular-nums")}>{qty(t.verified)}</TableCell>
+                                  <TableCell className={cn(band, bandR, "font-semibold tabular-nums")}>{money(t.confirmedValue)}</TableCell>
+                                  <TableCell className="font-semibold tabular-nums">{qty(t.assumed)}</TableCell>
+                                  <TableCell className="font-semibold tabular-nums">{qty(t.assumedGood)}</TableCell>
+                                  <TableCell className="text-muted-foreground">—</TableCell>
+                                  <TableCell className="font-semibold tabular-nums">{qty(t.assumedFair)}</TableCell>
+                                  <TableCell className="text-muted-foreground">—</TableCell>
+                                  <TableCell className="font-semibold tabular-nums">{t.unvalued > 0 ? `${money(t.assumedValue)} + unvalued` : money(t.assumedValue)}</TableCell>
+                                </TableRow>
+                              </TableFooter>
+                            </Table>
+                          </div>
+                        );
+                      })()}
                     </section>}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {[
