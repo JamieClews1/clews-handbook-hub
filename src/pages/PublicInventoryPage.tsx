@@ -20,13 +20,13 @@ import { format } from "date-fns";
 import type { buyerValuation } from "../../supabase/functions/_shared/inventory-valuation";
 
 const conditionStyle: Record<string, string> = {
-  New: "bg-lime-500/15 text-lime-700 border-lime-500/30",
-  Good: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
-  Fair: "bg-amber-500/15 text-amber-700 border-amber-500/30",
-  Poor: "bg-orange-500/15 text-orange-700 border-orange-500/30",
-  Damaged: "bg-red-500/15 text-red-700 border-red-500/30",
-  Scrapped: "bg-red-600 text-white border-red-700",
-  "Yard Use": "bg-blue-500/15 text-blue-700 border-blue-500/30",
+  New: "bg-primary/10 text-primary border-primary/30",
+  Good: "bg-primary/10 text-primary border-primary/30",
+  Fair: "bg-warning/10 text-warning border-warning/30",
+  Poor: "bg-warning/10 text-warning border-warning/30",
+  Damaged: "bg-destructive/10 text-destructive border-destructive/30",
+  Scrapped: "bg-destructive text-destructive-foreground border-destructive",
+  "Yard Use": "bg-info/10 text-info border-info/30",
 };
 
 interface Item {
@@ -323,10 +323,10 @@ const PublicInventoryPage = () => {
                     className={cn(
                       "h-full rounded-full",
                       (accounted.totalPct ?? 0) >= 90
-                        ? "bg-emerald-500"
+                        ? "bg-primary"
                         : (accounted.totalPct ?? 0) >= 60
-                          ? "bg-amber-500"
-                          : "bg-red-500",
+                          ? "bg-warning"
+                          : "bg-destructive",
                     )}
                     style={{ width: `${accounted.totalPct ?? 0}%` }}
                   />
@@ -342,7 +342,7 @@ const PublicInventoryPage = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="print:hidden">
+          <TabsList className="print:hidden h-auto flex flex-wrap w-fit max-w-full">
             <TabsTrigger value="assets">Profiles ({items.length})</TabsTrigger>
             <TabsTrigger value="unverified">Not office verified ({items.filter(i => !i.office_verified).length})</TabsTrigger>
             <TabsTrigger value="summary">Summary</TabsTrigger>
@@ -362,7 +362,7 @@ const PublicInventoryPage = () => {
               </div>
               <div className="flex rounded-lg border p-0.5 w-fit">
                 {(["all", "skip", "roro"] as const).map((t) => (
-                  <button
+                  <Button variant="ghost"
                     key={t}
                     onClick={() => setTypeFilter(t)}
                     className={cn(
@@ -371,12 +371,12 @@ const PublicInventoryPage = () => {
                     )}
                   >
                     {t === "roro" ? "RoRo" : t}
-                  </button>
+                  </Button>
                 ))}
               </div>
               <div className="flex flex-wrap gap-1">
                 {["all", ...conditions].map((c) => (
-                  <button
+                  <Button variant="ghost"
                     key={c}
                     onClick={() => setConditionFilter(c)}
                     className={cn(
@@ -387,7 +387,7 @@ const PublicInventoryPage = () => {
                     )}
                   >
                     {c === "all" ? "All conditions" : c}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -397,7 +397,7 @@ const PublicInventoryPage = () => {
               {showValues ? ` · ${money(totalValue)} filtered value` : ""}
             </p>
 
-            <Card>
+            <div className="border rounded-lg min-w-0">
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -433,7 +433,7 @@ const PublicInventoryPage = () => {
                                     {r.photos.length}
                                   </span>
                                 )}
-                              </button>
+                              </Button>
                             ) : (
                               <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
                             )}
@@ -463,7 +463,7 @@ const PublicInventoryPage = () => {
                         <TableCell><Badge variant={r.office_verified ? "secondary" : "outline"}>{r.office_verified ? "Verified" : "Not verified"}</Badge></TableCell>
                         <TableCell className="text-sm">
                           {r.repairs_required ? (
-                            <span className="text-red-600 font-medium">Required</span>
+                            <span className="text-destructive font-medium">Required</span>
                           ) : (
                             "—"
                           )}
@@ -479,7 +479,7 @@ const PublicInventoryPage = () => {
                         </TableCell>
                         {showValues && (
                           <TableCell className="text-right font-medium">
-                            {money(r.value || 0)}
+                            {r.value == null ? "Not valued" : money(r.value)}
                           </TableCell>
                         )}
                       </TableRow>
@@ -487,7 +487,7 @@ const PublicInventoryPage = () => {
                   </TableBody>
                 </Table>
               </div>
-            </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="summary">
