@@ -126,7 +126,7 @@ export function MonthlyRebateGenerationV2() {
   } | null>(null);
   const [unlocking, setUnlocking] = useState(false);
   const recalcStartRef = useRef(false);
-  const recalcPendingRef = useRef(false);
+  const recalcPendingRef = useRef<string | null>(null);
 
   // Email dialog
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
@@ -991,15 +991,22 @@ export function MonthlyRebateGenerationV2() {
     });
     setDateRange({ from: new Date(`${from}T00:00:00`), to: new Date(`${to}T00:00:00`) });
     setExpanded(new Set([customerId]));
-    recalcPendingRef.current = true;
+    recalcPendingRef.current = `${from}|${to}`;
     const next = new URLSearchParams(searchParams);
     ["recalc", "customer", "site", "from", "to", "prev", "sentAt"].forEach((k) => next.delete(k));
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 
   useEffect(() => {
-    if (recalcPendingRef.current && dateRange?.from && dateRange?.to) {
-      recalcPendingRef.current = false;
+    // Only generate once the requested recalculation period is in place —
+    // on first mount this effect also sees the default (current) month.
+    if (
+      recalcPendingRef.current &&
+      dateRange?.from &&
+      dateRange?.to &&
+      recalcPendingRef.current === `${format(dateRange.from, "yyyy-MM-dd")}|${format(dateRange.to, "yyyy-MM-dd")}`
+    ) {
+      recalcPendingRef.current = null;
       generate();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
