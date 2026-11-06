@@ -1470,12 +1470,8 @@ export function MonthlyRebateGenerationV2() {
                 <p className="text-muted-foreground">
                   {recalcTarget.summary.customer.customer_name} — {recalcTarget.sb.site.site_name}:{" "}
                   sent {recalc.previous !== null ? <strong>£{recalc.previous.toFixed(2)}</strong> : "amount unknown"}
-                  {recalc.sentAt ? ` on ${format(new Date(recalc.sentAt), "d MMM yyyy")}` : ""}; recalculated now{" "}
+                  {recalc.sentAt ? ` on ${format(new Date(recalc.sentAt), "d MMM yyyy")}` : ""}. New rebate value:{" "}
                   <strong>£{recalcTarget.sb.totalRebate.toFixed(2)}</strong>
-                  {recalc.previous !== null && (
-                    <> ({recalcTarget.sb.totalRebate - recalc.previous >= 0 ? "+" : "−"}£
-                    {Math.abs(recalcTarget.sb.totalRebate - recalc.previous).toFixed(2)})</>
-                  )}
                   . The original send stays in Sent Rebates for the record.
                 </p>
               ) : (
