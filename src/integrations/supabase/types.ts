@@ -11326,6 +11326,18 @@ export type Database = {
           site: string
         }[]
       }
+      search_site_history_ranked: {
+        Args: { p_source: string; p_term: string }
+        Returns: {
+          address: string
+          address2: string
+          address3: string
+          customer: string
+          job_count: number
+          postcode: string
+          site: string
+        }[]
+      }
       section_allows_user: {
         Args: { _key: string; _user_id: string }
         Returns: boolean

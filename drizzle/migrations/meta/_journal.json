@@ -477,6 +477,13 @@
       "when": 1793976965387,
       "tag": "0067_site_history_search_rpc",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1793977110723,
+      "tag": "0068_site_history_search_ranked",
+      "breakpoints": true
     }
   ]
 }
