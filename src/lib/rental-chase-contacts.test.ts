@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { test } from "node:test";
+import assert from "node:assert/strict";
 import { buildChaseContacts, splitChaseContacts } from "./rental-chase-contacts";
 
 const customers = [
@@ -11,18 +12,16 @@ const contacts = [
   { customer_id: "missing", full_name: "Ghost", email: "ghost@x.com", created_at: "2026-10-01" },
 ];
 
-describe("rental chase contacts", () => {
-  it("lists every address for the customer, newest contact first, without duplicates", () => {
-    const { forCustomer } = splitChaseContacts(buildChaseContacts(customers, contacts), "a");
-    expect(forCustomer.map((c) => c.email)).toEqual([
-      "cerys.edwards@selectaskip.co.uk",
-      "old@selectaskip.co.uk",
-      "po@selectaskip.co.uk",
-    ]);
-  });
+test("lists every address for the customer, newest contact first, without duplicates", () => {
+  const { forCustomer } = splitChaseContacts(buildChaseContacts(customers, contacts), "a");
+  assert.deepEqual(forCustomer.map((c) => c.email), [
+    "cerys.edwards@selectaskip.co.uk",
+    "old@selectaskip.co.uk",
+    "po@selectaskip.co.uk",
+  ]);
+});
 
-  it("offers other customers' addresses separately and ignores unknown customers", () => {
-    const { others } = splitChaseContacts(buildChaseContacts(customers, contacts), "a");
-    expect(others.map((c) => c.email)).toEqual(["pod@erg.com"]);
-  });
+test("offers other customers' addresses separately and ignores unknown customers", () => {
+  const { others } = splitChaseContacts(buildChaseContacts(customers, contacts), "a");
+  assert.deepEqual(others.map((c) => c.email), ["pod@erg.com"]);
 });
