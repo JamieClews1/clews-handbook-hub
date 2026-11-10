@@ -25,14 +25,16 @@ type Props = {
   /** Waste description carried in from a booking when no rate-card type matches it. */
   bookedWaste?: string | null;
   placeholder?: string;
+  /** Waste type ids priced in the chosen rate group; preferred when the list has duplicates. */
+  pricedIds?: ReadonlySet<string>;
 };
 
 /** One box for Waste In types: search inside the list, most common types on top. */
-export function WasteInTypePicker({ types, value, onChange, bookedWaste, placeholder = "Select waste type..." }: Props) {
+export function WasteInTypePicker({ types, value, onChange, bookedWaste, placeholder = "Select waste type...", pricedIds }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
-  const ranked = useMemo(() => rankWasteInTypes(dedupeWasteInTypes(types, value)), [types, value]);
+  const ranked = useMemo(() => rankWasteInTypes(dedupeWasteInTypes(types, value, pricedIds)), [types, value, pricedIds]);
   const shown = useMemo(() => searchWasteInTypes(ranked, query), [ranked, query]);
   const selected = types.find(t => t.id === value) ?? null;
   const topIds = useMemo(() => new Set(ranked.slice(0, WASTE_IN_TOP_N).map(t => t.id)), [ranked]);

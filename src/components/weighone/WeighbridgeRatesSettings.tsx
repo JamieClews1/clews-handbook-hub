@@ -91,14 +91,17 @@ export function resolveRate(
   ratePrices: RateGroupPrice[],
   wasteTypeId: string | null | undefined,
   rateGroupId: string | null | undefined,
-): { price_per_tonne: number; min_charge: number } {
+): { price_per_tonne: number; min_charge: number; isSet: boolean } {
   const override =
     wasteTypeId && rateGroupId
       ? ratePrices.find((p) => p.waste_type_id === wasteTypeId && p.rate_group_id === rateGroupId)
       : undefined;
+  const price = Number(override?.price_per_tonne ?? wasteType?.price_per_tonne ?? 0);
   return {
-    price_per_tonne: override?.price_per_tonne ?? wasteType?.price_per_tonne ?? 0,
-    min_charge: override?.min_charge ?? wasteType?.min_charge ?? 0,
+    price_per_tonne: price,
+    min_charge: Number(override?.min_charge ?? wasteType?.min_charge ?? 0),
+    // A £0 base price with no rate-group entry means nobody has priced this type yet.
+    isSet: !!override || price > 0,
   };
 }
 
