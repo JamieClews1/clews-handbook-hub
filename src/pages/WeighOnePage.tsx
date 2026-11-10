@@ -742,13 +742,23 @@ const WeighOnePage = () => {
   /** Effective price + min charge for a waste type under the chosen rate group */
   const rateFor = (wasteTypeId: string, rateGroupId: string) => {
     const wt = wasteTypes.find((w) => w.id === wasteTypeId);
-    return resolveRate(
+    const r = resolveRate(
       wt ? { price_per_tonne: wt.price_per_tonne, min_charge: wt.min_charge } : undefined,
       ratePrices,
       wasteTypeId,
       effectiveRateGroupId(rateGroupId),
     );
+    // Free-of-charge types are legitimately £0; anything else unpriced shows a warning instead of £0.00.
+    const foc = /\bfoc\b/i.test(wt?.waste_type ?? "");
+    return r.isSet || foc ? { price_per_tonne: r.price_per_tonne, min_charge: r.min_charge } : null;
   };
+
+  /** Waste types that have a price in the chosen rate group, so the picker keeps priced duplicates. */
+  const pricedWasteTypeIds = useMemo(() => {
+    const groupId = effectiveRateGroupId(formData.rate_group_id);
+    return new Set(ratePrices.filter((p) => p.rate_group_id === groupId).map((p) => p.waste_type_id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ratePrices, formData.rate_group_id, defaultRateGroup?.id]);
 
   const chargeFor = (netKg: number, price: number, minCharge: number) =>
     Math.max((netKg / 1000) * price, price > 0 ? minCharge : 0);
@@ -1984,6 +1994,7 @@ const WeighOnePage = () => {
                           <Label className="text-xs">Waste Type</Label>
                           <WasteInTypePicker
                             types={activeWasteTypes}
+                            pricedIds={pricedWasteTypeIds}
                             value={formData.waste_type_id ?? ""}
                             bookedWaste={formData.waste_description && !formData.waste_type_id ? formData.waste_description : null}
                             onChange={(id, wt) => setFormData((p) => ({
