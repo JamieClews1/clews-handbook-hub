@@ -240,11 +240,12 @@ export default function RentalsDashboard() {
       supabase.from("customers").select("id,customer_name,data_hub_customer,po_notification_email,pod_email").range(0, 9999),
       supabase.from("customer_contacts").select("customer_id,full_name,email,created_at").order("created_at", { ascending: false }).range(0, 9999),
     ]);
-    setChaseContacts(buildChaseContacts(customers ?? [], contacts ?? []));
+    const allContacts = buildChaseContacts(customers ?? [], contacts ?? []);
+    setChaseContacts(allContacts);
+    // Default recipient = the customer's first listed address (newest contact, then PO/POD),
+    // never Clews' own mailbox.
     const emailByCustomerId: Record<string, string> = {};
-    for (const ct of contacts ?? []) {
-      if (ct.email && ct.customer_id && !emailByCustomerId[ct.customer_id]) emailByCustomerId[ct.customer_id] = ct.email;
-    }
+    for (const ct of allContacts) emailByCustomerId[ct.customerId] ??= ct.email;
     const map: Record<string, string> = {};
     const ids: Record<string, string> = {};
     for (const c of customers ?? []) {
@@ -254,7 +255,7 @@ export default function RentalsDashboard() {
         const fuzzy = `~${rentalCustomerKey(name)}`;
         ids[key] = c.id;
         ids[fuzzy] ??= c.id;
-        const email = emailByCustomerId[c.id] || c.po_notification_email || "";
+        const email = emailByCustomerId[c.id] || "";
         if (email) { map[key] = email; map[fuzzy] ??= email; }
       }
     }
