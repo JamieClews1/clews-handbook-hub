@@ -1300,7 +1300,7 @@ function EmailDialog({ bin, chase, defaultEmail, customerId, contacts, freeDays,
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
             <Label>To</Label>
-            <Popover open={contactsOpen} onOpenChange={setContactsOpen}>
+            <Popover modal open={contactsOpen} onOpenChange={setContactsOpen}>
               <PopoverAnchor asChild>
                 <div className="flex gap-2">
                   <Input type="email" value={to} onChange={(e) => setTo(e.target.value)} placeholder="customer@example.com" />
