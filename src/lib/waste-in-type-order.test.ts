@@ -87,3 +87,15 @@ it("dedupes same name and EWC, keeping the selected one", () => {
   const r = dd([{ id: "a", waste_type: "Green Waste", ewc_code: "20 02 01" }, { id: "b", waste_type: "Green waste", ewc_code: "200201" }, { id: "c", waste_type: "Wood", ewc_code: "17 02 01" }], "b");
   assert.deepEqual(r.map(x => x.id), ["b", "c"]);
 });
+
+it("keeps the priced copy when the rate card lists a waste type twice", () => {
+  const r = dd(
+    [
+      { id: "unpriced", waste_type: "Co-Mingled / DMR / Mixed Packaging", ewc_code: "15 01 06" },
+      { id: "priced", waste_type: "Co-Mingled/DMR/Mixed Packaging", ewc_code: "15 01 06" },
+    ],
+    undefined,
+    new Set(["priced"]),
+  );
+  assert.deepEqual(r.map(x => x.id), ["priced"]);
+});
