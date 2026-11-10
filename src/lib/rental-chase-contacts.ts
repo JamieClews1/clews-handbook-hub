@@ -30,6 +30,11 @@ export const CHASE_CONTACT_SOURCE_LABEL: Record<ChaseContactSource, string> = {
   pod: "POD emails",
 };
 
+/** Clews' own mailboxes (e.g. orders@ saved as a customer's PO address) are never chase recipients. */
+export function isInternalEmail(email: string | null | undefined): boolean {
+  return /@clewsrecycling\.co\.uk$/i.test((email || "").trim());
+}
+
 /**
  * Every saved email address that can receive a rental chase, one entry per
  * customer + address. Named contacts come first (newest first), then the
@@ -43,7 +48,7 @@ export function buildChaseContacts(customers: CustomerRow[], contacts: ContactRo
   const seen = new Set<string>();
   const push = (customerId: string, name: string, raw: string | null | undefined, source: ChaseContactSource) => {
     const email = cleanEmail(raw);
-    if (!email || !nameById.has(customerId)) return;
+    if (!email || isInternalEmail(email) || !nameById.has(customerId)) return;
     const key = `${customerId}|${email}`;
     if (seen.has(key)) return;
     seen.add(key);
