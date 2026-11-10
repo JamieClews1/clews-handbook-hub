@@ -236,9 +236,20 @@ export default function RentalsDashboard() {
   // Customer name -> email and customer id. The most recently added contact wins,
   // so an address saved from a chase email becomes the next default.
   async function loadCustomerEmails() {
-    const [{ data: customers }, { data: contacts }] = await Promise.all([
-      supabase.from("customers").select("id,customer_name,data_hub_customer,po_notification_email,pod_email").range(0, 9999),
-      supabase.from("customer_contacts").select("customer_id,full_name,email,created_at").order("created_at", { ascending: false }).range(0, 9999),
+    // Page through in 1,000-row steps: the API caps each read, and there are more customers than that.
+    const pageAll = async <T,>(read: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>) => {
+      const rows: T[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await read(from, from + 999);
+        if (error || !data) break;
+        rows.push(...data);
+        if (data.length < 1000) break;
+      }
+      return rows;
+    };
+    const [customers, contacts] = await Promise.all([
+      pageAll((f, t) => supabase.from("customers").select("id,customer_name,data_hub_customer,po_notification_email,pod_email").order("id").range(f, t)),
+      pageAll((f, t) => supabase.from("customer_contacts").select("customer_id,full_name,email,created_at").order("created_at", { ascending: false }).range(f, t)),
     ]);
     const allContacts = buildChaseContacts(customers ?? [], contacts ?? []);
     setChaseContacts(allContacts);
