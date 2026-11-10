@@ -33,6 +33,10 @@ import { useLatestDataDate } from "@/hooks/useLatestDataDate";
 import { eligibleRentalAssignees } from "@/lib/rental-assignees";
 import { loadSeenMap, notesBadgeLabel, unreadNoteCount, type NoteStamp, type SeenMap } from "@/lib/rental-notes-unread";
 import { cleanEmail } from "@/lib/email-clean";
+import { buildChaseContacts, splitChaseContacts, CHASE_CONTACT_SOURCE_LABEL, type ChaseContact } from "@/lib/rental-chase-contacts";
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Users, ChevronsUpDown, Check } from "lucide-react";
 import { loadRentalJobPages } from "@/lib/rental-job-loading";
 import { RENTAL_JOB_FIELDS, rentalCustomerKey } from "@/lib/rental-open-movements";
 import CustomerFilterSelect, { type CustomerOption } from "./CustomerFilterSelect";
@@ -107,6 +111,7 @@ export default function RentalsDashboard() {
   );
   const [emailMap, setEmailMap] = useState<Record<string, string>>({});
   const [customerIdMap, setCustomerIdMap] = useState<Record<string, string>>({});
+  const [chaseContacts, setChaseContacts] = useState<ChaseContact[]>([]);
   const [agreements, setAgreements] = useState<Agreement[]>([]);
 
   // dialogs
@@ -231,14 +236,27 @@ export default function RentalsDashboard() {
   // Customer name -> email and customer id. The most recently added contact wins,
   // so an address saved from a chase email becomes the next default.
   async function loadCustomerEmails() {
-    const [{ data: customers }, { data: contacts }] = await Promise.all([
-      supabase.from("customers").select("id,customer_name,data_hub_customer,po_notification_email"),
-      supabase.from("customer_contacts").select("customer_id,email,created_at").order("created_at", { ascending: false }),
+    // Page through in 1,000-row steps: the API caps each read, and there are more customers than that.
+    const pageAll = async <T,>(read: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>) => {
+      const rows: T[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await read(from, from + 999);
+        if (error || !data) break;
+        rows.push(...data);
+        if (data.length < 1000) break;
+      }
+      return rows;
+    };
+    const [customers, contacts] = await Promise.all([
+      pageAll((f, t) => supabase.from("customers").select("id,customer_name,data_hub_customer,po_notification_email,pod_email").order("id").range(f, t)),
+      pageAll((f, t) => supabase.from("customer_contacts").select("customer_id,full_name,email,created_at").order("created_at", { ascending: false }).range(f, t)),
     ]);
+    const allContacts = buildChaseContacts(customers ?? [], contacts ?? []);
+    setChaseContacts(allContacts);
+    // Default recipient = the customer's first listed address (newest contact, then PO/POD),
+    // never Clews' own mailbox.
     const emailByCustomerId: Record<string, string> = {};
-    for (const ct of contacts ?? []) {
-      if (ct.email && ct.customer_id && !emailByCustomerId[ct.customer_id]) emailByCustomerId[ct.customer_id] = ct.email;
-    }
+    for (const ct of allContacts) emailByCustomerId[ct.customerId] ??= ct.email;
     const map: Record<string, string> = {};
     const ids: Record<string, string> = {};
     for (const c of customers ?? []) {
@@ -248,7 +266,7 @@ export default function RentalsDashboard() {
         const fuzzy = `~${rentalCustomerKey(name)}`;
         ids[key] = c.id;
         ids[fuzzy] ??= c.id;
-        const email = emailByCustomerId[c.id] || c.po_notification_email || "";
+        const email = emailByCustomerId[c.id] || "";
         if (email) { map[key] = email; map[fuzzy] ??= email; }
       }
     }
@@ -759,6 +777,7 @@ export default function RentalsDashboard() {
           chase={chases[emailBin.binKey]}
           defaultEmail={emailMap[emailBin.customer.toLowerCase().trim()] ?? emailMap[`~${rentalCustomerKey(emailBin.customer)}`] ?? ""}
           customerId={customerIdMap[emailBin.customer.toLowerCase().trim()] ?? customerIdMap[`~${rentalCustomerKey(emailBin.customer)}`]}
+          contacts={chaseContacts}
           freeDays={settings.rental_free_days}
           draftBody={renderChaseTemplate(
             settings.rental_chase_email_template,
@@ -1222,11 +1241,13 @@ function ManageDialog({ bin, chase, profiles, userId, onRead, onClose, onSaved, 
   );
 }
 
-function EmailDialog({ bin, chase, defaultEmail, customerId, freeDays, draftBody, userId, onClose, onSent, toast }: {
-  bin: OverRentalBin; chase?: Chase; defaultEmail: string; customerId?: string; freeDays: number; draftBody: string; userId: string | null;
+function EmailDialog({ bin, chase, defaultEmail, customerId, contacts, freeDays, draftBody, userId, onClose, onSent, toast }: {
+  bin: OverRentalBin; chase?: Chase; defaultEmail: string; customerId?: string; contacts: ChaseContact[]; freeDays: number; draftBody: string; userId: string | null;
   onClose: () => void; onSent: () => void; toast: ReturnType<typeof useToast>["toast"];
 }) {
   const [to, setTo] = useState(defaultEmail);
+  const [contactsOpen, setContactsOpen] = useState(false);
+  const { forCustomer, others } = useMemo(() => splitChaseContacts(contacts, customerId), [contacts, customerId]);
   const [subject, setSubject] = useState(`Container rental notice — ${siteWithPostcode(bin)}`);
   const [body, setBody] = useState(draftBody);
   const [sending, setSending] = useState(false);
@@ -1291,8 +1312,64 @@ function EmailDialog({ bin, chase, defaultEmail, customerId, freeDays, draftBody
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
             <Label>To</Label>
-            <Input type="email" value={to} onChange={(e) => setTo(e.target.value)} placeholder="customer@example.com" />
-            {!defaultEmail && <p className="text-xs text-muted-foreground">No saved contact email found — enter one above.</p>}
+            <Popover modal open={contactsOpen} onOpenChange={setContactsOpen}>
+              <PopoverAnchor asChild>
+                <div className="flex gap-2">
+                  <Input type="email" value={to} onChange={(e) => setTo(e.target.value)} placeholder="customer@example.com" />
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" className="shrink-0" aria-label="Choose a contact">
+                      <Users className="h-4 w-4 mr-1" /> Contacts ({forCustomer.length})
+                      <ChevronsUpDown className="h-3.5 w-3.5 ml-1 opacity-60" />
+                    </Button>
+                  </PopoverTrigger>
+                </div>
+              </PopoverAnchor>
+              <PopoverContent align="start" className="p-0 w-[var(--radix-popover-trigger-width)]">
+                <Command>
+                  <CommandInput placeholder="Search name, email or customer…" />
+                  <CommandList className="max-h-80">
+                    <CommandEmpty>No matching contacts.</CommandEmpty>
+                    <CommandGroup heading={`${bin.customer} (${forCustomer.length})`}>
+                      {forCustomer.length === 0 && (
+                        <div className="px-2 py-1.5 text-xs text-muted-foreground">No saved addresses for this customer.</div>
+                      )}
+                      {forCustomer.map((c) => (
+                        <CommandItem
+                          key={`own|${c.email}`}
+                          value={`own ${c.name} ${c.email} ${c.customerName}`}
+                          onSelect={() => { setTo(c.email); setContactsOpen(false); }}
+                        >
+                          <Check className={`h-4 w-4 mr-2 ${cleanEmail(to) === c.email ? "opacity-100" : "opacity-0"}`} />
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm">{c.name || c.email}</div>
+                            {c.name && <div className="truncate text-xs text-muted-foreground">{c.email}</div>}
+                          </div>
+                          <span className="ml-2 text-xs text-muted-foreground whitespace-nowrap">{CHASE_CONTACT_SOURCE_LABEL[c.source]}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                    {others.length > 0 && (
+                      <CommandGroup heading={`Other customers (${others.length})`}>
+                        {others.map((c) => (
+                          <CommandItem
+                            key={`${c.customerId}|${c.email}`}
+                            value={`${c.customerId} ${c.name} ${c.email} ${c.customerName}`}
+                            onSelect={() => { setTo(c.email); setContactsOpen(false); }}
+                          >
+                            <Check className={`h-4 w-4 mr-2 ${cleanEmail(to) === c.email ? "opacity-100" : "opacity-0"}`} />
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-sm">{c.name ? `${c.name} · ${c.email}` : c.email}</div>
+                              <div className="truncate text-xs text-muted-foreground">{c.customerName}</div>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    )}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {!defaultEmail && <p className="text-xs text-muted-foreground">No saved contact email found — pick one from Contacts or type it above.</p>}
           </div>
           <div className="space-y-1.5">
             <Label>Subject</Label>
