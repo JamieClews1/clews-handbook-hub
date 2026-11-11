@@ -1,13 +1,18 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Truck, Hash } from "lucide-react";
+import { ArrowLeft, Truck, Hash, Scale } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getWeighbridgeSource } from "@/lib/weighbridge-source";
 import { getTodayLoadReportDate, normalizeLoadReportDate } from "@/lib/load-report-dates";
 import { fetchActivePriceSetLink } from "@/lib/rebate-price-set";
+import {
+  standardLoadNetWeightKg,
+  staciLoadNetWeightKg,
+  formatNetWeightKg,
+} from "@/lib/load-report-net-weight";
 
 import { CustomerTypeSelector, CustomerType } from "@/components/load-reports/CustomerTypeSelector";
 import { NewLoadForm } from "@/components/load-reports/NewLoadForm";
@@ -1204,8 +1209,59 @@ const LoadReportsPage = () => {
   // Small always-visible ticket reference while tallying / reviewing a load.
   const selectedSiteName = sites.find((s) => s.id === selectedSiteId)?.site_name || "";
   const jobStripLabel = selectedCustomer === "evri" ? "Ticket" : "Job";
+
+  // Weight of waste only (tally weight minus pallet tare), shown in the header strip.
+  const netWeightKg = useMemo(() => {
+    if (viewMode !== "tally" && viewMode !== "review") return 0;
+    if (selectedCustomer === "staci") {
+      return staciLoadNetWeightKg({
+        palletEntries: staciPalletEntries,
+        palletWeightKg: defaultPalletWeight,
+        cardBalesCount: staciCardBalesCount,
+        cardBalesWeightKg: staciCardBalesWeightKg,
+        cardBalesOnPallets: staciCardBalesOnPallets,
+        filmsBaleCount: staciFilmsBaleCount,
+        filmsBaleWeightKg: staciFilmsBaleWeightKg,
+        filmsBaleOnPallets: staciFilmsBaleOnPallets,
+        papersDolavCount: staciPapersDolavCount,
+        papersDolavWeightKg: staciPapersDolavWeightKg,
+        papersDolavOnPallets: staciPapersDolavOnPallets,
+        glassDolavCount: staciGlassDolavCount,
+        glassDolavWeightKg: staciGlassDolavWeightKg,
+        glassDolavOnPallets: staciGlassDolavOnPallets,
+        scrapMetalLooseCount: staciScrapMetalLooseCount,
+        scrapMetalLooseWeightKg: staciScrapMetalLooseWeightKg,
+        scrapMetalLooseOnPallets: staciScrapMetalLooseOnPallets,
+      });
+    }
+    return standardLoadNetWeightKg(lineItems, noPalletsOnLoad);
+  }, [
+    viewMode,
+    selectedCustomer,
+    lineItems,
+    noPalletsOnLoad,
+    staciPalletEntries,
+    defaultPalletWeight,
+    staciCardBalesCount,
+    staciCardBalesWeightKg,
+    staciCardBalesOnPallets,
+    staciFilmsBaleCount,
+    staciFilmsBaleWeightKg,
+    staciFilmsBaleOnPallets,
+    staciPapersDolavCount,
+    staciPapersDolavWeightKg,
+    staciPapersDolavOnPallets,
+    staciGlassDolavCount,
+    staciGlassDolavWeightKg,
+    staciGlassDolavOnPallets,
+    staciScrapMetalLooseCount,
+    staciScrapMetalLooseWeightKg,
+    staciScrapMetalLooseOnPallets,
+  ]);
+
   const showJobStrip =
-    (viewMode === "tally" || viewMode === "review") && jobNumber.trim().length > 0;
+    (viewMode === "tally" || viewMode === "review") &&
+    (jobNumber.trim().length > 0 || netWeightKg > 0);
 
   return (
     <div className="h-[calc(100dvh-3.5rem)] overflow-auto bg-background">
@@ -1253,6 +1309,12 @@ const LoadReportsPage = () => {
               )}
               {vehicleReg.trim() && (
                 <span className="uppercase">{vehicleReg.trim()}</span>
+              )}
+              {netWeightKg > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-muted/40 px-2 py-0.5 font-semibold text-foreground tabular-nums">
+                  <Scale className="h-3 w-3" />
+                  Net {formatNetWeightKg(netWeightKg)}
+                </span>
               )}
             </div>
           )}
