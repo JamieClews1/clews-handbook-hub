@@ -1,0 +1,3 @@
+/* Intentionally empty.
+   Its URL carries a build timestamp so open preview tabs can tell when the
+   server has moved on to newer code and reload themselves onto it. */
