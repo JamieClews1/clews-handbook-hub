@@ -1,4 +1,4 @@
-import { Inbox, Route, Scale, Box, Radio, FileCheck, PoundSterling, Container, Users, AlertTriangle, CalendarCheck, CalendarDays, FileText, Package, Building2, FileSpreadsheet, Fuel, Upload, BarChart3, Gauge, TrendingUp, ClipboardList, Gem, ShieldCheck, HardHat, MessageSquare, Flame, BookOpen, ScrollText, Smartphone, Settings, Truck } from "lucide-react";
+import { Inbox, Route, Scale, Box, Radio, FileCheck, PoundSterling, Container, Users, AlertTriangle, CalendarCheck, CalendarDays, FileText, Package, Building2, FileSpreadsheet, Fuel, Upload, BarChart3, Gauge, TrendingUp, ClipboardList, Gem, ShieldCheck, HardHat, MessageSquare, Flame, BookOpen, ScrollText, Smartphone, Settings, Truck, ClipboardCheck, ListTodo } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type NavigationAccess = { isAdmin: boolean; canAccessFinance: boolean; canAccessPl: boolean; restrictedAllows?: (key: string) => boolean | null };
@@ -59,12 +59,18 @@ export const STAFF_NAV_GROUPS: StaffNavGroup[] = [
     { label: "Duty of Care", path: "/duty-of-care", icon: ShieldCheck, key: "duty-of-care" },
     { label: "Questionnaires", path: "/admin/questionnaires", icon: ClipboardList, access: "admin" },
   ] },
-  { title: "Team", icon: HardHat, key: "nav-team", items: [
+  { title: "Health & Safety", icon: ShieldCheck, key: "nav-health-safety", items: [
     { label: "RAMS", path: "/rams", icon: FileText, key: "hs-rams" },
-    { label: "Site Inductions", path: "/site-inductions", icon: HardHat, key: "hs-site-inductions" },
     { label: "Near Misses", path: "/near-miss", icon: AlertTriangle, key: "hs-near-miss" },
     { label: "Toolbox Talks", path: "/toolbox-talks", icon: MessageSquare, key: "hs-toolbox-talks" },
     { label: "Fire Safety", path: "/fire-safety", icon: Flame, key: "hs-fire-safety" },
+  ] },
+  { title: "Walk Around Checks", icon: ClipboardCheck, key: "nav-walk-around-checks", items: [
+    { label: "Inspections", path: "/walk-around-checks", icon: ClipboardCheck, key: "walk-around-checks" },
+    { label: "Job List", path: "/walk-around-checks/jobs", icon: ListTodo, key: "walk-around-checks" },
+  ] },
+  { title: "Team", icon: HardHat, key: "nav-team", items: [
+    { label: "Site Inductions", path: "/site-inductions", icon: HardHat, key: "hs-site-inductions" },
     { label: "Handbook", path: "/handbook", icon: BookOpen, key: "handbook" },
     { label: "Policies", path: "/policies", icon: ScrollText, key: "policies" },
   ] },

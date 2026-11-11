@@ -10328,6 +10328,185 @@ export type Database = {
         }
         Relationships: []
       }
+      walk_around_actions: {
+        Row: {
+          action_required: string
+          assigned_name: string | null
+          assigned_to: string | null
+          check_id: string
+          completed_at: string | null
+          completed_by: string | null
+          completion_notes: string | null
+          created_at: string
+          due_date: string
+          id: string
+          item_id: string | null
+          item_label: string
+          photo_path: string | null
+          priority: string
+          section_title: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action_required: string
+          assigned_name?: string | null
+          assigned_to?: string | null
+          check_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          due_date: string
+          id?: string
+          item_id?: string | null
+          item_label: string
+          photo_path?: string | null
+          priority?: string
+          section_title?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action_required?: string
+          assigned_name?: string | null
+          assigned_to?: string | null
+          check_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          due_date?: string
+          id?: string
+          item_id?: string | null
+          item_label?: string
+          photo_path?: string | null
+          priority?: string
+          section_title?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "walk_around_actions_check_id_fkey"
+            columns: ["check_id"]
+            isOneToOne: false
+            referencedRelation: "walk_around_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "walk_around_actions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "walk_around_check_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      walk_around_check_items: {
+        Row: {
+          action_required: string | null
+          check_id: string
+          due_date: string | null
+          id: string
+          item_key: string
+          label: string
+          photo_path: string | null
+          position: number
+          priority: string
+          section_key: string
+          section_title: string
+          state: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_required?: string | null
+          check_id: string
+          due_date?: string | null
+          id?: string
+          item_key: string
+          label: string
+          photo_path?: string | null
+          position?: number
+          priority?: string
+          section_key: string
+          section_title: string
+          state?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_required?: string | null
+          check_id?: string
+          due_date?: string | null
+          id?: string
+          item_key?: string
+          label?: string
+          photo_path?: string | null
+          position?: number
+          priority?: string
+          section_key?: string
+          section_title?: string
+          state?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "walk_around_check_items_check_id_fkey"
+            columns: ["check_id"]
+            isOneToOne: false
+            referencedRelation: "walk_around_checks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      walk_around_checks: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          id: string
+          inspection_date: string
+          manager_name: string | null
+          notes: string | null
+          site_name: string
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          supervisor_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          inspection_date?: string
+          manager_name?: string | null
+          notes?: string | null
+          site_name?: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          supervisor_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          inspection_date?: string
+          manager_name?: string | null
+          notes?: string | null
+          site_name?: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          supervisor_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       waste_products: {
         Row: {
           display_name: string
@@ -11350,6 +11529,7 @@ export type Database = {
         Args: { _enabled: boolean; _user_id: string }
         Returns: undefined
       }
+      submit_walk_around_check: { Args: { _check_id: string }; Returns: number }
       user_has_reconomy_membership: {
         Args: { _user_id: string }
         Returns: boolean

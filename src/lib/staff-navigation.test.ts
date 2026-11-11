@@ -67,4 +67,15 @@ it("Diary sits in quick links and under Operations, and selects only itself", ()
   assert.equal(operations, true);
   assert.equal(navigationActive("/diary", "/diary"), true);
   assert.deepEqual(all.filter(item => navigationActive(item.path, "/diary")).map(item => item.path), ["/diary"]);
+});it("Health & Safety groups RAMS, Near Misses, Toolbox Talks and Fire Safety", () => {
+  const group = STAFF_NAV_GROUPS.find(g => g.key === "nav-health-safety");
+  assert.equal(group?.title, "Health & Safety");
+  assert.deepEqual(group?.items.map(i => i.path), ["/rams", "/near-miss", "/toolbox-talks", "/fire-safety"]);
+  for (const path of ["/rams", "/near-miss", "/toolbox-talks", "/fire-safety"]) assert.equal(all.filter(i => i.path === path).length, 1);
+});
+it("Walk Around Checks is its own section and the job list selects only itself", () => {
+  const group = STAFF_NAV_GROUPS.find(g => g.key === "nav-walk-around-checks");
+  assert.deepEqual(group?.items.map(i => i.path), ["/walk-around-checks", "/walk-around-checks/jobs"]);
+  assert.deepEqual(all.filter(i => navigationActive(i.path, "/walk-around-checks/jobs")).map(i => i.path), ["/walk-around-checks/jobs"]);
+  assert.deepEqual(all.filter(i => navigationActive(i.path, "/walk-around-checks/abc")).map(i => i.path), ["/walk-around-checks"]);
 });

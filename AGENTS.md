@@ -42,3 +42,4 @@ Register normaliser accepts business_name. Insights shares URL-bound periods, ca
 Duty of Care reclassification keeps company/permit evidence; shared tipping choices exclude Broker/Haulage even from historical fallbacks, without altering jobs.
 Waste products are reference-only; never rewrite tickets. WeighOne ticket deletion detaches Route One/Banksman links first, is refused while an invoice carries the ticket, and needs explicit acknowledgement.
 - Standing-bin rules establish missing historical stock, never replenish collections; virtual stock has no chaseable rental age.
+- Walk Around Checks: the checklist template lives in walk-around-checks.ts and is copied into per-check item rows; items save as they're marked, and only the invoker submit RPC turns "Needs attention" items into dated walk_around_actions, locking the report so jobs always match the submitted evidence.

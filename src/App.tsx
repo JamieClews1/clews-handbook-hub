@@ -13,6 +13,9 @@ import HandbookPage from "./pages/HandbookPage";
 import RAMSPage from "./pages/RAMSPage";
 import SiteInductionsPage from "./pages/SiteInductionsPage";
 import FireSafetyPage from "./pages/FireSafetyPage";
+import WalkAroundChecksPage from "./pages/WalkAroundChecksPage";
+import WalkAroundCheckPage from "./pages/WalkAroundCheckPage";
+import WalkAroundJobsPage from "./pages/WalkAroundJobsPage";
 import HSDocumentDetailPage from "./pages/HSDocumentDetailPage";
 import RAMSDetailPage from "./pages/RAMSDetailPage";
 import ToolboxTalksPage from "./pages/ToolboxTalksPage";
@@ -160,6 +163,9 @@ const App = () => (
             <Route path="/near-miss" element={<Staff><NearMissPage /></Staff>} />
             <Route path="/site-inductions" element={<Staff><SiteInductionsPage /></Staff>} />
             <Route path="/fire-safety" element={<Staff><FireSafetyPage /></Staff>} />
+            <Route path="/walk-around-checks" element={<Staff><WalkAroundChecksPage /></Staff>} />
+            <Route path="/walk-around-checks/jobs" element={<Staff><WalkAroundJobsPage /></Staff>} />
+            <Route path="/walk-around-checks/:id" element={<Staff><WalkAroundCheckPage /></Staff>} />
             <Route path="/health-safety/documents/:id" element={<Staff><HSDocumentDetailPage /></Staff>} />
             <Route path="/policies" element={<Staff><PoliciesPage /></Staff>} />
             <Route path="/site-reports" element={<Staff><SiteReportsPage /></Staff>} />

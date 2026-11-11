@@ -34,11 +34,12 @@ export const PORTAL_SECTIONS: PortalSection[] = [
   { key: "company-pl", label: "Company P&L", category: "Finance", path: "/finance/company-pl" },
   { key: "payroll", label: "Payroll & Time", category: "Finance", path: "/payroll" },
   { key: "metals", label: "Non-Ferrous Metals", category: "OnePortal", path: "/metals" },
-  { key: "hs-rams", label: "RAMS", category: "Team", path: "/rams" },
+  { key: "hs-rams", label: "RAMS", category: "Health & Safety", path: "/rams" },
   { key: "hs-site-inductions", label: "Site Inductions", category: "Team", path: "/site-inductions" },
-  { key: "hs-near-miss", label: "Near Misses", category: "Team", path: "/near-miss" },
-  { key: "hs-toolbox-talks", label: "Toolbox Talks", category: "Team", path: "/toolbox-talks" },
-  { key: "hs-fire-safety", label: "Fire Safety", category: "Team", path: "/fire-safety" },
+  { key: "hs-near-miss", label: "Near Misses", category: "Health & Safety", path: "/near-miss" },
+  { key: "hs-toolbox-talks", label: "Toolbox Talks", category: "Health & Safety", path: "/toolbox-talks" },
+  { key: "hs-fire-safety", label: "Fire Safety", category: "Health & Safety", path: "/fire-safety" },
+  { key: "walk-around-checks", label: "Walk Around Checks", category: "Walk Around Checks", path: "/walk-around-checks" },
 
   // Performance
   { key: "performance-waste-kpis", label: "Waste KPIs", category: "Performance", path: "/performance-hub/waste-kpis" },
