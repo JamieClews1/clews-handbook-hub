@@ -491,6 +491,13 @@
       "when": 1793980584456,
       "tag": "0069_rebate_message_wording",
       "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1794407508996,
+      "tag": "0070_portal_read_staci_pallet_entries",
+      "breakpoints": true
     }
   ]
 }
