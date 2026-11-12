@@ -68,7 +68,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-[100dvh] flex w-full">
         <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-2 focus:z-50 rounded-md bg-card px-4 py-2 text-foreground ring-2 ring-ring">Skip to content</a>
         <UrgentContaminationPopup />
         <AppSidebar />
@@ -138,7 +138,12 @@ export function AppLayout({ children }: AppLayoutProps) {
           </main>
         </div>
       </div>
-      {!/^\/(ai-assistant|assistant)(\/|$)/.test(pathname) && <PortalAssistantWidget />}
+      {!/^\/(ai-assistant|assistant)(\/|$)/.test(pathname) && (
+        // The yard load app has a full-width bottom bar on phones; keep the assistant bubble off it there.
+        pathname.startsWith("/load-reports")
+          ? <div className="hidden sm:block"><PortalAssistantWidget /></div>
+          : <PortalAssistantWidget />
+      )}
     </SidebarProvider>
   );
 }
