@@ -3,7 +3,9 @@ import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Truck, Hash, Scale } from "lucide-react";
+import { ArrowLeft, Truck, Hash, Scale, Download } from "lucide-react";
+import { LoadReportsInstallCard } from "@/components/apps/LoadReportsInstallCard";
+import { isStandaloneDisplay } from "@/hooks/useInstallPrompt";
 import { useToast } from "@/hooks/use-toast";
 import { getWeighbridgeSource } from "@/lib/weighbridge-source";
 import { getTodayLoadReportDate, normalizeLoadReportDate } from "@/lib/load-report-dates";
@@ -75,6 +77,12 @@ const LoadReportsPage = () => {
   const [installHintDismissed, setInstallHintDismissed] = useState(
     () => localStorage.getItem("w1-load-reports-install-dismissed") === "1",
   );
+  const isInstalledApp = useMemo(() => isStandaloneDisplay(), []);
+  const setInstallHidden = (hidden: boolean) => {
+    if (hidden) localStorage.setItem("w1-load-reports-install-dismissed", "1");
+    else localStorage.removeItem("w1-load-reports-install-dismissed");
+    setInstallHintDismissed(hidden);
+  };
 
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerType | null>(null);
   const [originView, setOriginView] = useState<"list" | "all">("list");
@@ -1289,6 +1297,12 @@ const LoadReportsPage = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {!isInstalledApp && installHintDismissed && viewMode === "customer" && (
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => setInstallHidden(false)}>
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">Download app</span>
+                </Button>
+              )}
               <OfflineIndicator
                 isOnline={isOnline}
                 pendingCount={pendingCount}
@@ -1326,6 +1340,11 @@ const LoadReportsPage = () => {
         <div className={`${viewMode === "all" || viewMode === "list" ? "max-w-screen-2xl" : "max-w-5xl"} mx-auto`}>
           {viewMode === "customer" && (
             <>
+              {!isInstalledApp && !installHintDismissed && (
+                <div className="mb-6">
+                  <LoadReportsInstallCard installHere onDismiss={() => setInstallHidden(true)} />
+                </div>
+              )}
               <CustomerTypeSelector
                 onSelect={handleCustomerSelect}
                 onViewAll={handleViewAll}

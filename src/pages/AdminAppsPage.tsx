@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadReportSettings } from "@/components/load-reports/LoadReportSettings";
 import { BanksmanAppGuide } from "@/components/apps/BanksmanAppGuide";
 import { BanksmanInstallCard } from "@/components/apps/BanksmanInstallCard";
+import { LoadReportsInstallCard } from "@/components/apps/LoadReportsInstallCard";
 import {
   Smartphone,
   Download,
@@ -323,7 +324,8 @@ const AdminAppsPage = () => {
         </TabsContent>
 
         {/* Load Reports */}
-        <TabsContent value="load-reports">
+        <TabsContent value="load-reports" className="space-y-6">
+          <LoadReportsInstallCard />
           <AppGuide
             overview="Load Reports lets yard operators tally inbound and outbound loads, calculate accurate tonnages from configurable weights, and produce load reports and certificates of destruction for customers."
             badges={[
