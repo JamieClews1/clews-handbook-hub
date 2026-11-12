@@ -11,6 +11,13 @@ import { CheckCircle, Languages, Loader2 } from "lucide-react";
 import { SignaturePad } from "@/components/SignaturePad";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import clewsLogo from "@/assets/clews-logo.png";
+import {
+  VISIT_REASONS,
+  VISITOR_INDUCTION_CATEGORY,
+  inductionValidUntil,
+  tidyRegistration,
+  visitReasonLabel,
+} from "@/lib/visitor-induction";
 
 const LANGUAGES = [
   { code: "EN", label: "English" },
@@ -55,6 +62,12 @@ const PublicInductionPage = () => {
   const [dob, setDob] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [inductedBy, setInductedBy] = useState("");
+  const [company, setCompany] = useState("");
+  const [lockedCompany, setLockedCompany] = useState<string | null>(null);
+  const [phone, setPhone] = useState("");
+  const [vehicleReg, setVehicleReg] = useState("");
+  const [visitReason, setVisitReason] = useState("");
+  const [signedAt, setSignedAt] = useState<Date | null>(null);
   const [checked, setChecked] = useState<Record<number, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [signed, setSigned] = useState(false);
@@ -66,6 +79,10 @@ const PublicInductionPage = () => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "This link is not available");
         setDoc(data.document as PublicDoc);
+        if (data.company) {
+          setLockedCompany(data.company);
+          setCompany(data.company);
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : "This link is not available");
       } finally {
@@ -87,6 +104,14 @@ const PublicInductionPage = () => {
   }, [doc, language, suffix]);
 
   const allChecked = acks.length > 0 && acks.every((_, i) => checked[i]);
+  const isVisitor = doc?.category === VISITOR_INDUCTION_CATEGORY;
+  const missingDetail = !name.trim()
+    ? "Enter your full name to continue."
+    : isVisitor && !company.trim()
+      ? "Enter the company you are working for."
+      : isVisitor && !visitReason
+        ? "Choose the reason for your visit."
+        : null;
 
   const handleSign = async (signatureData: string) => {
     if (!doc) return;
@@ -102,6 +127,10 @@ const PublicInductionPage = () => {
           date_of_birth: dob || null,
           job_title: jobTitle || null,
           inducted_by: inductedBy || null,
+          company_name: company.trim() || null,
+          phone: phone.trim() || null,
+          vehicle_registration: vehicleReg.trim() ? tidyRegistration(vehicleReg) : null,
+          visit_reason: visitReason || null,
           language,
           acknowledgements: acks,
           signature_image: signatureData,
@@ -109,6 +138,7 @@ const PublicInductionPage = () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not save your signature");
+      setSignedAt(new Date());
       setSigned(true);
     } catch (e) {
       setSignError(e instanceof Error ? e.message : "Could not save your signature");
@@ -145,8 +175,28 @@ const PublicInductionPage = () => {
             <CheckCircle className="mx-auto h-10 w-10 text-primary" />
             <h1 className="text-xl font-bold">Thank you, {name}</h1>
             <p className="text-sm text-muted-foreground">
-              Your signature for “{doc.title}” has been recorded. You can close this page.
+              Your signature for “{doc.title}” has been recorded.
             </p>
+            {isVisitor && signedAt && (
+              <div className="mx-auto mt-2 space-y-1 rounded-lg border border-primary/30 bg-primary/5 p-4 text-left text-sm">
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary">Show this to the weighbridge</p>
+                <p><span className="text-muted-foreground">Name:</span> <strong>{name}</strong></p>
+                <p><span className="text-muted-foreground">Company:</span> <strong>{company}</strong></p>
+                {vehicleReg.trim() && (
+                  <p><span className="text-muted-foreground">Vehicle:</span> <strong>{tidyRegistration(vehicleReg)}</strong></p>
+                )}
+                <p><span className="text-muted-foreground">Visit:</span> {visitReasonLabel(visitReason)}</p>
+                <p>
+                  <span className="text-muted-foreground">Signed:</span>{" "}
+                  {signedAt.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Valid until:</span>{" "}
+                  <strong>{inductionValidUntil(signedAt).toLocaleDateString("en-GB", { dateStyle: "medium" })}</strong>
+                </p>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">You can close this page.</p>
           </CardContent>
         </Card>
       </div>
@@ -161,13 +211,13 @@ const PublicInductionPage = () => {
             <img src={clewsLogo} alt="Clews Recycling" className="h-8 w-auto" />
           </div>
           <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            {doc.category === "fire_safety" ? "Fire Safety" : "Site Induction"}
+            {doc.category === "fire_safety" ? "Fire Safety" : isVisitor ? "Visitor & Haulier Induction" : "Site Induction"}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Languages className="h-4 w-4 text-muted-foreground" />
           <Select value={language} onValueChange={setLanguage}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="h-10 w-[150px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -200,7 +250,7 @@ const PublicInductionPage = () => {
         </div>
         <CardContent className="pt-6">
           <div
-            className="hs-doc max-w-none text-sm leading-relaxed
+            className="hs-doc max-w-none overflow-x-auto text-sm leading-relaxed
               [&>h1]:mt-8 [&>h1]:mb-3 [&>h1]:border-l-4 [&>h1]:border-primary [&>h1]:bg-primary/5 [&>h1]:px-3 [&>h1]:py-2 [&>h1]:text-base [&>h1]:font-bold [&>h1]:tracking-tight [&>h1]:first:mt-0
               [&>h2]:mt-8 [&>h2]:mb-3 [&>h2]:border-l-4 [&>h2]:border-primary [&>h2]:bg-primary/5 [&>h2]:px-3 [&>h2]:py-2 [&>h2]:text-base [&>h2]:font-bold [&>h2]:tracking-tight [&>h2]:first:mt-0
               [&_h4]:mt-5 [&_h4]:mb-2 [&_h4]:text-sm [&_h4]:font-semibold [&_h4]:uppercase [&_h4]:tracking-wide [&_h4]:text-primary
@@ -228,6 +278,61 @@ const PublicInductionPage = () => {
             <CardTitle className="text-lg">Confirm and sign</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
+            {isVisitor ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="v-name">Full name *</Label>
+                  <Input id="v-name" autoComplete="name" className="h-11 text-base" value={name} onChange={(e) => setName(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="v-company">Company you are working for *</Label>
+                  <Input
+                    id="v-company"
+                    autoComplete="organization"
+                    className="h-11 text-base"
+                    value={company}
+                    readOnly={!!lockedCompany}
+                    onChange={(e) => setCompany(e.target.value)}
+                  />
+                  {lockedCompany && (
+                    <p className="text-xs text-muted-foreground">This link is for {lockedCompany}.</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="v-reason">Reason for visit *</Label>
+                  <Select value={visitReason} onValueChange={setVisitReason}>
+                    <SelectTrigger id="v-reason" className="h-11 text-base">
+                      <SelectValue placeholder="Choose one" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VISIT_REASONS.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="v-reg">Vehicle registration</Label>
+                  <Input
+                    id="v-reg"
+                    className="h-11 text-base uppercase"
+                    autoCapitalize="characters"
+                    value={vehicleReg}
+                    onChange={(e) => setVehicleReg(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="v-phone">Mobile number</Label>
+                  <Input id="v-phone" type="tel" inputMode="tel" autoComplete="tel" className="h-11 text-base" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="v-host">Clews contact (if known)</Label>
+                  <Input id="v-host" className="h-11 text-base" value={inductedBy} onChange={(e) => setInductedBy(e.target.value)} />
+                </div>
+              </div>
+            ) : (
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Name</Label>
@@ -246,10 +351,11 @@ const PublicInductionPage = () => {
                 <Input value={inductedBy} onChange={(e) => setInductedBy(e.target.value)} />
               </div>
             </div>
+            )}
 
             <div className="space-y-3">
               {acks.map((a, i) => (
-                <label key={i} className="flex items-start gap-3 text-sm">
+                <label key={i} className="flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm">
                   <Checkbox
                     checked={!!checked[i]}
                     onCheckedChange={(v) => setChecked((prev) => ({ ...prev, [i]: !!v }))}
@@ -260,8 +366,8 @@ const PublicInductionPage = () => {
               ))}
             </div>
 
-            {!name.trim() ? (
-              <p className="text-sm text-muted-foreground">Enter your name to continue.</p>
+            {missingDetail ? (
+              <p className="text-sm text-muted-foreground">{missingDetail}</p>
             ) : !allChecked ? (
               <p className="text-sm text-muted-foreground">
                 Tick every statement above to unlock the signature box.

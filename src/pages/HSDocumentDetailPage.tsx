@@ -65,6 +65,8 @@ interface SignatureRow {
   inducted_by: string | null;
   signed_at: string;
   language: string;
+  company_name?: string | null;
+  vehicle_registration?: string | null;
 }
 
 const asArray = (v: unknown): string[] => (Array.isArray(v) ? (v as string[]) : []);
@@ -117,7 +119,7 @@ const HSDocumentDetailPage = () => {
     if (isAdmin) {
       const { data: guests } = await supabase
         .from("hs_document_guest_signatures")
-        .select("id, signature_image, employee_name, job_title, inducted_by, signed_at, language")
+        .select("id, signature_image, employee_name, job_title, inducted_by, signed_at, language, company_name, vehicle_registration")
         .eq("document_id", id)
         .order("signed_at", { ascending: false });
       setGuestSigs((guests as SignatureRow[]) || []);
@@ -160,7 +162,7 @@ const HSDocumentDetailPage = () => {
             <header class="hdr">
               <img src="${clewsLogo}" alt="Clews Recycling" />
               <div>
-                <p class="kicker">${doc.category === "fire_safety" ? "Fire Safety" : "Site Induction"}</p>
+                <p class="kicker">${doc.category === "fire_safety" ? "Fire Safety" : doc.category === "visitor_induction" ? "Visitor &amp; Haulier Induction" : "Site Induction"}</p>
                 <h1>${t ?? ""}</h1>
               </div>
             </header>
@@ -389,7 +391,7 @@ const HSDocumentDetailPage = () => {
             <div className="flex items-center gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">
-                  {doc.category === "fire_safety" ? "Fire Safety" : "Site Induction"}
+                  {doc.category === "fire_safety" ? "Fire Safety" : doc.category === "visitor_induction" ? "Visitor & Haulier Induction" : "Site Induction"}
                 </p>
                 <h1 className="text-2xl font-bold leading-tight">{title}</h1>
               </div>
@@ -448,7 +450,16 @@ const HSDocumentDetailPage = () => {
 
 
 
-      {doc.requires_signature && !signature && (
+      {doc.category === "visitor_induction" && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="py-4 text-sm">
+            Visitors, contractors and hauliers sign this on their own phone from a share link or QR code. Manage links and the signature
+            register on the Site Inductions page.
+          </CardContent>
+        </Card>
+      )}
+
+      {doc.requires_signature && !signature && doc.category !== "visitor_induction" && (
         <Card className="print:hidden">
           <CardHeader>
             <CardTitle className="text-lg">Confirm and sign</CardTitle>
@@ -534,6 +545,8 @@ const HSDocumentDetailPage = () => {
                 />
                 <p className="text-sm text-muted-foreground">
                   <span className="font-medium text-foreground">{g.employee_name || "Unnamed"}</span>
+                  {g.company_name ? ` • ${g.company_name}` : ""}
+                  {g.vehicle_registration ? ` • ${g.vehicle_registration}` : ""}
                   {g.job_title ? ` • ${g.job_title}` : ""} • signed{" "}
                   {new Date(g.signed_at).toLocaleString("en-GB")}
                   {g.inducted_by ? ` • inducted by ${g.inducted_by}` : ""} • {g.language}

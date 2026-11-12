@@ -512,6 +512,20 @@
       "when": 1794477127451,
       "tag": "0072_office_app_pins",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1794478244125,
+      "tag": "0073_visitor_inductions",
+      "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1794478262231,
+      "tag": "0074_visitor_signature_link_only_update",
+      "breakpoints": true
     }
   ]
 }

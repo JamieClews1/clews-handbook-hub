@@ -31,6 +31,8 @@ interface Props {
   heading: string;
   description: string;
   hideHeader?: boolean;
+  /** Render without the outer page padding (the parent page provides it). */
+  embedded?: boolean;
 }
 
 
@@ -43,7 +45,7 @@ interface StaffRow {
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
 
-const HSDocumentsPage = ({ category, heading, description, hideHeader }: Props) => {
+const HSDocumentsPage = ({ category, heading, description, hideHeader, embedded }: Props) => {
   const navigate = useNavigate();
   const { user, loading, isAdmin } = useAuth();
   const [docs, setDocs] = useState<HSDocument[]>([]);
@@ -145,7 +147,7 @@ const HSDocumentsPage = ({ category, heading, description, hideHeader }: Props) 
 
 
   return (
-    <div className={hideHeader ? "space-y-6" : "p-4 md:p-6 space-y-6 max-w-screen-2xl mx-auto"}>
+    <div className={hideHeader || embedded ? "space-y-6" : "p-4 md:p-6 space-y-6 max-w-screen-2xl mx-auto"}>
       {!hideHeader && (
         <PageHeading title={heading} description={description} />
       )}

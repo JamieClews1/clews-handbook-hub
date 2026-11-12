@@ -11,6 +11,18 @@ const TOKEN_RE = /^[a-zA-Z0-9_-]{8,128}$/;
 const str = (v: unknown, max = 500) =>
   typeof v === "string" ? v.trim().slice(0, max) : null;
 
+// Keep in step with src/lib/visitor-induction.ts
+const normaliseCompanyName = (name: string | null | undefined) =>
+  (name || "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .replace(/\b(limited|ltd|plc|llp|uk|the|co|company|group)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const VISIT_REASONS = new Set(["tipping", "collecting", "delivery", "contractor", "visitor"]);
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -31,7 +43,7 @@ Deno.serve(async (req) => {
 
     const { data: link, error: linkError } = await supabase
       .from("hs_document_share_links")
-      .select("id, document_id, label, is_active, view_count")
+      .select("id, document_id, label, is_active, view_count, customer_id")
       .eq("token", token)
       .maybeSingle();
     if (linkError) throw linkError;
@@ -51,10 +63,37 @@ Deno.serve(async (req) => {
 
       const { data: doc } = await supabase
         .from("hs_documents")
-        .select("id, site")
+        .select("id, site, category")
         .eq("id", link.document_id)
         .maybeSingle();
       if (!doc) return json({ error: "Document not found" }, 404);
+
+      const isVisitor = doc.category === "visitor_induction";
+      let companyName = str(body.company_name, 200);
+      let customerId: string | null = link.customer_id ?? null;
+      const visitReason = str(body.visit_reason, 40);
+      if (isVisitor) {
+        if (customerId) {
+          const { data: c } = await supabase.from("customers").select("customer_name").eq("id", customerId).maybeSingle();
+          companyName = c?.customer_name || companyName;
+        }
+        if (!companyName) return json({ error: "Company name is required" }, 400);
+        if (!visitReason || !VISIT_REASONS.has(visitReason)) return json({ error: "Reason for visit is required" }, 400);
+        if (!customerId) {
+          // Link to a customer/supplier account only when exactly one account matches the typed name.
+          const key = normaliseCompanyName(companyName);
+          const { data: accounts } = await supabase
+            .from("customers")
+            .select("id, customer_name, data_hub_customer")
+            .range(0, 9999);
+          const hits = new Set(
+            (accounts || [])
+              .filter((a) => normaliseCompanyName(a.customer_name) === key || (a.data_hub_customer && normaliseCompanyName(a.data_hub_customer) === key))
+              .map((a) => a.id as string),
+          );
+          if (key && hits.size === 1) customerId = [...hits][0];
+        }
+      }
 
       const { error: insertError } = await supabase
         .from("hs_document_guest_signatures")
@@ -69,6 +108,11 @@ Deno.serve(async (req) => {
           site: doc.site,
           language,
           acknowledgements,
+          company_name: companyName,
+          customer_id: customerId,
+          phone: str(body.phone, 40),
+          vehicle_registration: str(body.vehicle_registration, 20)?.toUpperCase() || null,
+          visit_reason: isVisitor ? visitReason : null,
         });
       if (insertError) throw insertError;
       return json({ success: true });
@@ -90,7 +134,13 @@ Deno.serve(async (req) => {
       .update({ view_count: (link.view_count ?? 0) + 1, last_viewed_at: new Date().toISOString() })
       .eq("id", link.id);
 
-    return json({ document: doc, label: link.label });
+    let company: string | null = null;
+    if (link.customer_id) {
+      const { data: c } = await supabase.from("customers").select("customer_name").eq("id", link.customer_id).maybeSingle();
+      company = c?.customer_name ?? null;
+    }
+
+    return json({ document: doc, label: link.label, company });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "Unexpected error" }, 500);
   }

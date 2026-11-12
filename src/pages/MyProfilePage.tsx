@@ -128,6 +128,7 @@ const MyProfilePage = () => {
           .from("hs_documents")
           .select("id, category, title, reference_code, requires_signature")
           .eq("is_published", true)
+          .neq("category", "visitor_induction")
           .order("category"),
         supabase
           .from("hs_document_signatures")

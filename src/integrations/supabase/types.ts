@@ -4543,7 +4543,9 @@ export type Database = {
       hs_document_guest_signatures: {
         Row: {
           acknowledgements: Json
+          company_name: string | null
           created_at: string
+          customer_id: string | null
           date_of_birth: string | null
           document_id: string
           employee_name: string | null
@@ -4551,14 +4553,19 @@ export type Database = {
           inducted_by: string | null
           job_title: string | null
           language: string
+          phone: string | null
           share_link_id: string | null
           signature_image: string
           signed_at: string
           site: string | null
+          vehicle_registration: string | null
+          visit_reason: string | null
         }
         Insert: {
           acknowledgements?: Json
+          company_name?: string | null
           created_at?: string
+          customer_id?: string | null
           date_of_birth?: string | null
           document_id: string
           employee_name?: string | null
@@ -4566,14 +4573,19 @@ export type Database = {
           inducted_by?: string | null
           job_title?: string | null
           language?: string
+          phone?: string | null
           share_link_id?: string | null
           signature_image: string
           signed_at?: string
           site?: string | null
+          vehicle_registration?: string | null
+          visit_reason?: string | null
         }
         Update: {
           acknowledgements?: Json
+          company_name?: string | null
           created_at?: string
+          customer_id?: string | null
           date_of_birth?: string | null
           document_id?: string
           employee_name?: string | null
@@ -4581,12 +4593,22 @@ export type Database = {
           inducted_by?: string | null
           job_title?: string | null
           language?: string
+          phone?: string | null
           share_link_id?: string | null
           signature_image?: string
           signed_at?: string
           site?: string | null
+          vehicle_registration?: string | null
+          visit_reason?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "hs_document_guest_signatures_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "hs_document_guest_signatures_document_id_fkey"
             columns: ["document_id"]
@@ -4607,6 +4629,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          customer_id: string | null
           document_id: string
           id: string
           is_active: boolean
@@ -4619,6 +4642,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          customer_id?: string | null
           document_id: string
           id?: string
           is_active?: boolean
@@ -4631,6 +4655,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          customer_id?: string | null
           document_id?: string
           id?: string
           is_active?: boolean
@@ -4641,6 +4666,13 @@ export type Database = {
           view_count?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "hs_document_share_links_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "hs_document_share_links_document_id_fkey"
             columns: ["document_id"]
