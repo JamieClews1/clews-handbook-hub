@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Download, Share, MoreVertical, Copy, Truck, X } from "lucide-react";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 
-const URL_ = "https://clewshandbook.lovable.app/load-reports";
+const URL_ = "https://portal.clewsrecycling.co.uk/load-reports?app=load-reports";
 type Device = "ios" | "android" | "desktop";
 
 function detect(): Device {
@@ -63,7 +63,7 @@ export function LoadReportsInstallCard({
               </Button>
             ) : installHere ? null : (
               <Button asChild size="lg" className="gap-2 font-bold">
-                <a href="/load-reports" target="_blank" rel="noopener noreferrer">
+                <a href="/load-reports?app=load-reports" target="_blank" rel="noopener noreferrer">
                   <Download className="h-5 w-5" /> DOWNLOAD LOAD REPORTS APP
                 </a>
               </Button>
@@ -116,8 +116,8 @@ export function LoadReportsInstallCard({
           )}
         </div>
         <p className="text-sm text-muted-foreground">
-          Access: signed-in staff only. Sign in once on the phone before adding the icon, and it will open straight
-          back into Load Reports.
+          Access: signed-in staff only. Sign in once on the phone before adding the icon. The installed app opens
+          straight into Load Reports and can only show Load Reports — no other portal pages.
         </p>
       </CardContent>
     </Card>

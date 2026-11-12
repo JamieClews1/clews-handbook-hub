@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Truck, Hash, Scale, Download } from "lucide-react";
 import { LoadReportsInstallCard } from "@/components/apps/LoadReportsInstallCard";
 import { isStandaloneDisplay } from "@/hooks/useInstallPrompt";
+import { isLoadReportsAppMode } from "@/lib/load-reports-app";
 import { useToast } from "@/hooks/use-toast";
 import { getWeighbridgeSource } from "@/lib/weighbridge-source";
 import { getTodayLoadReportDate, normalizeLoadReportDate } from "@/lib/load-report-dates";
@@ -1278,7 +1279,7 @@ const LoadReportsPage = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {viewMode === "customer" ? (
+              {viewMode === "customer" && isLoadReportsAppMode() ? null : viewMode === "customer" ? (
                 <Link to="/portal">
                   <Button variant="ghost" size="sm" className="gap-2">
                     <ArrowLeft className="h-4 w-4" />

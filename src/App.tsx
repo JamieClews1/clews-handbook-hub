@@ -90,11 +90,22 @@ import PayrollPage from "./pages/PayrollPage";
 import PoChecksPage from "./pages/PoChecksPage";
 
 import NotFound from "./pages/NotFound";
+import { initLoadReportsAppScope, isLoadReportsAppMode, loadReportsAppAllows, LOAD_REPORTS_APP_PATH } from "@/lib/load-reports-app";
 
 const queryClient = new QueryClient();
 
 /** Wraps children in StaffRoute + AppLayout */
 startOfficeSessionSync();
+initLoadReportsAppScope();
+
+/** The installed Load Reports app may only show Load Reports screens and sign-in. */
+const LoadReportsAppGuard = ({ children }: { children: React.ReactNode }) => {
+  const { pathname } = useLocation();
+  if (isLoadReportsAppMode() && !loadReportsAppAllows(pathname)) {
+    return <Navigate to={LOAD_REPORTS_APP_PATH} replace />;
+  }
+  return <>{children}</>;
+};
 
 const Staff = ({ children }: { children: React.ReactNode }) => (
   <StaffRoute>
@@ -115,6 +126,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <LoadReportsAppGuard>
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<LandingPage />} />
@@ -218,6 +230,7 @@ const App = () => (
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </LoadReportsAppGuard>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

@@ -10,8 +10,9 @@ import { UrgentContaminationPopup } from "@/components/banksman/UrgentContaminat
 import { FullScreenToggle } from "@/components/FullScreenToggle";
 import { TestModeToggle, TestModeStrip } from "@/lib/test-mode";
 import { Button } from "@/components/ui/button";
-import { LogOut, User, Bell, Plus, CircleHelp, LayoutGrid } from "lucide-react";
+import { LogOut, User, Bell, Plus, CircleHelp, LayoutGrid, ArrowLeft, Truck } from "lucide-react";
 import { isOfficeMode, OFFICE_APP_PATH } from "@/lib/office-app";
+import { isLoadReportsAppMode, LOAD_REPORTS_APP_PATH } from "@/lib/load-reports-app";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -44,12 +45,37 @@ export function AppLayout({ children }: AppLayoutProps) {
   const handleSignOut = async () => {
     await signOut();
     toast({ title: "Signed out", description: "You have been signed out successfully." });
-    navigate(officeMode ? OFFICE_APP_PATH : "/auth");
+    navigate(officeMode && !isLoadReportsAppMode() ? OFFICE_APP_PATH : "/auth");
   };
 
   // If not logged in, render children without sidebar/header chrome
   if (!user) {
     return <div className="min-h-screen">{children}</div>;
+  }
+
+  // Installed Load Reports app: no portal menu, search, assistant or links to other sections.
+  if (isLoadReportsAppMode()) {
+    const onLoadReports = pathname === LOAD_REPORTS_APP_PATH || pathname.startsWith(`${LOAD_REPORTS_APP_PATH}/`);
+    return (
+      <div className="flex min-h-[100dvh] w-full flex-col bg-background">
+        <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4">
+          {onLoadReports ? (
+            <span className="flex items-center gap-2 font-semibold text-foreground">
+              <Truck className="h-5 w-5 text-primary" /> Load Reports
+            </span>
+          ) : (
+            <Button asChild variant="ghost" size="sm" className="gap-2">
+              <Link to={LOAD_REPORTS_APP_PATH}><ArrowLeft className="h-4 w-4" />Load Reports</Link>
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground" onClick={handleSignOut}>
+            <LogOut className="h-4 w-4" />Sign out
+          </Button>
+        </header>
+        <TestModeStrip />
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-auto">{children}</main>
+      </div>
+    );
   }
 
   if (weighOneTablet) {
