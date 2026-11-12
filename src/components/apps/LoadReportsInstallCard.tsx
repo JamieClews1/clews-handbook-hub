@@ -2,18 +2,11 @@ import { useEffect, useState } from "react";
 import packageJson from "../../../package.json";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Download, Share, MoreVertical, Copy, Truck, X } from "lucide-react";
+import { CheckCircle2, Download, Share, MoreVertical, Menu, Copy, Truck, X, ExternalLink } from "lucide-react";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
+import { chromeIntentUrl, detectInstallBrowser, type InstallBrowser } from "@/lib/load-reports-app";
 
 const URL_ = "https://portal.clewsrecycling.co.uk/load-reports?app=load-reports";
-type Device = "ios" | "android" | "desktop";
-
-function detect(): Device {
-  const ua = navigator.userAgent;
-  if (/iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) return "ios";
-  if (/Android/i.test(ua)) return "android";
-  return "desktop";
-}
 
 /**
  * Download/install card for the Load Reports app, matching the Banksman App card.
@@ -27,12 +20,18 @@ export function LoadReportsInstallCard({
   onDismiss?: () => void;
   installHere?: boolean;
 }) {
-  const [device, setDevice] = useState<Device>("desktop");
+  const [browser, setBrowser] = useState<InstallBrowser>("desktop");
   const [copied, setCopied] = useState(false);
+  const [showSteps, setShowSteps] = useState(false);
   const { canInstall, install } = useInstallPrompt();
-  useEffect(() => setDevice(detect()), []);
+  useEffect(
+    () => setBrowser(detectInstallBrowser(navigator.userAgent, navigator.maxTouchPoints, navigator.platform)),
+    [],
+  );
 
   const oneTap = installHere && canInstall;
+  const onPhone = browser !== "desktop";
+  const android = browser === "samsung" || browser === "chrome" || browser === "other-android";
 
   return (
     <Card className="border-2 border-primary/40">
@@ -61,6 +60,10 @@ export function LoadReportsInstallCard({
               <Button size="lg" className="gap-2 font-bold" onClick={() => void install()}>
                 <Download className="h-5 w-5" /> INSTALL LOAD REPORTS APP
               </Button>
+            ) : installHere && onPhone ? (
+              <Button size="lg" className="gap-2 font-bold" onClick={() => setShowSteps(true)}>
+                <Download className="h-5 w-5" /> ADD TO HOME SCREEN
+              </Button>
             ) : installHere ? null : (
               <Button asChild size="lg" className="gap-2 font-bold">
                 <a href="/load-reports?app=load-reports" target="_blank" rel="noopener noreferrer">
@@ -77,21 +80,55 @@ export function LoadReportsInstallCard({
         </div>
 
         <div className="rounded-lg bg-muted p-4 text-sm">
-          {device === "ios" && (
+          {browser === "ios" && (
             <p>
               <b>iPhone:</b> {installHere ? "in" : "tap Download, then in"} <b>Safari</b> tap{" "}
               <Share className="inline h-4 w-4" /> <b>Share</b> → <b>Add to Home Screen</b> → <b>Add</b>.
             </p>
           )}
-          {device === "android" && (
-            <p>
-              <b>Android:</b>{" "}
-              {oneTap
-                ? "tap Install above, then Install again to confirm."
-                : <>{installHere ? "in" : "tap Download, then in"} <b>Chrome</b> tap <MoreVertical className="inline h-4 w-4" /> → <b>Install app</b> (or <b>Add to Home screen</b>).</>}
-            </p>
+          {android && oneTap && <p><b>Android:</b> tap Install above, then Install again to confirm.</p>}
+          {android && !oneTap && (
+            <div className={showSteps ? "space-y-2 rounded-md p-2 ring-2 ring-primary" : "space-y-2"}>
+              {!installHere && <p>Tap Download first, then on the Load Reports page:</p>}
+              {browser === "samsung" ? (
+                <ol className="list-decimal space-y-1 pl-5">
+                  <li>
+                    Tap the <Menu className="inline h-4 w-4" /> <b>menu</b> (three lines, bottom right).
+                  </li>
+                  <li>
+                    Tap <b>Add page to</b> → <b>Home screen</b>.
+                  </li>
+                  <li>
+                    Tap <b>Add</b> (or <b>Install</b>).
+                  </li>
+                </ol>
+              ) : (
+                <ol className="list-decimal space-y-1 pl-5">
+                  <li>
+                    Tap <MoreVertical className="inline h-4 w-4" /> (three dots, top right).
+                  </li>
+                  <li>
+                    Tap <b>Add to Home screen</b> (or <b>Install app</b>).
+                  </li>
+                  <li>
+                    Tap <b>Install</b> (or <b>Add</b>).
+                  </li>
+                </ol>
+              )}
+              {browser !== "chrome" && installHere && (
+                <Button asChild variant="outline" size="sm" className="gap-1">
+                  <a href={chromeIntentUrl(window.location.host)}>
+                    <ExternalLink className="h-3.5 w-3.5" /> Or open in Chrome instead
+                  </a>
+                </Button>
+              )}
+              <p className="text-xs text-muted-foreground">
+                If the menu says <b>Open in app</b> instead, this phone already has a WasteOne or WeighOne icon
+                covering the whole portal. Remove that icon (press and hold → Uninstall), reopen this page and try again.
+              </p>
+            </div>
           )}
-          {device === "desktop" && (
+          {browser === "desktop" && (
             <div className="space-y-2">
               <p>Open this page on the yard phone or tablet, or send the link:</p>
               <div className="flex flex-wrap items-center gap-2">
@@ -110,7 +147,8 @@ export function LoadReportsInstallCard({
                 </Button>
               </div>
               <p className="text-muted-foreground">
-                iPhone: Safari → Share → Add to Home Screen. Android: Chrome → ⋮ → Install app.
+                iPhone: Safari → Share → Add to Home Screen. Samsung: ☰ menu → Add page to → Home screen.
+                Chrome: ⋮ → Add to Home screen.
               </p>
             </div>
           )}

@@ -6,6 +6,10 @@ import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import "./index.css";
 import { moduleSignature, shouldReloadForNewerBuild } from "@/lib/build-watchdog";
+import { applyLoadReportsManifest } from "@/lib/load-reports-app";
+
+// Offer "Load Reports" (not the whole portal) when a phone adds this page to its home screen.
+applyLoadReportsManifest();
 
 // Unregister all stale service workers and clear cached app shells so returning
 // visitors always load the latest version instead of an old cached build.

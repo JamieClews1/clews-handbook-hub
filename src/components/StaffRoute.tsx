@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { withTimeout } from "@/lib/with-timeout";
 import { isOfficeLocked, isOfficeMode, OFFICE_APP_PATH } from "@/lib/office-app";
+import { launchScope, LOAD_REPORTS_SIGN_IN_PATH } from "@/lib/load-reports-app";
 
 interface StaffRouteProps {
   children: React.ReactNode;
@@ -19,6 +20,7 @@ const STAFF_CHECK_TIMEOUT_MS = 12000;
  */
 export const StaffRoute = ({ children }: StaffRouteProps) => {
   const { user, loading, signOut } = useAuth();
+  const location = useLocation();
   const userId = user?.id ?? null;
   const [isStaff, setIsStaff] = useState<boolean | null>(null);
   const [checkError, setCheckError] = useState(false);
@@ -84,7 +86,10 @@ export const StaffRoute = ({ children }: StaffRouteProps) => {
 
   // Office App devices go back to the Office App sign-in; everyone else to the portal sign-in.
   if (!user) {
-    return <Navigate to={isOfficeMode() ? OFFICE_APP_PATH : "/auth"} replace />;
+    if (isOfficeMode()) return <Navigate to={OFFICE_APP_PATH} replace />;
+    // Load Reports links keep the Load Reports app details through sign-in, then return there.
+    const fromLoadReports = launchScope(location.pathname, location.search) === "load-reports";
+    return <Navigate to={fromLoadReports ? LOAD_REPORTS_SIGN_IN_PATH : "/auth"} replace />;
   }
 
   // A locked Office App keeps sessions on the device but no page opens until someone enters their PIN.

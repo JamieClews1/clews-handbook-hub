@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { afterSignInPath } from "@/lib/load-reports-app";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,8 @@ const signUpSchema = z.object({
 
 const AuthPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextPath = afterSignInPath(`?${searchParams.toString()}`);
   const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -36,9 +39,9 @@ const AuthPage = () => {
 
   useEffect(() => {
     if (user) {
-      navigate("/portal");
+      navigate(nextPath);
     }
-  }, [user, navigate]);
+  }, [user, navigate, nextPath]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +60,7 @@ const AuthPage = () => {
         });
       } else {
         toast({ title: "Success", description: "Signed in successfully!" });
-        navigate("/portal");
+        navigate(nextPath);
       }
     } catch (error) {
       if (error instanceof z.ZodError) {

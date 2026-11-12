@@ -52,3 +52,42 @@ export function initLoadReportsAppScope(): void {
 export function isLoadReportsAppMode(): boolean {
   return scope === "load-reports";
 }
+
+export const LOAD_REPORTS_MANIFEST = "/manifest-load-reports.webmanifest";
+export const LOAD_REPORTS_APP_URL = `${LOAD_REPORTS_APP_PATH}?${LOAD_REPORTS_APP_QUERY}`;
+export const LOAD_REPORTS_SIGN_IN_PATH = `/auth?${LOAD_REPORTS_APP_QUERY}`;
+
+/** Where sign-in should go next: back into Load Reports when it was opened from there. */
+export function afterSignInPath(search: string): string {
+  return new URLSearchParams(search).get("app") === "load-reports" ? LOAD_REPORTS_APP_URL : "/portal";
+}
+
+/**
+ * Point the page at the Load Reports app details before the browser looks for them, so phone
+ * browsers (Samsung Internet especially) offer "Load Reports" rather than the whole portal,
+ * including on the sign-in page reached from a Load Reports link.
+ */
+export function applyLoadReportsManifest(): void {
+  if (typeof document === "undefined") return;
+  if (launchScope(window.location.pathname, window.location.search) !== "load-reports") return;
+  document.querySelector('link[rel="manifest"]')?.setAttribute("href", LOAD_REPORTS_MANIFEST);
+  document.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute("content", "Load Reports");
+}
+
+export type InstallBrowser = "samsung" | "chrome" | "other-android" | "ios" | "desktop";
+
+/** Which browser's add-to-home-screen steps to show. */
+export function detectInstallBrowser(ua: string, maxTouchPoints = 0, platform = ""): InstallBrowser {
+  if (/iPhone|iPad|iPod/i.test(ua) || (platform === "MacIntel" && maxTouchPoints > 1)) return "ios";
+  if (/Android/i.test(ua)) {
+    if (/SamsungBrowser/i.test(ua)) return "samsung";
+    if (/Chrome\//i.test(ua) && !/(EdgA|OPR|Firefox|FxiOS|; wv\))/i.test(ua)) return "chrome";
+    return "other-android";
+  }
+  return "desktop";
+}
+
+/** Opens the Load Reports app link in Chrome from another Android browser. */
+export function chromeIntentUrl(host: string): string {
+  return `intent://${host}${LOAD_REPORTS_APP_URL}#Intent;scheme=https;package=com.android.chrome;end`;
+}
