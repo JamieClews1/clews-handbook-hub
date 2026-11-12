@@ -115,3 +115,6 @@ verify_jwt = false
 
 [functions.metals-yard]
 verify_jwt = false
+
+[functions.office-app-auth]
+verify_jwt = false

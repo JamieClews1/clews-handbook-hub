@@ -505,6 +505,13 @@
       "when": 1794410508867,
       "tag": "0071_walk_around_checks",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1794477127451,
+      "tag": "0072_office_app_pins",
+      "breakpoints": true
     }
   ]
 }

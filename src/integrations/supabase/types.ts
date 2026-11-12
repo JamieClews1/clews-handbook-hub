@@ -5934,6 +5934,41 @@ export type Database = {
           },
         ]
       }
+      office_app_pins: {
+        Row: {
+          failed_attempts: number
+          locked_until: string | null
+          pin_hash: string | null
+          pin_set_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          failed_attempts?: number
+          locked_until?: string | null
+          pin_hash?: string | null
+          pin_set_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          failed_attempts?: number
+          locked_until?: string | null
+          pin_hash?: string | null
+          pin_set_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "office_app_pins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_document_requirements: {
         Row: {
           created_at: string

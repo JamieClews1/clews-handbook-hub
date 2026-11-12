@@ -65,6 +65,8 @@ import ContaminationsPage from "./pages/ContaminationsPage";
 import StockCheckPage from "./pages/StockCheckPage";
 import RouteOnePage from "./pages/RouteOnePage";
 import WeighOnePage from "./pages/WeighOnePage";
+import OfficeAppPage from "./pages/OfficeAppPage";
+import { startOfficeSessionSync } from "@/lib/office-app-session";
 import DigitalWasteTrackingPage from "./pages/DigitalWasteTrackingPage";
 import DriverAppPage from "./pages/DriverAppPage";
 import BanksmanAppPage from "./pages/BanksmanAppPage";
@@ -92,6 +94,8 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 /** Wraps children in StaffRoute + AppLayout */
+startOfficeSessionSync();
+
 const Staff = ({ children }: { children: React.ReactNode }) => (
   <StaffRoute>
     <AppLayout>{children}</AppLayout>
@@ -122,6 +126,7 @@ const App = () => (
             <Route path="/driver" element={<DriverAppPage />} />
             <Route path="/banksman" element={<BanksmanAppPage />} />
             <Route path="/metals-yard" element={<MetalsYardPage />} />
+            <Route path="/office" element={<OfficeAppPage />} />
             <Route path="/book" element={<PublicBookingPage />} />
             <Route path="/weightchecks" element={<WeightChecksPage />} />
             <Route path="/Weightchecks" element={<WeightChecksPage />} />

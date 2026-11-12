@@ -287,6 +287,20 @@ export const UserManagement = () => {
     }
   };
 
+  const resetOfficePin = async (user: UserProfile) => {
+    if (!window.confirm(`Reset ${emailToUsername(user.email)}'s Office App PIN back to 1234? They'll choose a new one next time they sign in.`)) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    const { data, error } = await supabase.functions.invoke("office-app-auth", {
+      body: { action: "reset", user_id: user.id },
+      headers: session ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+    });
+    if (error || data?.error) {
+      toast({ title: "Error", description: data?.error ?? error?.message ?? "Could not reset the PIN", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Office App PIN reset", description: `${emailToUsername(user.email)} can sign in with 1234 and will choose a new PIN.` });
+  };
+
   const handleSetDriver = (user: UserProfile) => {
     setDriverUser(user);
     setDriverNumber(user.driver_number?.toString() || "");
@@ -471,6 +485,11 @@ export const UserManagement = () => {
       <Button variant="outline" size="sm" onClick={() => handleSetPassword(user)} className="gap-1">
         <Key className="h-4 w-4" /> Password
       </Button>
+      {user.user_types?.includes("office") && (
+        <Button variant="outline" size="sm" onClick={() => resetOfficePin(user)} className="gap-1" title="Reset Office App PIN to 1234">
+          <Hash className="h-4 w-4" /> Reset Office PIN
+        </Button>
+      )}
       {user.user_types?.includes("driver") && (
         <Button variant="outline" size="sm" onClick={() => handleSetDriver(user)} className="gap-1">
           <Hash className="h-4 w-4" /> Driver No.

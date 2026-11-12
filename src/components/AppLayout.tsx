@@ -10,7 +10,8 @@ import { UrgentContaminationPopup } from "@/components/banksman/UrgentContaminat
 import { FullScreenToggle } from "@/components/FullScreenToggle";
 import { TestModeToggle, TestModeStrip } from "@/lib/test-mode";
 import { Button } from "@/components/ui/button";
-import { LogOut, User, Bell, Plus, CircleHelp } from "lucide-react";
+import { LogOut, User, Bell, Plus, CircleHelp, LayoutGrid } from "lucide-react";
+import { isOfficeMode, OFFICE_APP_PATH } from "@/lib/office-app";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -28,6 +29,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { pathname, search } = useLocation();
   const weighOneTablet = pathname === "/weigh-one" && new URLSearchParams(search).get("tablet") === "1";
   const { user, signOut } = useAuth();
+  const officeMode = isOfficeMode();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -42,7 +44,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const handleSignOut = async () => {
     await signOut();
     toast({ title: "Signed out", description: "You have been signed out successfully." });
-    navigate("/auth");
+    navigate(officeMode ? OFFICE_APP_PATH : "/auth");
   };
 
   // If not logged in, render children without sidebar/header chrome
@@ -51,7 +53,17 @@ export function AppLayout({ children }: AppLayoutProps) {
   }
 
   if (weighOneTablet) {
-    return <div className="fixed inset-0 w-full overflow-y-auto bg-background"><UrgentContaminationPopup tablet /><main className="min-h-full w-full min-w-0">{children}</main></div>;
+    return (
+      <div className="fixed inset-0 w-full overflow-y-auto bg-background">
+        <UrgentContaminationPopup tablet />
+        <main className="min-h-full w-full min-w-0">{children}</main>
+        {officeMode && (
+          <Button asChild size="lg" className="fixed bottom-4 left-4 z-40 gap-2 shadow-lg">
+            <Link to={OFFICE_APP_PATH}><LayoutGrid className="h-5 w-5" />Office App</Link>
+          </Button>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -65,6 +77,11 @@ export function AppLayout({ children }: AppLayoutProps) {
           <header className="h-14 flex items-center justify-between border-b border-border bg-card px-4 shrink-0 sticky top-0 z-40">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="text-muted-foreground" />
+              {officeMode && (
+                <Button asChild variant="outline" size="sm" className="gap-1.5">
+                  <Link to={OFFICE_APP_PATH}><LayoutGrid className="h-4 w-4" /><span className="hidden sm:inline">Office App</span></Link>
+                </Button>
+              )}
               <PageCommandPalette />
             </div>
 

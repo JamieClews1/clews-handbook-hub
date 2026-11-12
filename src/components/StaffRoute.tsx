@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { withTimeout } from "@/lib/with-timeout";
+import { isOfficeLocked, isOfficeMode, OFFICE_APP_PATH } from "@/lib/office-app";
 
 interface StaffRouteProps {
   children: React.ReactNode;
@@ -81,9 +82,14 @@ export const StaffRoute = ({ children }: StaffRouteProps) => {
     );
   }
 
-  // Not logged in — redirect to auth
+  // Office App devices go back to the Office App sign-in; everyone else to the portal sign-in.
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to={isOfficeMode() ? OFFICE_APP_PATH : "/auth"} replace />;
+  }
+
+  // A locked Office App keeps sessions on the device but no page opens until someone enters their PIN.
+  if (isOfficeLocked()) {
+    return <Navigate to={OFFICE_APP_PATH} replace />;
   }
 
   // Logged in but not staff — redirect to customer portal
