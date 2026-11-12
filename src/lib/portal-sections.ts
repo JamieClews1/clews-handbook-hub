@@ -39,7 +39,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
   { key: "hs-near-miss", label: "Near Misses", category: "Health & Safety", path: "/near-miss" },
   { key: "hs-toolbox-talks", label: "Toolbox Talks", category: "Health & Safety", path: "/toolbox-talks" },
   { key: "hs-fire-safety", label: "Fire Safety", category: "Health & Safety", path: "/fire-safety" },
-  { key: "walk-around-checks", label: "Walk Around Checks", category: "Walk Around Checks", path: "/walk-around-checks" },
+  { key: "walk-around-checks", label: "Walk Around Checks", category: "Health & Safety", path: "/walk-around-checks" },
 
   // Performance
   { key: "performance-waste-kpis", label: "Waste KPIs", category: "Performance", path: "/performance-hub/waste-kpis" },

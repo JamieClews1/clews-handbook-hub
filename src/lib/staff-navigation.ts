@@ -64,10 +64,8 @@ export const STAFF_NAV_GROUPS: StaffNavGroup[] = [
     { label: "Near Misses", path: "/near-miss", icon: AlertTriangle, key: "hs-near-miss" },
     { label: "Toolbox Talks", path: "/toolbox-talks", icon: MessageSquare, key: "hs-toolbox-talks" },
     { label: "Fire Safety", path: "/fire-safety", icon: Flame, key: "hs-fire-safety" },
-  ] },
-  { title: "Walk Around Checks", icon: ClipboardCheck, key: "nav-walk-around-checks", items: [
-    { label: "Inspections", path: "/walk-around-checks", icon: ClipboardCheck, key: "walk-around-checks" },
-    { label: "Job List", path: "/walk-around-checks/jobs", icon: ListTodo, key: "walk-around-checks" },
+    { label: "Walk Around Checks", path: "/walk-around-checks", icon: ClipboardCheck, key: "walk-around-checks" },
+    { label: "Walk Around Job List", path: "/walk-around-checks/jobs", icon: ListTodo, key: "walk-around-checks" },
   ] },
   { title: "Team", icon: HardHat, key: "nav-team", items: [
     { label: "Site Inductions", path: "/site-inductions", icon: HardHat, key: "hs-site-inductions" },
