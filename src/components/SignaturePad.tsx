@@ -120,7 +120,7 @@ export const SignaturePad = ({ onSave, onCancel }: SignaturePadProps) => {
           />
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={clear} className="flex-1">
             Clear
           </Button>
