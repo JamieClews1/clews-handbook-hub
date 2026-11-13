@@ -69,3 +69,11 @@ test("recorded Waste Out product names show the agreed name only on their own co
   assert.equal(standardWasteName("Ferrous Metals", "19 12 02", { source: "midweigh", direction: "outgoing" }), "Ferrous Metal – Out");
   assert.equal(standardWasteName("Ferrous Metals", "20 01 40", { source: "midweigh" }), "Ferrous Metals");
 });
+
+test("Haulage Only is a job type: it clears the waste and EWC, and switching away clears it again", async () => {
+  const { haulageWasteFor, pickableWasteStreams } = await import("./waste-streams");
+  assert.deepEqual(haulageWasteFor("haulage_only", "General Waste"), { waste_type: "Haulage Only", ewc_code: "" });
+  assert.deepEqual(haulageWasteFor("delivery", "Haulage Only"), { waste_type: "", ewc_code: "" });
+  assert.deepEqual(haulageWasteFor("delivery", "General Waste"), {});
+  assert.ok(!pickableWasteStreams("incoming", false).some((s) => s.name === "Haulage Only"));
+});

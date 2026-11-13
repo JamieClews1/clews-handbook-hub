@@ -51,6 +51,8 @@ const JOB_TYPE_LABELS: Record<JobType, string> = {
   wasted_journey: "Wasted Journey",
   waste_out_skip: "Waste Out Skip",
 };
+/** Configured types added later (Tip & Return, 7.5 Tonne, Haulage Only…) show a readable name. */
+const jobTypeName = (key: string) => (JOB_TYPE_LABELS as Record<string, string>)[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 const JOB_TYPE_COLORS: Record<JobType, { bg: string; border: string; text: string; badge: string }> = {
   delivery:       { bg: "bg-emerald-500/10", border: "border-emerald-500", text: "text-emerald-700", badge: "bg-emerald-500 text-white" },
@@ -478,7 +480,7 @@ const DriverJobCard = ({ job, onClick }: { job: Job; onClick: () => void }) => {
           <div className="flex-1 min-w-0 space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge className={cn("text-xs font-bold", colors.badge)}>
-                {JOB_TYPE_LABELS[job.job_type]}
+                {jobTypeName(job.job_type)}
               </Badge>
               {asClassification(job.waste_classification).hazardous && <Badge variant="destructive" className="text-xs">Hazardous</Badge>}
               {asClassification(job.waste_classification).contains_pops && <Badge variant="outline" className="text-xs border-amber-600 text-amber-700">POPs</Badge>}
@@ -671,7 +673,7 @@ const DriverJobDetail = ({
         </button>
         <div className="flex items-center gap-3">
           <Badge className={cn("text-sm font-bold py-1 px-3", colors.badge)}>
-            {JOB_TYPE_LABELS[job.job_type]}
+            {jobTypeName(job.job_type)}
           </Badge>
           <Badge variant="secondary" className="text-xs">
             {STATUS_LABELS[job.status] || job.status}

@@ -11755,6 +11755,9 @@ export type Database = {
         | "waste_out_skip"
         | "pickup_truck"
         | "third_party_booking"
+        | "tip_return"
+        | "seven_five_tonne"
+        | "haulage_only"
       skip_material_type: "card_loose" | "scrap_metal"
       user_type: "driver" | "yard" | "office" | "management"
       weighbridge_status: "first_weigh" | "completed" | "voided"
@@ -11911,6 +11914,9 @@ export const Constants = {
         "waste_out_skip",
         "pickup_truck",
         "third_party_booking",
+        "tip_return",
+        "seven_five_tonne",
+        "haulage_only",
       ],
       skip_material_type: ["card_loose", "scrap_metal"],
       user_type: ["driver", "yard", "office", "management"],

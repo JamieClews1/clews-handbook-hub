@@ -19,7 +19,7 @@ import { boardJobType } from "@/lib/route-board-presentation";
 import { JobPricingPicker } from "./JobPricingPicker";
 import { EwcCodePicker, SicCodePicker } from "@/components/codes/CodePicker";
 import { WasteStreamPicker } from "./WasteStreamPicker";
-import { standardBookingWaste } from "@/lib/waste-streams";
+import { standardBookingWaste, HAULAGE_ONLY_JOB, haulageWasteFor } from "@/lib/waste-streams";
 import { EstablishedSitePicker } from "./EstablishedSitePicker";
 import { pricingContainerOptions, type PricingSize } from "@/lib/booking-container-options";
 import { CONTAINER_GROUPS, containerGroup } from "@/lib/container-taxonomy";
@@ -582,7 +582,7 @@ export function JobFormFields({
       <section className="booking-section space-y-4">
         <h4 className="booking-step"><span>2</span>{exchangeMode ? "Exchange job" : "Job"}</h4>
         <div className="space-y-2"><Label className="text-xs">Job type *</Label><div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {jobTypes.filter(t => !isWasteOutJob(t.key)).map(t => { const presentation = boardJobType(t.key, t.label); return <Button key={t.key} type="button" variant="outline" data-job-palette={presentation.palette} aria-pressed={form.job_type === t.key} className="booking-type-choice" onClick={() => setForm({ ...form, job_type: t.key })}>{form.job_type === t.key && <Check className="h-3.5 w-3.5 shrink-0" />}{t.key === "pickup" ? presentation.label : t.label}</Button>; })}
+          {jobTypes.filter(t => !isWasteOutJob(t.key)).map(t => { const presentation = boardJobType(t.key, t.label); return <Button key={t.key} type="button" variant="outline" data-job-palette={presentation.palette} aria-pressed={form.job_type === t.key} className="booking-type-choice" onClick={() => setForm({ ...form, job_type: t.key, ...haulageWasteFor(t.key, form.waste_type) })}>{form.job_type === t.key && <Check className="h-3.5 w-3.5 shrink-0" />}{t.key === "pickup" ? presentation.label : t.label}</Button>; })}
         </div></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2"><Label className="text-xs">Vehicle Type</Label><div className="flex flex-wrap gap-1.5">{CONTAINER_GROUPS.map(group => <Button type="button" key={group.value} size="sm" variant="outline" aria-pressed={containerGroup(form.container_type || "")?.value === group.value} className="booking-container-choice" onClick={() => setForm({ ...form, container_type: group.value, container_size: group.value === "7.5 Tonne" ? "7_5_tonne" : "" })}>{group.label}</Button>)}</div><div className="flex items-center gap-2"><Switch id="own-container" checked={!!form.own_container} onCheckedChange={own => setForm({ ...form, own_container: own, rental_enabled: own ? false : form.rental_enabled })} /><Label htmlFor="own-container">Own Container</Label></div>{form.container_type && !containerGroup(form.container_type) && <p className="text-xs text-muted-foreground">Current: {form.container_type}</p>}</div>
@@ -591,7 +591,7 @@ export function JobFormFields({
       </section>
       <section className="booking-section space-y-3">
         <h4 className="booking-step"><span>3</span>Waste</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><Label className="text-xs">Waste type</Label><WasteStreamPicker value={form.waste_type || ""} ewc={form.ewc_code} outgoing={isWasteOutJob(form.job_type)} onChange={s => setForm({ ...form, waste_type: s.name, ewc_code: s.ewc ?? "" })} /></div><div><Label className="text-xs">EWC code</Label><EwcCodePicker value={form.ewc_code || ""} onChange={v => setForm({ ...form, ewc_code: v })} /></div></div>
+        {form.job_type === HAULAGE_ONLY_JOB ? <p className="text-sm text-muted-foreground">Haulage only — no waste carried, so no waste type or EWC.</p> : <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><Label className="text-xs">Waste type</Label><WasteStreamPicker value={form.waste_type || ""} ewc={form.ewc_code} outgoing={isWasteOutJob(form.job_type)} onChange={s => setForm({ ...form, waste_type: s.name, ewc_code: s.ewc ?? "" })} /></div><div><Label className="text-xs">EWC code</Label><EwcCodePicker value={form.ewc_code || ""} onChange={v => setForm({ ...form, ewc_code: v })} /></div></div>}
       </section>
       <section className="booking-section space-y-3">
         <h4 className="booking-step"><span>4</span>{exchangeMode ? "Exchange schedule" : "Schedule"}</h4>

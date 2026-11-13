@@ -419,7 +419,7 @@ export const WeighbridgeRatesSettings = () => {
       {/* Additional item templates */}
       <TabsContent value="items" className="space-y-4">
         <p className="text-xs text-muted-foreground">
-          Reusable per-item charges that staff can add to a weigh-in (fridges, tyres, mattresses, POPS items).
+          Reusable per-item charges that staff can add to a weigh-in (fridges, tyres, mattresses, POPs items).
         </p>
         <div className="flex flex-wrap items-end gap-2">
           <div className="flex-1 min-w-[200px] space-y-1">

@@ -17,9 +17,11 @@ export const DEFAULT_JOB_TYPES: JobTypeDef[] = [
   { key: "tip_return", label: "Tip & Return", color: "violet", display_order: 3, is_active: true },
   { key: "pickup_truck", label: "Pickup Truck", color: "cyan", display_order: 8, is_active: true },
   { key: "third_party_booking", label: "Third Party Booking", color: "slate", display_order: 9, is_active: true },
-  { key: "pickup", label: "Pickup", color: "orange", display_order: 5, is_active: true },
+  { key: "collection", label: "Collect", color: "orange", display_order: 5, is_active: true },
   { key: "seven_five_tonne", label: "7.5 Tonne", color: "cyan", display_order: 6, is_active: true },
   { key: "waste_out_skip", label: "Waste Out", color: "slate", display_order: 7, is_active: true },
+  // No waste carried (was "Empty Skip"), so no waste type or EWC.
+  { key: "haulage_only", label: "Haulage Only", color: "blue", display_order: 10, is_active: true },
 ];
 
 export const JOB_TYPE_COLOR_OPTIONS = [

@@ -22,6 +22,15 @@ const HAZARDOUS = new Set<string>(standard.hazardous_codes);
 /** "Haulage Only" replaces the old "Empty Skip" waste: no waste carried, no EWC. */
 export const HAULAGE_ONLY_REF = "HAUL";
 
+/** Route One job type for a move with no waste carried (agreed: a job type, not a waste choice). */
+export const HAULAGE_ONLY_JOB = "haulage_only";
+
+/** Waste fields to set when the booking's job type changes to or from Haulage Only. */
+export function haulageWasteFor(jobType: string, currentWaste: string | null | undefined): { waste_type?: string; ewc_code?: string } {
+  if (jobType === HAULAGE_ONLY_JOB) return { waste_type: "Haulage Only", ewc_code: "" };
+  return currentWaste === "Haulage Only" ? { waste_type: "", ewc_code: "" } : {};
+}
+
 const BY_REF = new Map(WASTE_STREAMS.map((s) => [s.ref, s]));
 export const wasteStreamByRef = (ref: string | null | undefined) => (ref ? BY_REF.get(ref) ?? null : null);
 

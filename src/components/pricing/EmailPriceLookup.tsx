@@ -190,8 +190,8 @@ export function EmailPriceLookup() {
   const TONNAGE_LABEL: Record<ParsedEmail["waste"], RegExp> = {
     general: /^general waste$/i,
     plasterboard: /^plasterboard$/i,
-    wood: /grade a wood/i,
-    green: /grade a wood/i,
+    wood: /grade a wood|^wood\s*[–-]\s*packaging/i,
+    green: /grade a wood|^wood\s*[–-]\s*packaging/i,
     inert: /mixed inert/i,
   };
   const perTonne = useMemo(() => {

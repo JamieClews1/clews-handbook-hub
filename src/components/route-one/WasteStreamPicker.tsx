@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import {
-  HAULAGE_ONLY_REF,
   formatEwc,
   pickableWasteStreams,
   resolveWasteStream,
@@ -18,7 +17,7 @@ type Props = {
   ewc?: string | null;
   /** Waste Out bookings list the outgoing streams first. */
   outgoing?: boolean;
-  /** Limit the list to one direction (e.g. weighbridge Waste In price lines); Haulage Only is left out. */
+  /** Limit the list to one direction (e.g. weighbridge Waste In price lines). */
   only?: "incoming" | "outgoing";
   onChange: (stream: WasteStream) => void;
 };
@@ -31,11 +30,10 @@ export function WasteStreamPicker({ value, ewc, outgoing = false, only, onChange
   const groups = useMemo(() => {
     const incoming = pickableWasteStreams("incoming", false);
     const out = pickableWasteStreams("outgoing", false);
-    const haul = pickableWasteStreams("incoming", true).filter((s) => s.ref === HAULAGE_ONLY_REF);
     const list: { label: string; items: WasteStream[] }[] = outgoing
       ? [{ label: "Waste out", items: out }, { label: "Incoming", items: incoming }]
       : [{ label: "Incoming", items: incoming }, { label: "Waste out", items: out }];
-    if (!only) list.push({ label: "No waste", items: haul });
+    // Haulage Only is a job type, not a waste choice.
     const shown = only ? list.filter((g) => g.label === (only === "incoming" ? "Incoming" : "Waste out")) : list;
     return shown.map((g) => ({ ...g, items: searchWasteStreams(g.items, query) })).filter((g) => g.items.length);
   }, [outgoing, only, query]);

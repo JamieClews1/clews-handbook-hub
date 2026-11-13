@@ -324,7 +324,7 @@ const ContaminationPricingMatrix = () => {
         <h2 className="text-lg font-semibold">Additional Items (Per-Item Charges)</h2>
       </div>
       <p className="text-sm text-muted-foreground -mt-3">
-        Individual items charged per unit (fridges, tyres, mattresses, POPS items, etc.). Reporters can record how many
+        Individual items charged per unit (fridges, tyres, mattresses, POPs items, etc.). Reporters can record how many
         of each item they find in a load, and the charge is added on top of the contamination tier.
       </p>
 
