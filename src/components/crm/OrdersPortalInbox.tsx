@@ -63,25 +63,32 @@ const when = (iso: string | null) => {
     : d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 };
 
-/** Number of customer conversations staff haven't opened yet (for the tab badge). */
-export function useOrdersPortalUnread() {
-  const [count, setCount] = useState(0);
+/** Orders portal tab counts: conversations not done, and how many staff haven't opened. */
+export function useOrdersPortalCounts() {
+  const [counts, setCounts] = useState({ active: 0, unread: 0 });
   useEffect(() => {
     let alive = true;
     const load = async () => {
-      const { count: c } = await supabase
-        .from("order_portal_conversations")
-        .select("id", { count: "exact", head: true })
-        .eq("staff_unread", true)
-        .not("last_message_at", "is", null);
-      if (alive) setCount(c ?? 0);
+      const [active, unread] = await Promise.all([
+        supabase
+          .from("order_portal_conversations")
+          .select("id", { count: "exact", head: true })
+          .not("last_message_at", "is", null)
+          .neq("status", "done"),
+        supabase
+          .from("order_portal_conversations")
+          .select("id", { count: "exact", head: true })
+          .eq("staff_unread", true)
+          .not("last_message_at", "is", null),
+      ]);
+      if (alive) setCounts({ active: active.count ?? 0, unread: unread.count ?? 0 });
     };
     load();
     const t = window.setInterval(load, 30000);
     window.addEventListener("orders-portal-changed", load);
     return () => { alive = false; window.clearInterval(t); window.removeEventListener("orders-portal-changed", load); };
   }, []);
-  return count;
+  return counts;
 }
 
 export function OrdersPortalInbox() {

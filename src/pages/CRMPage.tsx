@@ -55,9 +55,9 @@ import { CrmCustomerFolders } from "@/components/crm/CrmCustomerFolders";
 import { CrmTicketSidePanel } from "@/components/crm/CrmTicketSidePanel";
 import { CrmDealCard } from "@/components/crm/CrmDealCard";
 import { CrmSalesBoard } from "@/components/crm/CrmSalesBoard";
-import { OrdersPortalInbox, useOrdersPortalUnread } from "@/components/crm/OrdersPortalInbox";
+import { OrdersPortalInbox, useOrdersPortalCounts } from "@/components/crm/OrdersPortalInbox";
 import { TabCountBadge } from "@/components/crm/TabCountBadge";
-import { countUnreadInboxTickets } from "@/lib/inbox-counts";
+import { countInboxThreads, countUnreadInboxTickets } from "@/lib/inbox-counts";
 import { ShoppingCart } from "lucide-react";
 import { Briefcase } from "lucide-react";
 import { type Deal, loadDeals, syncCompletedDeals, stageMeta, needsFollowUp, formatMoney, extractQuotedValue, extractAllValues } from "@/lib/crm-deals";
@@ -625,7 +625,8 @@ export default function CRMPage() {
     navigate(`/route-one?${params.toString()}`);
   };
 
-  const ordersUnread = useOrdersPortalUnread();
+  const ordersCounts = useOrdersPortalCounts();
+  const inboxThreads = useMemo(() => countInboxThreads(mine), [mine]);
   const inboxUnread = useMemo(() => countUnreadInboxTickets(mine), [mine]);
   const [pageTab, setPageTab] = useState(() =>
     new URLSearchParams(window.location.search).get("tab") === "orders" ? "orders" : "inbox",
@@ -650,11 +651,17 @@ export default function CRMPage() {
           <TabsList>
             <TabsTrigger value="inbox" className="gap-1.5">
               <Inbox className="h-4 w-4" /> Inbox
-              <TabCountBadge count={inboxUnread} title={`${inboxUnread} unread email thread${inboxUnread === 1 ? "" : "s"}`} />
+              <TabCountBadge
+                count={inboxThreads}
+                title={`${inboxThreads} message${inboxThreads === 1 ? "" : "s"} in the inbox, ${inboxUnread} unread`}
+              />
             </TabsTrigger>
             <TabsTrigger value="orders" className="gap-1.5">
               <ShoppingCart className="h-4 w-4" /> Orders portal
-              <TabCountBadge count={ordersUnread} title={`${ordersUnread} unread customer conversation${ordersUnread === 1 ? "" : "s"}`} />
+              <TabCountBadge
+                count={ordersCounts.active}
+                title={`${ordersCounts.active} order${ordersCounts.active === 1 ? "" : "s"} not done, ${ordersCounts.unread} unread`}
+              />
             </TabsTrigger>
             <TabsTrigger value="templates" className="gap-1.5">
               <FileText className="h-4 w-4" /> Templates
