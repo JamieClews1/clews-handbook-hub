@@ -10,6 +10,9 @@ export const ORDERS_PORTAL_MAX_FILE_BYTES = 20 * 1024 * 1024;
 export const ORDERS_PORTAL_MAX_FILES = 5;
 export const ORDERS_PORTAL_MAX_BODY = 5000;
 
+/** Clews office number shown to customers on the Orders portal so they can call instead of typing. */
+export const CLEWS_PHONE = { display: "01788 541549", dial: "01788541549" };
+
 const ALLOWED_EXT = ["pdf", "png", "jpg", "jpeg", "heic", "webp", "doc", "docx", "xls", "xlsx", "csv"];
 
 export type OrderStatus = "open" | "in_progress" | "done";

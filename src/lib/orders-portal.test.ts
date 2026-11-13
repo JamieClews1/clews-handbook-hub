@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { orderFileProblem, safeFileName, isValidEmail } from "./orders-portal";
+import { CLEWS_PHONE, orderFileProblem, safeFileName, isValidEmail } from "./orders-portal";
 
 describe("orders portal attachments", () => {
   it("accepts a PDF order up to 20 MB", () => {
@@ -18,5 +18,12 @@ describe("orders portal attachments", () => {
   it("checks email addresses", () => {
     assert.equal(isValidEmail("orders@biffa.co.uk"), true);
     assert.equal(isValidEmail("not an email"), false);
+  });
+});
+
+describe("orders portal phone prompt", () => {
+  it("shows the Clews office number customers can call", () => {
+    assert.equal(CLEWS_PHONE.display, "01788 541549");
+    assert.equal(CLEWS_PHONE.dial, "01788541549");
   });
 });

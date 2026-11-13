@@ -7,10 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, FileText, Loader2, MessageSquarePlus, Paperclip, Send, X } from "lucide-react";
+import { ArrowLeft, FileText, Loader2, MessageSquarePlus, Paperclip, Phone, Send, X } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { cn } from "@/lib/utils";
 import {
+  CLEWS_PHONE,
   ORDERS_PORTAL_MAX_BODY,
   ORDERS_PORTAL_MAX_FILES,
   ORDER_STATUS_LABEL,
@@ -79,11 +80,23 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-[100dvh] bg-muted/30">
       <div className="mx-auto max-w-3xl space-y-4 p-4 md:p-6">
-        <div className="flex items-center gap-3">
-          <div className="rounded-md bg-card p-1.5 shadow-sm ring-1 ring-border">
-            <img src={clewsLogo} alt="Clews Recycling" className="h-8 w-auto" />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="rounded-md bg-card p-1.5 shadow-sm ring-1 ring-border">
+              <img src={clewsLogo} alt="Clews Recycling" className="h-8 w-auto" />
+            </div>
+            <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Orders portal</p>
           </div>
-          <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Orders portal</p>
+          <a
+            href={`tel:${CLEWS_PHONE.dial}`}
+            className="flex items-center gap-2 rounded-lg border border-primary/30 bg-card px-3 py-1.5 shadow-sm transition-colors hover:bg-primary/10"
+          >
+            <Phone className="h-5 w-5 shrink-0 text-primary" />
+            <span className="leading-tight">
+              <span className="block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Prefer to call?</span>
+              <span className="block text-base font-bold tabular-nums text-foreground">{CLEWS_PHONE.display}</span>
+            </span>
+          </a>
         </div>
         {children}
       </div>
