@@ -23,12 +23,14 @@ export function OrderFileViewer({ file, onClose }: { file: OrderFileToView | nul
   const [url, setUrl] = useState<string | null>(null);
   const [type, setType] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [pages, setPages] = useState<string[] | null>(null);
 
   useEffect(() => {
     if (!file) return;
     let cancelled = false;
     let objectUrl: string | null = null;
     setUrl(null);
+    setPages(null);
     setError(null);
     file
       .load()
@@ -38,6 +40,13 @@ export function OrderFileViewer({ file, onClose }: { file: OrderFileToView | nul
         objectUrl = URL.createObjectURL(new Blob([blob], { type: mime }));
         setType(mime);
         setUrl(objectUrl);
+        if (mime === "application/pdf") {
+          // Draw pages as images: Chrome's built-in PDF viewer is blocked inside embedded/protected frames.
+          import("@/lib/pdf-preview")
+            .then(({ renderPdfPages }) => renderPdfPages(blob, 1400))
+            .then((imgs) => !cancelled && setPages(imgs))
+            .catch(() => !cancelled && setError("Could not show this PDF here — use Download or Open in new tab."));
+        }
       })
       .catch(() => !cancelled && setError("Could not load this file. Please try again."));
     return () => {
@@ -78,7 +87,17 @@ export function OrderFileViewer({ file, onClose }: { file: OrderFileToView | nul
               <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading file…
             </div>
           ) : isPdf ? (
-            <iframe src={url} title={file?.name} className="h-full w-full" />
+            pages ? (
+              <div className="space-y-3 p-3">
+                {pages.map((src, i) => (
+                  <img key={i} src={src} alt={`${file?.name} page ${i + 1}`} className="mx-auto w-full max-w-4xl rounded border bg-card shadow-sm" />
+                ))}
+              </div>
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Preparing pages…
+              </div>
+            )
           ) : isImage ? (
             <img src={url} alt={file?.name} className="mx-auto max-h-full object-contain" />
           ) : (
