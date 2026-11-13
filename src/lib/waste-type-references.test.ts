@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import data from "@/data/midweigh-waste-out-types.json";
-import { NO_PRODUCT, sortWasteTypeRows, wasteTypeReferenceRows, type WasteTypeEwcRow } from "@/lib/waste-type-references";
+import { NO_PRODUCT, sortWasteTypeRows, wasteTypeReferenceRows, withAllAgreedStreams, type WasteTypeEwcRow } from "@/lib/waste-type-references";
 
 const rows = wasteTypeReferenceRows(data.rows as WasteTypeEwcRow[]);
 
@@ -30,5 +30,16 @@ describe("Waste Types by reference", () => {
 
   it("sorts by loads when asked", () => {
     assert.equal(sortWasteTypeRows(rows, "loads")[0].ref, "O-LF");
+  });
+
+  it("lists all four wood codes, including ones with no loads, after the loaded rows", () => {
+    const all = sortWasteTypeRows(withAllAgreedStreams(rows), "tonnes");
+    for (const ref of ["WOOD-PAA", "WOOD-PAC", "WOOD-CA", "WOOD-CC"]) assert.ok(all.some((r) => r.ref === ref), ref);
+    const ca = all.find((r) => r.ref === "WOOD-CA")!;
+    assert.equal(ca.loads, 0);
+    assert.equal(ca.ewcs[0].ewc, "17 02 01");
+    assert.ok(all.indexOf(ca) > all.findIndex((r) => r.ref === "WOOD-CC"));
+    assert.equal(all.some((r) => r.ref === "HAUL"), false);
+    assert.equal(all.filter((r) => r.ref === "WOOD-CC").length, 1);
   });
 });

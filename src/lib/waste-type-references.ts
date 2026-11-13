@@ -2,7 +2,7 @@
  * Duty of Care → Waste Types: outgoing Midweigh loads regrouped by agreed reference
  * code and ranked by volume. Read-only presentation of the snapshot figures.
  */
-import { resolveWasteStream, standardWasteName } from "@/lib/waste-streams";
+import { HAULAGE_ONLY_REF, WASTE_STREAMS, resolveWasteStream, standardWasteName } from "@/lib/waste-streams";
 
 export type WasteTypePart = { name: string; loads: number; tonnes: number };
 export type WasteTypeEwcRow = { ewc: string; description: string; loads: number; tonnes: number; products: WasteTypePart[]; destinations: WasteTypePart[] };
@@ -64,6 +64,22 @@ export function wasteTypeReferenceRows(rows: WasteTypeEwcRow[]): WasteTypeRefere
     for (const e of r.ewcs) e.shared = (keysPerEwc.get(e.ewc)?.size ?? 0) > 1;
   }
   return sortWasteTypeRows(out, "tonnes");
+}
+
+/**
+ * Adds every agreed waste stream that had no loads in the snapshot (e.g. WOOD-CA),
+ * as a zero-volume row, so the page lists every reference code. Haulage Only is a
+ * job type, not a waste, so it is left out.
+ */
+export function withAllAgreedStreams(rows: WasteTypeReferenceRow[]): WasteTypeReferenceRow[] {
+  const seen = new Set(rows.map((r) => r.ref).filter(Boolean));
+  const extra: WasteTypeReferenceRow[] = WASTE_STREAMS
+    .filter((s) => s.ref !== HAULAGE_ONLY_REF && !seen.has(s.ref))
+    .map((s) => ({
+      key: `ref:${s.ref}`, ref: s.ref, name: s.name, loads: 0, tonnes: 0, products: [],
+      ewcs: s.ewc ? [{ ewc: s.ewc, description: "", destinations: [], shared: false }] : [],
+    }));
+  return [...rows, ...extra];
 }
 
 export function sortWasteTypeRows(rows: WasteTypeReferenceRow[], sort: WasteTypeSort): WasteTypeReferenceRow[] {

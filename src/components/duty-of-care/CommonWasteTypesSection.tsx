@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import wasteOut from "@/data/midweigh-waste-out-types.json";
 import { formatEwc } from "@/lib/waste-streams";
 import { WasteRefChip } from "@/components/waste/WasteRefChip";
-import { sortWasteTypeRows, wasteTypeReferenceRows, type WasteTypeEwcRow, type WasteTypeSort } from "@/lib/waste-type-references";
+import { sortWasteTypeRows, wasteTypeReferenceRows, withAllAgreedStreams, type WasteTypeEwcRow, type WasteTypeSort } from "@/lib/waste-type-references";
 
 const SORT_OPTIONS: { value: WasteTypeSort; label: string }[] = [
   { value: "tonnes", label: "Volume (tonnes)" },
@@ -18,7 +18,7 @@ const SORT_OPTIONS: { value: WasteTypeSort; label: string }[] = [
 const fmtT = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 1 });
 const fmtDate = (d: string) => new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
-const REFERENCE_ROWS = wasteTypeReferenceRows(wasteOut.rows as WasteTypeEwcRow[]);
+const REFERENCE_ROWS = withAllAgreedStreams(wasteTypeReferenceRows(wasteOut.rows as WasteTypeEwcRow[]));
 
 export function CommonWasteTypesSection() {
   const { data: codes = [] } = useEwcCodes(true);
@@ -30,7 +30,7 @@ export function CommonWasteTypesSection() {
     <div>
       <h2 className="text-xl font-semibold">Waste Types</h2>
       <p className="text-sm text-muted-foreground">
-        Waste Out loads from {fmtDate(wasteOut.from)} – {fmtDate(wasteOut.to)}: {wasteOut.loads.toLocaleString()} loads, {fmtT(wasteOut.tonnes)} tonnes, grouped by agreed product reference and ranked by volume.
+        Waste Out loads from {fmtDate(wasteOut.from)} – {fmtDate(wasteOut.to)}: {wasteOut.loads.toLocaleString()} loads, {fmtT(wasteOut.tonnes)} tonnes, grouped by agreed product reference and ranked by volume. Every agreed code is listed; codes with no Waste Out loads in this period show at the bottom.
       </p>
     </div>
     <div className="flex items-center justify-end gap-2">
@@ -69,13 +69,13 @@ export function CommonWasteTypesSection() {
               <div className="text-xs text-muted-foreground">{reg?.description ?? e.description}</div>
             </div>;
           })}</td>
-          <td className="p-3 text-muted-foreground min-w-[200px]">{r.ewcs.map(e => <div key={e.ewc}>
+          <td className="p-3 text-muted-foreground min-w-[200px]">{r.loads === 0 && <div className="text-xs italic">No Waste Out loads in this period</div>}{r.ewcs.map(e => <div key={e.ewc}>
             {e.shared && <div className="text-xs italic">All {formatEwc(normaliseEwcCode(e.ewc))} loads (shared code)</div>}
             {e.destinations.map(p => <div key={p.name}>{p.name} <span className="tabular-nums">· {fmtT(p.tonnes)}t</span></div>)}
           </div>)}</td>
-          <td className="p-3 text-right tabular-nums font-semibold">{r.loads.toLocaleString()}</td>
-          <td className="p-3 text-right tabular-nums">{fmtT(r.tonnes)}</td>
-          <td className="p-3 text-right tabular-nums">{((r.tonnes / wasteOut.tonnes) * 100).toFixed(1)}%</td>
+          <td className="p-3 text-right tabular-nums font-semibold">{r.loads ? r.loads.toLocaleString() : "—"}</td>
+          <td className="p-3 text-right tabular-nums">{r.loads ? fmtT(r.tonnes) : "—"}</td>
+          <td className="p-3 text-right tabular-nums">{r.loads ? `${((r.tonnes / wasteOut.tonnes) * 100).toFixed(1)}%` : "—"}</td>
         </tr>)}</tbody>
       </table>
     </div>
