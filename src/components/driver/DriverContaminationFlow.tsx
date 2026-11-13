@@ -264,53 +264,22 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
   const [mSite, setMSite] = useState("");
   const [mPostcode, setMPostcode] = useState("");
 
-  const { data: wasteTypes = [] } = useQuery({
-    queryKey: ["driver-contamination-waste-types"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("contamination_waste_types")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order");
-      return (data || []) as WasteType[];
-    },
+  // Contamination pricing/config is read through the secure driver-actions function
+  // (drivers by signed pass, yard staff by their active staff id).
+  const { data: config } = useQuery({
+    queryKey: ["driver-contamination-config", reporter.type, reporter.id],
+    queryFn: async () =>
+      driverAction<{
+        waste_types: WasteType[];
+        tiers: PricingTier[];
+        charge_items: ChargeItem[];
+        settings: { points_per_report: number | null } | null;
+      }>("contamination_config", reporter.type === "yard" ? { staff_id: reporter.id } : {}),
   });
-
-  const { data: tiers = [] } = useQuery({
-    queryKey: ["driver-contamination-tiers"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("contamination_pricing_tiers")
-        .select("*")
-        .order("display_order");
-      return (data || []) as PricingTier[];
-    },
-  });
-
-  const { data: chargeItems = [] } = useQuery({
-    queryKey: ["driver-contamination-charge-items"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("contamination_charge_items")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order");
-      return (data || []) as ChargeItem[];
-    },
-  });
-
-
-  const { data: settings } = useQuery({
-    queryKey: ["driver-contamination-settings"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("contamination_settings")
-        .select("points_per_report")
-        .limit(1)
-        .maybeSingle();
-      return data;
-    },
-  });
+  const wasteTypes = config?.waste_types ?? [];
+  const tiers = config?.tiers ?? [];
+  const chargeItems = config?.charge_items ?? [];
+  const settings = config?.settings;
 
   const pointsPerReport = settings?.points_per_report ?? 10;
 

@@ -11519,6 +11519,14 @@ export type Database = {
         Args: { _job_customer: string; _job_site: string; _user_id: string }
         Returns: boolean
       }
+      can_portal_user_access_load_report: {
+        Args: { _report_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_portal_user_access_site: {
+        Args: { _site_id: string; _user_id: string }
+        Returns: boolean
+      }
       ceo_waste_summary: { Args: { _cutoff: string }; Returns: Json }
       claim_ceo_report: {
         Args: { _period: string; _retry?: boolean }
@@ -11607,6 +11615,8 @@ export type Database = {
       }
       is_finance_user: { Args: { _user_id: string }; Returns: boolean }
       is_management: { Args: { _user_id: string }; Returns: boolean }
+      is_portal_member: { Args: { _user_id: string }; Returns: boolean }
+      is_staci_portal_member: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       list_company_pl_access: {
         Args: never

@@ -636,6 +636,30 @@ Deno.serve(async (req) => {
       }
 
       /* ─── Contamination reports ─── */
+      case "contamination_config": {
+        // Pricing/config for the contamination form: signed-in drivers (signed pass) or active yard staff only.
+        let allowed = false;
+        if (body?.staff_id) {
+          const { data: staff } = await supabase
+            .from("yard_staff").select("id").eq("id", String(body.staff_id)).eq("is_active", true).maybeSingle();
+          allowed = !!staff;
+        } else {
+          allowed = !!(await verifyDriverPass(body?.token));
+        }
+        if (!allowed) return json({ error: "Not signed in" }, 401);
+        const [wt, tiers, items, settings] = await Promise.all([
+          supabase.from("contamination_waste_types").select("*").eq("is_active", true).order("display_order"),
+          supabase.from("contamination_pricing_tiers").select("*").order("display_order"),
+          supabase.from("contamination_charge_items").select("*").eq("is_active", true).order("display_order"),
+          supabase.from("contamination_settings").select("points_per_report").limit(1).maybeSingle(),
+        ]);
+        return json({
+          waste_types: wt.data ?? [],
+          tiers: tiers.data ?? [],
+          charge_items: items.data ?? [],
+          settings: settings.data ?? null,
+        });
+      }
       case "get_my_contamination": {
         const jobNumber = String(body?.job_number ?? "");
         const reporterDriverId = body?.reporter_driver_id ?? null;
