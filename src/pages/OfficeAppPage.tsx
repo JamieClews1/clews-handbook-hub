@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { withTimeout } from "@/lib/with-timeout";
 
 function useOfficeAppChrome() {
   useEffect(() => {
@@ -61,10 +62,17 @@ function UnlockScreen({ currentUserId, onUnlocked }: { currentUserId: string | n
     if (currentUserId === userId) { await rememberCurrentSession(name); onUnlocked(); return; }
     const saved = rememberedPeople().find((p) => p.userId === userId);
     if (saved) {
-      const { data, error: refreshError } = await supabase.auth.refreshSession({ refresh_token: saved.refreshToken });
-      if (!refreshError && data.session?.user.id === userId) {
-        rememberPerson({ ...saved, name, refreshToken: data.session.refresh_token });
-        onUnlocked();
+      try {
+        const { data, error: refreshError } = await withTimeout(
+          supabase.auth.refreshSession({ refresh_token: saved.refreshToken }), 15000, "Session restore",
+        );
+        if (!refreshError && data.session?.user.id === userId) {
+          rememberPerson({ ...saved, name, refreshToken: data.session.refresh_token });
+          onUnlocked();
+          return;
+        }
+      } catch {
+        setError("Signing in is taking too long. Check the signal and try again.");
         return;
       }
       forgetPerson(userId);
@@ -112,7 +120,15 @@ function UnlockScreen({ currentUserId, onUnlocked }: { currentUserId: string | n
     if (!verified || !password) return;
     setError(null);
     setBusy(true);
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email: usernameToEmail(username), password });
+    let result: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>;
+    try {
+      result = await withTimeout(supabase.auth.signInWithPassword({ email: usernameToEmail(username), password }), 15000, "Sign in");
+    } catch {
+      setBusy(false);
+      setError("Signing in is taking too long. Check the signal and try again.");
+      return;
+    }
+    const { data, error: signInError } = result;
     if (signInError || !data.session) { setBusy(false); setError("That password isn't right. Use the password you sign into the portal with."); return; }
     if (data.user.id !== verified.userId) { setBusy(false); setError("That password belongs to a different account."); return; }
     rememberPerson({ userId: data.user.id, username: normaliseOfficeUsername(username), name: verified.name, refreshToken: data.session.refresh_token });

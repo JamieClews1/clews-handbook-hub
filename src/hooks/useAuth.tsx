@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, ReactNode } from "react
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { withTimeout } from "@/lib/with-timeout";
+import { updateRememberedToken } from "@/lib/office-app";
 
 interface AuthContextType {
   user: User | null;
@@ -33,6 +34,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
         if (event === "SIGNED_OUT") sessionStorage.removeItem("password-recovery");
+        // Office App devices remember each person's session for PIN unlock. The portal rotates the
+        // session key when it refreshes, so keep the remembered copy current or the PIN unlock fails.
+        if (session?.user && session.refresh_token && (event === "TOKEN_REFRESHED" || event === "SIGNED_IN")) {
+          updateRememberedToken(session.user.id, session.refresh_token);
+        }
         setSession(session);
         setUser(session?.user ?? null);
         

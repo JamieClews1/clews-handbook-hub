@@ -16,8 +16,12 @@ type VerifyResult = { ok?: boolean; needs_new_pin?: boolean; user_id?: string; n
 
 /** Calls the Office App PIN check. Errors come back as { error } rather than throwing. */
 export async function officePinCall(body: Record<string, unknown>, accessToken?: string): Promise<VerifyResult> {
+  // A stalled request on a weak phone signal must never leave the Sign in button spinning.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
   try {
     const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/office-app-auth`, {
+      signal: controller.signal,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -30,6 +34,8 @@ export async function officePinCall(body: Record<string, unknown>, accessToken?:
     if (!res.ok && !data.error) return { error: "PIN check is unavailable right now. Please try again." };
     return data;
   } catch {
-    return { error: "No connection. Check the signal and try again." };
+    return { error: controller.signal.aborted ? "Signing in is taking too long. Check the signal and try again." : "No connection. Check the signal and try again." };
+  } finally {
+    clearTimeout(timer);
   }
 }

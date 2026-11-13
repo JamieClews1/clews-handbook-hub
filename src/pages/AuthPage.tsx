@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { setOfficeLocked } from "@/lib/office-app";
+import { withTimeout } from "@/lib/with-timeout";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { afterSignInPath } from "@/lib/load-reports-app";
 import { useAuth } from "@/hooks/useAuth";
@@ -49,7 +51,9 @@ const AuthPage = () => {
       const validated = signInSchema.parse({ username: signInUsername, password: signInPassword });
       setIsLoading(true);
       const email = usernameToEmail(validated.username);
-      const { error } = await signIn(email, validated.password);
+      const { error } = await withTimeout(signIn(email, validated.password), 20000, "Sign in").catch(() => ({
+        error: { message: "Signing in is taking too long. Check your connection and try again." },
+      }));
       if (error) {
         toast({
           title: "Login failed",
@@ -59,6 +63,9 @@ const AuthPage = () => {
           variant: "destructive",
         });
       } else {
+        // A full password sign-in proves who this is, so a locked Office App on this device
+        // must not bounce the portal back to the PIN screen.
+        setOfficeLocked(false);
         toast({ title: "Success", description: "Signed in successfully!" });
         navigate(nextPath);
       }
