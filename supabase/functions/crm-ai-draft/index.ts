@@ -208,7 +208,7 @@ Deno.serve(async (req) => {
         const cat = !wasteText.trim() ? 'general' : /plaster/.test(wasteText) ? 'plaster' : /wood/.test(wasteText) ? 'wood' : /green|garden/.test(wasteText) ? 'green'
           : /inert|hardcore|rubble|soil|concrete|brick/.test(wasteText) ? 'inert' : 'general';
         const sectionRe: Record<string, RegExp> = useResidential
-          ? { plaster: /mixed/i, wood: /wood/i, green: /green/i, inert: /inert|hardcore/i, general: /mixed waste/i }
+          ? { plaster: /mixed/i, wood: /wood/i, green: /green/i, inert: /inert|hardcore/i, general: /mixed waste|general waste|construction/i }
           : isRoRo
             ? { plaster: /roro.*general/i, wood: /roro.*general/i, green: /roro.*general/i, inert: /roro.*inert/i, general: /roro.*general/i }
             : { plaster: /plasterboard/i, wood: /wood/i, green: /wood|green/i, inert: /inert/i, general: /skip hire.*general/i };

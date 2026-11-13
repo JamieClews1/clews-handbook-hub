@@ -102,3 +102,11 @@ test("recorded wood wording resolves to its agreed wood code", async () => {
   assert.equal(wasteStreamRef("Wood – Packaging / Pallets C GRADE", "15 01 03"), "WOOD-PAC");
   assert.equal(wasteStreamRef("Wood (household)", "20 01 38"), "WOODM");
 });
+
+test("the renamed Mixed Waste line covers two agreed streams, so no single one is guessed", async () => {
+  const { rateCardTonnageStream, standardWasteName } = await import("./waste-streams");
+  // "General Waste / Construction & Demolition" prices a skip that takes either
+  // stream, so the line must not silently pick one for the booking.
+  assert.equal(rateCardTonnageStream("General Waste / Construction & Demolition"), null);
+  assert.equal(standardWasteName("Mixed Waste"), "Mixed Waste");
+});

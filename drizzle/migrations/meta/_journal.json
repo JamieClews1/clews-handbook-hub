@@ -561,6 +561,13 @@
       "when": 1794569523082,
       "tag": "0079_route_one_job_types_tip_return_75t_haulage_only",
       "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1794571598554,
+      "tag": "0080_rename_mixed_waste_pricing_labels",
+      "breakpoints": true
     }
   ]
 }

@@ -18,6 +18,8 @@ export function quoteTotals(price: number, vatInclusive: boolean, surchargeNet: 
 
 export function residentialRowMatches(label: string, size: number | null, waste: string): boolean {
   if (size == null || !new RegExp(`\\b${size}\\b`).test(label)) return false;
-  const material = waste === 'inert' ? /inert|hardcore/i : waste === 'green' ? /green/i : waste === 'wood' ? /wood/i : waste === 'general' ? /mixed waste/i : null;
+  // "General Waste / Construction & Demolition" is the agreed wording for what used
+  // to be called "Mixed Waste"; the old label is kept working for older rate cards.
+  const material = waste === 'inert' ? /inert|hardcore/i : waste === 'green' ? /green/i : waste === 'wood' ? /wood/i : waste === 'general' ? /mixed waste|general waste|construction/i : null;
   return !!material?.test(label);
 }

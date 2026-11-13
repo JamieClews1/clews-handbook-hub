@@ -27,3 +27,13 @@ it('keeps 8-yard green separate from wood', () => {
   assert.equal(residentialRowMatches('8 cubic yard — Green Waste', 8, 'green'), true);
   assert.equal(residentialRowMatches('8 cubic yard — Wood Waste', 8, 'green'), false);
 });
+it('prices the renamed 8 and 12 yard general waste / construction & demolition skips', () => {
+  assert.equal(residentialRowMatches('8 cubic yard — General Waste / Construction & Demolition', 8, 'general'), true);
+  assert.equal(residentialRowMatches('12 cubic yard — General Waste / Construction & Demolition (same for enclosed)', 12, 'general'), true);
+  assert.equal(residentialRowMatches('8 cubic yard — General Waste / Construction & Demolition', 6, 'general'), false);
+  assert.equal(residentialRowMatches('8 cubic yard — General Waste / Construction & Demolition', 8, 'inert'), false);
+  assert.equal(residentialRowMatches('8 cubic yard — General Waste / Construction & Demolition', 8, 'green'), false);
+});
+it('still matches the old Mixed Waste wording used on older cards', () => {
+  assert.equal(residentialRowMatches('8 cubic yard — Mixed Waste', 8, 'general'), true);
+});
