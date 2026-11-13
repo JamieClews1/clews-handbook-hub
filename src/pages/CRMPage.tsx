@@ -55,6 +55,8 @@ import { CrmCustomerFolders } from "@/components/crm/CrmCustomerFolders";
 import { CrmTicketSidePanel } from "@/components/crm/CrmTicketSidePanel";
 import { CrmDealCard } from "@/components/crm/CrmDealCard";
 import { CrmSalesBoard } from "@/components/crm/CrmSalesBoard";
+import { OrdersPortalInbox, useOrdersPortalUnread } from "@/components/crm/OrdersPortalInbox";
+import { ShoppingCart } from "lucide-react";
 import { Briefcase } from "lucide-react";
 import { type Deal, loadDeals, syncCompletedDeals, stageMeta, needsFollowUp, formatMoney, extractQuotedValue, extractAllValues } from "@/lib/crm-deals";
 import { useAuth } from "@/hooks/useAuth";
@@ -621,6 +623,11 @@ export default function CRMPage() {
     navigate(`/route-one?${params.toString()}`);
   };
 
+  const ordersUnread = useOrdersPortalUnread();
+  const [pageTab, setPageTab] = useState(() =>
+    new URLSearchParams(window.location.search).get("tab") === "orders" ? "orders" : "inbox",
+  );
+
   const applySuggestedAssignee = async () => {
     if (!selected?.ai_suggested_assignee) return;
     const member = team.find((m) => m.name === selected.ai_suggested_assignee);
@@ -632,7 +639,7 @@ export default function CRMPage() {
 
   return (
     <div className="w-full px-4 md:px-6 py-4 space-y-3">
-      <Tabs defaultValue="inbox" className="space-y-3">
+      <Tabs value={pageTab} onValueChange={setPageTab} className="space-y-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <h1 className="text-2xl font-bold text-foreground">
             Inbox
@@ -640,6 +647,12 @@ export default function CRMPage() {
           <TabsList>
             <TabsTrigger value="inbox" className="gap-1.5">
               <Inbox className="h-4 w-4" /> Inbox
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="gap-1.5">
+              <ShoppingCart className="h-4 w-4" /> Orders portal
+              {ordersUnread > 0 && (
+                <span className="ml-0.5 rounded-full bg-primary px-1.5 text-[10px] font-semibold leading-4 text-primary-foreground">{ordersUnread}</span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="templates" className="gap-1.5">
               <FileText className="h-4 w-4" /> Templates
@@ -1209,6 +1222,10 @@ export default function CRMPage() {
               )}
             </SheetContent>
           </Sheet>
+        </TabsContent>
+
+        <TabsContent value="orders" className="mt-0">
+          <OrdersPortalInbox />
         </TabsContent>
 
         <TabsContent value="templates">

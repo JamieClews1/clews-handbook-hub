@@ -118,3 +118,6 @@ verify_jwt = false
 
 [functions.office-app-auth]
 verify_jwt = false
+
+[functions.orders-portal]
+verify_jwt = false

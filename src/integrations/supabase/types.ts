@@ -6001,6 +6001,115 @@ export type Database = {
           },
         ]
       }
+      order_portal_conversations: {
+        Row: {
+          access_token: string
+          assigned_to: string | null
+          company_name: string
+          contact_name: string
+          created_at: string
+          customer_id: string | null
+          email: string
+          id: string
+          last_message_at: string | null
+          last_message_preview: string | null
+          last_sender: string | null
+          message_count: number
+          phone: string | null
+          staff_unread: boolean
+          status: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          assigned_to?: string | null
+          company_name: string
+          contact_name: string
+          created_at?: string
+          customer_id?: string | null
+          email: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          last_sender?: string | null
+          message_count?: number
+          phone?: string | null
+          staff_unread?: boolean
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          assigned_to?: string | null
+          company_name?: string
+          contact_name?: string
+          created_at?: string
+          customer_id?: string | null
+          email?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          last_sender?: string | null
+          message_count?: number
+          phone?: string | null
+          staff_unread?: boolean
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_portal_conversations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_portal_messages: {
+        Row: {
+          attachments: Json
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender: string
+          staff_name: string | null
+          staff_user_id: string | null
+        }
+        Insert: {
+          attachments?: Json
+          body?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          sender: string
+          staff_name?: string | null
+          staff_user_id?: string | null
+        }
+        Update: {
+          attachments?: Json
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          sender?: string
+          staff_name?: string | null
+          staff_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_portal_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "order_portal_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_document_requirements: {
         Row: {
           created_at: string
