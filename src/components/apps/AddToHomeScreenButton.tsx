@@ -14,15 +14,24 @@ export function AddToHomeScreenButton({ appName, path, className, variant = "def
   const { canInstall, install } = useInstallPrompt();
   const [browser, setBrowser] = useState<InstallBrowser>("desktop");
   const [inApp, setInApp] = useState(false);
+  const [framed, setFramed] = useState(false);
   const [open, setOpen] = useState(false);
   useEffect(() => {
     setBrowser(detectInstallBrowser(navigator.userAgent, navigator.maxTouchPoints, navigator.platform));
     setInApp(isInAppBrowser(navigator.userAgent));
+    let inFrame = false;
+    try {
+      inFrame = window.self !== window.top;
+    } catch {
+      inFrame = true;
+    }
+    setFramed(inFrame);
   }, []);
 
   if (isStandaloneDisplay()) return null;
   const onPhone = browser !== "desktop";
   if (!onPhone && !canInstall) return null;
+  const appUrl = `${window.location.origin}${path}`;
 
   const onClick = async () => {
     if (canInstall && (await install())) return;
@@ -43,7 +52,22 @@ export function AddToHomeScreenButton({ appName, path, className, variant = "def
             <DialogDescription>You'll get a W1 icon that opens straight into the {appName}.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 text-sm">
-            {inApp && android ? (
+            {framed ? (
+              <div className="space-y-3">
+                <p>
+                  This page is showing inside another page (such as the Lovable preview), so your phone can only add
+                  that outer page. Open the {appName} on its own first:
+                </p>
+                <Button asChild className="w-full gap-2">
+                  <a href={android ? chromeIntentUrl(window.location.host, path) : appUrl} target="_top" rel="noopener">
+                    <ExternalLink className="h-4 w-4" /> Open the {appName} on its own
+                  </a>
+                </Button>
+                <p className="text-muted-foreground">
+                  Or scan the QR code in Admin → Apps with the phone camera. Then tap Add to home screen again.
+                </p>
+              </div>
+            ) : inApp && android ? (
               <div className="space-y-3">
                 <p>
                   This page has opened inside another app (such as Outlook, Gmail or WhatsApp), which can't add icons.
@@ -75,7 +99,7 @@ export function AddToHomeScreenButton({ appName, path, className, variant = "def
                 <li>Tap <b>Install</b> or <b>Add</b>.</li>
               </ol>
             )}
-            {android && !inApp && (
+            {android && !inApp && !framed && (
               <div className="space-y-2 rounded-md bg-muted p-3">
                 <p className="text-muted-foreground">
                   Can't see a menu? The page may be open inside another app. Open it in Chrome instead:

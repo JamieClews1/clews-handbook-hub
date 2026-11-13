@@ -4,7 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Copy, Download, Share } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { detectInstallBrowser, type InstallBrowser } from "@/lib/load-reports-app";
+import { AddToHomeScreenButton } from "@/components/apps/AddToHomeScreenButton";
 import { OFFICE_APP_PATH, OFFICE_APP_TILES } from "@/lib/office-app";
 
 const OFFICE_APP_URL = `https://portal.clewsrecycling.co.uk${OFFICE_APP_PATH}`;
@@ -23,7 +25,7 @@ export function OfficeAppInstallCard() {
       <CardContent className="space-y-4 p-6">
         <div className="flex flex-wrap items-start gap-4">
           <img src="/w1-icon-192.png" alt="W1 app icon" className="h-14 w-14 rounded-2xl" />
-          <div className="min-w-0 flex-1">
+          <div className="min-w-[12rem] flex-1">
             <h2 className="text-xl font-bold">Office App</h2>
             <p className="text-muted-foreground">
               One home screen for the office team, opening the everyday tools with a username and PIN.
@@ -38,7 +40,7 @@ export function OfficeAppInstallCard() {
               Installed devices update automatically every time the app opens.
             </p>
           </div>
-          <Button asChild size="lg" className="gap-2 font-bold">
+          <Button asChild size="lg" className="w-full gap-2 font-bold sm:w-auto">
             <a href={OFFICE_APP_PATH} target="_blank" rel="noopener noreferrer">
               <Download className="h-5 w-5" /> OPEN OFFICE APP
             </a>
@@ -54,8 +56,26 @@ export function OfficeAppInstallCard() {
           </div>
         </div>
 
+        <div className="flex flex-col gap-4 rounded-lg border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center">
+          <div className="shrink-0 self-center rounded-lg bg-background p-2">
+            <QRCodeSVG value={OFFICE_APP_URL} size={148} marginSize={1} aria-label="QR code for the Office App" />
+          </div>
+          <div className="space-y-2 text-sm">
+            <p className="text-base font-semibold text-foreground">Putting it on a phone</p>
+            <ol className="list-decimal space-y-1 pl-5">
+              <li>Open the phone's <b>Camera</b> and point it at this code, then tap the link that pops up.</li>
+              <li>On the Office App page, tap <b>Add to home screen</b> under the Sign in button and follow the steps.</li>
+            </ol>
+            <p className="text-muted-foreground">
+              Scanning opens the page in the phone's normal web browser. Links tapped inside Outlook, Teams, WhatsApp or
+              the Lovable app open in a viewer that can't add home screen icons.
+            </p>
+            <AddToHomeScreenButton appName="Office App" path={OFFICE_APP_PATH} />
+          </div>
+        </div>
+
         <div className="space-y-2 rounded-lg bg-muted p-4 text-sm">
-          <p>Open this link on the office PC, tablet or phone, or send it to the person:</p>
+          <p>Or copy the link and send it to the person:</p>
           <div className="flex flex-wrap items-center gap-2">
             <code className="rounded bg-background px-2 py-1">{OFFICE_APP_URL}</code>
             <Button
