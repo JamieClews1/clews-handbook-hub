@@ -23,6 +23,8 @@ import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Json } from "@/integrations/supabase/types";
 import DwtSettingsDialog, { useDwtSettings } from "@/components/dwt/DwtSettingsDialog";
+import { resolveWasteStream } from "@/lib/waste-streams";
+import { WasteRefChip } from "@/components/waste/WasteRefChip";
 
 interface Row {
   id: string;
@@ -258,7 +260,9 @@ const DigitalWasteTrackingPage = () => {
           dwtSettings?.default_physical_form ?? "Solid",
         ),
         ewc: ov.ewc || r.ewc || "",
+        // `waste` is the recorded wording and is what DEFRA receives; the agreed name is display-only.
         waste: ov.waste_description || r.waste_description || "",
+        wasteStream: resolveWasteStream({ name: ov.waste_description || r.waste_description, ewc: ov.ewc || r.ewc, source: "midweigh", direction: "incoming" }),
         container: fill(ov.container_type || r.container_type || "", dwtSettings?.default_container_type ?? "Van"),
         meansOfTransport: ov.means_of_transport || rawField(r.raw, ["Means of Transport", "Transport Mode", "Mode of Transport"]) || (dwtSettings?.default_means_of_transport || "Road"),
         weightT: r.weight_t != null ? Number(r.weight_t) / 1000 : null,
@@ -270,7 +274,7 @@ const DigitalWasteTrackingPage = () => {
     const term = search.trim().toLowerCase();
     if (!term) return merged;
     return merged.filter((m) =>
-      [m.ticket, m.customer, m.site, m.vehicle, m.waste, m.ewc, m.carrierName, m.carrierReg]
+      [m.ticket, m.customer, m.site, m.vehicle, m.waste, m.wasteStream?.name, m.wasteStream?.ref, m.ewc, m.carrierName, m.carrierReg]
         .some((v) => (v ?? "").toLowerCase().includes(term))
     );
   }, [merged, search]);
@@ -426,7 +430,19 @@ const DigitalWasteTrackingPage = () => {
                           <td className={`px-3 py-2 ${!m.carrierName ? missingCls : ""}`}>{m.carrierName || "Missing"}</td>
                           <td className={`px-3 py-2 ${!m.physicalForm ? missingCls : ""}`}>{m.physicalForm || "Missing"}</td>
                           <td className={`px-3 py-2 font-mono ${!m.ewc ? missingCls : ""}`}>{m.ewc || "Missing"}</td>
-                          <td className={`px-3 py-2 ${!m.waste ? missingCls : ""}`}>{m.waste || "Missing"}</td>
+                          <td className={`px-3 py-2 ${!m.waste ? missingCls : ""}`}>
+                            {!m.waste ? "Missing" : m.wasteStream ? (
+                              <>
+                                <div className="flex items-center gap-1.5">
+                                  <WasteRefChip refCode={m.wasteStream.ref} className="text-[10px] px-1.5 py-0" />
+                                  <span>{m.wasteStream.name}</span>
+                                </div>
+                                {m.wasteStream.name !== m.waste.trim() && (
+                                  <div className="text-xs text-muted-foreground" title="This recorded wording is what is sent to DEFRA">Sent as: {m.waste}</div>
+                                )}
+                              </>
+                            ) : m.waste}
+                          </td>
                           <td className={`px-3 py-2 ${!m.container ? missingCls : ""}`}>{m.container || "Missing"}</td>
                           <td className={`px-3 py-2 ${!m.meansOfTransport ? missingCls : ""}`}>{m.meansOfTransport || "Missing"}</td>
                           <td className={`px-3 py-2 text-right tabular-nums font-semibold ${m.weightT == null || !(m.weightT > 0) ? missingCls : ""}`}>
