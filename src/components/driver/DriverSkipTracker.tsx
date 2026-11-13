@@ -47,7 +47,8 @@ const containerAssetType = (
 interface Reporter {
   id: string;
   name: string;
-  type: "driver" | "yard";
+  /** "office" = portal staff using the Office App (signed in with their own account). */
+  type: "driver" | "yard" | "office";
 }
 
 interface InventoryRow {

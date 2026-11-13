@@ -54,7 +54,8 @@ interface DriverJobLike {
 export interface ContaminationReporter {
   id: string;
   name: string;
-  type: "driver" | "yard";
+  /** "office" = portal staff using the Office App (signed in with their own account). */
+  type: "driver" | "yard" | "office";
 }
 
 interface Props {
@@ -400,7 +401,7 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
         waste_description: job?.waste_description ?? null,
         weight_t: job?.weight_t ?? null,
         vehicle_reg: job?.vehicle_reg ?? null,
-        source_app: reporter.type === "yard" ? "yard" : "driver",
+        source_app: reporter.type === "driver" ? "driver" : reporter.type,
         reporter_driver_id: reporter.type === "driver" ? driverId : null,
         reporter_name: driverName,
         reporter_type: reporter.type,

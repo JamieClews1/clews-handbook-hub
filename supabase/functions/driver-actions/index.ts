@@ -52,6 +52,17 @@ const DRIVER_ACTIONS = new Set([
   "list_job_photos", "add_job_photo", "delete_job_photo",
 ]);
 
+/** True when the request carries a signed-in portal staff session (used by the Office App). */
+async function isSignedInStaff(req: Request, supabase: ReturnType<typeof createClient>): Promise<boolean> {
+  const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (!jwt) return false;
+  const { data } = await supabase.auth.getUser(jwt);
+  const userId = data?.user?.id;
+  if (!userId) return false;
+  const { data: staff } = await supabase.rpc("is_staff", { _user_id: userId });
+  return staff === true;
+}
+
 // Escape LIKE/ILIKE wildcards so a username can only match itself
 const escapeLike = (s: string) => s.replace(/([%_\\])/g, "\\$1");
 
@@ -646,6 +657,8 @@ Deno.serve(async (req) => {
         } else {
           allowed = !!(await verifyDriverPass(body?.token));
         }
+        // Office App: portal staff signed in with their own account.
+        if (!allowed) allowed = await isSignedInStaff(req, supabase);
         if (!allowed) return json({ error: "Not signed in" }, 401);
         const [wt, tiers, items, settings] = await Promise.all([
           supabase.from("contamination_waste_types").select("*").eq("is_active", true).order("display_order"),

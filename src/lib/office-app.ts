@@ -1,4 +1,4 @@
-import { ClipboardList, HardHat, type LucideIcon } from "lucide-react";
+import { AlertTriangle, Boxes, ClipboardList, HardHat, type LucideIcon } from "lucide-react";
 import { QUICK_LINKS, STAFF_NAV_GROUPS, navigationAllowed, type NavigationAccess, type StaffNavItem } from "@/lib/staff-navigation";
 
 /**
@@ -15,6 +15,8 @@ export const OFFICE_APP_TILES: OfficeTile[] = [
   { label: "Load Reports Input", description: "Tally and submit load reports", path: "/load-reports", navPath: "/load-reports" },
   { label: "Stock Check", description: "Start a new stock take", path: "/performance-hub/stock-check/tally", navPath: "/performance-hub/stock-check" },
   { label: "Banksman App", description: "Yard jobs, tickets and contamination", path: "/banksman", navPath: "/banksman", icon: HardHat },
+  { label: "Skip Tracker", description: "Photograph and log skips and RoRos", path: "/office/skip-tracker", navPath: "/office/skip-tracker", icon: Boxes },
+  { label: "Contaminations", description: "Report contamination and see your points", path: "/office/contaminations", navPath: "/office/contaminations", icon: AlertTriangle },
   { label: "Near Misses", description: "Report a near miss", path: "/nearmissreport", navPath: "/near-miss" },
   { label: "Toolbox Talks", description: "Read and sign toolbox talks", path: "/toolbox-talks", navPath: "/toolbox-talks" },
   { label: "RAMS", description: "Risk assessments and method statements", path: "/rams", navPath: "/rams" },
@@ -36,8 +38,8 @@ export function officeTileIcon(tile: OfficeTile): LucideIcon {
 export function visibleOfficeTiles(access: NavigationAccess, hidden: Set<string>, isSuperAdmin: boolean): OfficeTile[] {
   return OFFICE_APP_TILES.filter((tile) => {
     const item = officeTileNavItem(tile);
-    // Standalone apps with their own sign-in (e.g. the PIN-based Banksman app) have no
-    // sidebar entry or Section Visibility gate; the app itself controls access.
+    // Standalone apps (the PIN-based Banksman app, and the Driver App's Skip Tracker and
+    // Contaminations reused for signed-in staff) have no sidebar entry or Section Visibility gate.
     if (!item) return Boolean(tile.icon);
     if (item.key && hidden.has(item.key) && !isSuperAdmin) return false;
     return navigationAllowed(item, access);

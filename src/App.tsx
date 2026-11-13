@@ -64,6 +64,7 @@ import StaciReportsPage from "./pages/StaciReportsPage";
 import ContaminationsPage from "./pages/ContaminationsPage";
 import StockCheckPage from "./pages/StockCheckPage";
 import StockTakePage from "./pages/StockTakePage";
+import OfficeDriverToolPage from "./pages/OfficeDriverToolPage";
 import RouteOnePage from "./pages/RouteOnePage";
 import WeighOnePage from "./pages/WeighOnePage";
 import OfficeAppPage from "./pages/OfficeAppPage";
@@ -214,6 +215,8 @@ const App = () => (
             <Route path="/performance-hub/contaminations" element={<Staff><ContaminationsPage /></Staff>} />
             <Route path="/performance-hub/stock-check" element={<Staff><StockCheckPage /></Staff>} />
             <Route path="/performance-hub/stock-check/tally" element={<Staff><StockTakePage /></Staff>} />
+            <Route path="/office/skip-tracker" element={<Staff><OfficeDriverToolPage tool="skip-tracker" /></Staff>} />
+            <Route path="/office/contaminations" element={<Staff><OfficeDriverToolPage tool="contaminations" /></Staff>} />
             <Route path="/route-one" element={<Staff><RouteOnePage /></Staff>} />
             <Route path="/weigh-one/pricing" element={<Staff><WeighOnePricingPage /></Staff>} />
             <Route path="/weigh-one" element={<Staff><WeighOnePage /></Staff>} />

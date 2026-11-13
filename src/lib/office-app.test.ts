@@ -5,10 +5,16 @@ import { OFFICE_APP_TILES, newPinProblem, officeTileIcon, officeTileNavItem, vis
 const staff = { isAdmin: false, canAccessFinance: false, canAccessPl: false };
 
 describe("Office App tiles", () => {
-  it("lists the eight requested tools in order", () => {
+  it("lists the requested tools in order", () => {
     assert.deepEqual(OFFICE_APP_TILES.map((t) => t.label), [
-      "Diary", "Load Reports Input", "Stock Check", "Banksman App", "Near Misses", "Toolbox Talks", "RAMS", "Walk Around Checks",
+      "Diary", "Load Reports Input", "Stock Check", "Banksman App", "Skip Tracker", "Contaminations", "Near Misses", "Toolbox Talks", "RAMS", "Walk Around Checks",
     ]);
+  });
+
+  it("Skip Tracker and Contaminations open the Driver App tools for signed-in office staff", () => {
+    const tiles = visibleOfficeTiles(staff, new Set(), false).map((t) => t.path);
+    assert.ok(tiles.includes("/office/skip-tracker"));
+    assert.ok(tiles.includes("/office/contaminations"));
   });
 
   it("every tile reuses a staff navigation entry or carries its own icon", () => {
@@ -38,7 +44,7 @@ describe("Office App tiles", () => {
   it("hides a tile when Section Visibility hides that section", () => {
     const tiles = visibleOfficeTiles(staff, new Set(["diary"]), false);
     assert.ok(!tiles.map((t) => t.label).includes("Diary"));
-    assert.equal(tiles.length, 7);
+    assert.equal(tiles.length, 9);
   });
 
   it("hides a tile when a named-people list excludes this person", () => {
