@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { ArrowLeft, FileText, Loader2, MessageSquarePlus, Paperclip, Phone, Send, X } from "lucide-react";
 import clewsLogo from "@/assets/clews-logo.png";
 import { cn } from "@/lib/utils";
+import { OrderFileViewer, type OrderFileToView } from "@/components/orders/OrderFileViewer";
 import {
   CLEWS_PHONE,
   ORDERS_PORTAL_MAX_BODY,
@@ -205,6 +206,7 @@ function OrderChat({ token }: { token: string }) {
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
+  const [viewing, setViewing] = useState<OrderFileToView | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const lastCount = useRef(0);
 
@@ -286,15 +288,19 @@ function OrderChat({ token }: { token: string }) {
                   </p>
                   {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
                   {m.attachments.map((a) => (
-                    <a
+                    <button
                       key={a.path}
-                      href={a.url ?? undefined}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={cn("mt-1 flex items-center gap-1.5 rounded border px-2 py-1 text-xs underline-offset-2 hover:underline", mine ? "border-primary-foreground/30" : "")}
+                      type="button"
+                      disabled={!a.url}
+                      onClick={() => a.url && setViewing({ name: a.name, load: async () => {
+                        const res = await fetch(a.url as string);
+                        if (!res.ok) throw new Error(String(res.status));
+                        return res.blob();
+                      } })}
+                      className={cn("mt-1 flex items-center gap-1.5 rounded border px-2 py-1 text-left text-xs underline-offset-2 hover:underline", mine ? "border-primary-foreground/30" : "")}
                     >
                       <FileText className="h-3.5 w-3.5" /> {a.name} <span className="opacity-70">({formatBytes(a.size)})</span>
-                    </a>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -326,6 +332,7 @@ function OrderChat({ token }: { token: string }) {
       <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <MessageSquarePlus className="h-3.5 w-3.5" /> Bookmark this page — it's your private chat with Clews. Anyone with the link can see it.
       </p>
+      <OrderFileViewer file={viewing} onClose={() => setViewing(null)} />
     </Shell>
   );
 }

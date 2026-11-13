@@ -14,6 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { toast } from "sonner";
 import { Building2, Copy, ExternalLink, FileText, Loader2, Mail, Paperclip, Phone, Plus, RefreshCw, Search, Send, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { OrderFileViewer, type OrderFileToView } from "@/components/orders/OrderFileViewer";
 import { publicUrl } from "@/lib/public-url";
 import {
   ORDERS_PORTAL_BUCKET,
@@ -99,8 +100,7 @@ export function OrdersPortalInbox() {
   const [custOpen, setCustOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
-  const signedRef = useRef<Record<string, { url: string; expires: number }>>({});
-  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const [viewing, setViewing] = useState<OrderFileToView | null>(null);
   const portalLink = publicUrl("/orders");
 
   const loadConvs = useCallback(async () => {
@@ -122,16 +122,6 @@ export function OrdersPortalInbox() {
       .eq("conversation_id", id)
       .order("created_at");
     const msgs = ((data ?? []) as unknown) as Msg[];
-    // Sign file links up front so a click is a plain link (no pop-up blocking or blank tabs).
-    const now = Date.now();
-    const cache = signedRef.current;
-    const needed = [...new Set(msgs.flatMap((m) => (m.attachments ?? []).map((a) => a.path)))]
-      .filter((path) => !cache[path] || cache[path].expires < now + 5 * 60_000);
-    if (needed.length) {
-      const { data: signed } = await supabase.storage.from(ORDERS_PORTAL_BUCKET).createSignedUrls(needed, 60 * 60);
-      for (const s of signed ?? []) if (s.path && s.signedUrl) cache[s.path] = { url: s.signedUrl, expires: now + 60 * 60_000 };
-      setSignedUrls(Object.fromEntries(Object.entries(cache).map(([k, v]) => [k, v.url])));
-    }
     setMessages(msgs);
   }, []);
 
@@ -201,11 +191,15 @@ export function OrdersPortalInbox() {
     if (fileRef.current) fileRef.current.value = "";
   };
 
-  const openFile = async (a: OrderAttachment) => {
-    const { data, error } = await supabase.storage.from(ORDERS_PORTAL_BUCKET).createSignedUrl(a.path, 600, { download: a.name });
-    if (error || !data) return toast.error("Could not open file");
-    window.location.assign(data.signedUrl);
-  };
+  const openFile = (a: OrderAttachment) =>
+    setViewing({
+      name: a.name,
+      load: async () => {
+        const { data, error } = await supabase.storage.from(ORDERS_PORTAL_BUCKET).download(a.path);
+        if (error || !data) throw error ?? new Error("missing");
+        return data;
+      },
+    });
 
   const sendReply = async () => {
     if (!selected || (!reply.trim() && !files.length)) return;
@@ -375,17 +369,6 @@ export function OrdersPortalInbox() {
                         </p>
                         {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
                         {(m.attachments ?? []).map((a) => (
-                          signedUrls[a.path] ? (
-                            <a
-                              key={a.path}
-                              href={signedUrls[a.path]}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={cn("mt-1 flex w-full items-center gap-1.5 rounded border px-2 py-1 text-left text-xs hover:underline", staff && "border-primary-foreground/30")}
-                            >
-                              <FileText className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{a.name}</span> <span className="opacity-70">({formatBytes(a.size)})</span>
-                            </a>
-                          ) : (
                             <button
                               key={a.path}
                               onClick={() => openFile(a)}
@@ -393,7 +376,6 @@ export function OrdersPortalInbox() {
                             >
                               <FileText className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{a.name}</span> <span className="opacity-70">({formatBytes(a.size)})</span>
                             </button>
-                          )
                         ))}
                       </div>
                     </div>
@@ -429,6 +411,7 @@ export function OrdersPortalInbox() {
           )}
         </Card>
       </div>
+      <OrderFileViewer file={viewing} onClose={() => setViewing(null)} />
     </div>
   );
 }
