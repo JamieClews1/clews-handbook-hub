@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Loader2, Lock, LogOut, KeyRound, LayoutDashboard, MoreVertical, ChevronRight, UserRound } from "lucide-react";
+import { Loader2, Lock, LogOut, KeyRound, LayoutDashboard, MoreVertical, ChevronRight, UserRound, Download } from "lucide-react";
+import { useInstallPrompt, isStandaloneDisplay } from "@/hooks/useInstallPrompt";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePortalSectionVisibility } from "@/hooks/usePortalSectionVisibility";
@@ -276,6 +277,7 @@ function OfficeDashboard({ onLock }: { onLock: () => void }) {
   const { canAccessPl } = useCompanyPlAccess();
   const [profile, setProfile] = useState<{ full_name: string | null; user_types: string[] | null } | null>(null);
   const [changePin, setChangePin] = useState(false);
+  const { canInstall, install } = useInstallPrompt();
   const username = user?.email ? emailToUsername(user.email) : "";
 
   useEffect(() => {
@@ -310,6 +312,9 @@ function OfficeDashboard({ onLock }: { onLock: () => void }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {canInstall && !isStandaloneDisplay() && (
+              <Button onClick={() => void install()} className="gap-2"><Download className="h-4 w-4" /><span className="hidden sm:inline">Install Office App</span></Button>
+            )}
             <Button variant="outline" onClick={onLock} className="gap-2"><Lock className="h-4 w-4" />Lock</Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

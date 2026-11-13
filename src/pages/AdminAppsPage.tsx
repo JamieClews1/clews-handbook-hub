@@ -9,6 +9,8 @@ import { LoadReportSettings } from "@/components/load-reports/LoadReportSettings
 import { BanksmanAppGuide } from "@/components/apps/BanksmanAppGuide";
 import { BanksmanInstallCard } from "@/components/apps/BanksmanInstallCard";
 import { LoadReportsInstallCard } from "@/components/apps/LoadReportsInstallCard";
+import { OfficeAppInstallCard } from "@/components/apps/OfficeAppInstallCard";
+import { OFFICE_APP_TILES, officeTileNavItem } from "@/lib/office-app";
 import {
   Smartphone,
   Download,
@@ -32,6 +34,8 @@ import {
   ClipboardList,
   Users,
   RefreshCw,
+  Building2,
+  Lock,
 } from "lucide-react";
 
 type Step = { number: number; title: string; icon: typeof Globe; content: React.ReactNode };
@@ -273,6 +277,65 @@ const loadReportFeatures: Feature[] = [
   { icon: Wifi, title: "Offline Support", description: "Continue capturing loads even with an unreliable connection." },
 ];
 
+
+/* ─── Office App ─── */
+const officeSteps: Step[] = [
+  {
+    number: 1,
+    title: "Open the Office App",
+    icon: Globe,
+    content: (
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">Open this address on the office PC, tablet or phone:</p>
+        <UrlBox url="https://portal.clewsrecycling.co.uk/office" />
+      </div>
+    ),
+  },
+  {
+    number: 2,
+    title: "Install it",
+    icon: Download,
+    content: (
+      <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
+        <li><strong>PC (Chrome or Edge):</strong> click <strong>Install Office App</strong> at the top of the app, or the install icon in the address bar</li>
+        <li><strong>iPhone / iPad:</strong> in Safari tap <strong>Share</strong> → <strong>Add to Home Screen</strong></li>
+        <li><strong>Android:</strong> in Chrome tap <strong>⋮</strong> → <strong>Add to Home screen</strong></li>
+      </ol>
+    ),
+  },
+  {
+    number: 3,
+    title: "Sign in with username and PIN",
+    icon: Key,
+    content: (
+      <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
+        <li>Username is the first part of the work email, before the @</li>
+        <li>Starting PIN is <strong>1234</strong> — the app asks them to choose their own straight away</li>
+        <li>First time on each device they enter their normal portal password once; after that the PIN is enough</li>
+      </ol>
+    ),
+  },
+  {
+    number: 4,
+    title: "Manage office staff",
+    icon: Users,
+    content: (
+      <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
+        <li>Only accounts marked as <strong>Office</strong> in <strong>Admin → Users</strong> are set up for the app</li>
+        <li>Forgotten PIN: use <strong>Reset Office PIN</strong> on their row in Admin → Users (back to 1234)</li>
+        <li>Five wrong PINs lock the account for 15 minutes</li>
+        <li>Which tiles each person sees follows Section Visibility, same as the portal menu</li>
+      </ol>
+    ),
+  },
+];
+
+const officeFeatures: Feature[] = OFFICE_APP_TILES.map((t) => ({
+  icon: (officeTileNavItem(t)?.icon as typeof Globe | undefined) ?? ClipboardList,
+  title: t.label,
+  description: t.description,
+}));
+
 const LaunchButton = ({ url, label }: { url: string; label: string }) => (
   <Button asChild variant="outline" className="gap-2">
     <a href={url} target="_blank" rel="noopener noreferrer">
@@ -287,10 +350,13 @@ const AdminAppsPage = () => {
   return (
     <AdminPageLayout
       title="Apps"
-      description="Setup and guides for the Driver, Load Reports and Banksman apps"
+      description="Setup and guides for the Office, Driver, Load Reports and Banksman apps"
     >
-      <Tabs defaultValue={/Mobi|Android|iPhone/i.test(navigator.userAgent) ? "banksman" : "driver"} className="space-y-6">
+      <Tabs defaultValue={/Mobi|Android|iPhone/i.test(navigator.userAgent) ? "banksman" : "office"} className="space-y-6">
         <TabsList>
+          <TabsTrigger value="office" className="gap-2">
+            <Building2 className="w-4 h-4" /> Office App
+          </TabsTrigger>
           <TabsTrigger value="driver" className="gap-2">
             <Truck className="w-4 h-4" /> Driver App
           </TabsTrigger>
@@ -301,6 +367,27 @@ const AdminAppsPage = () => {
             <HardHat className="w-4 h-4" /> Banksman App
           </TabsTrigger>
         </TabsList>
+
+        {/* Office App */}
+        <TabsContent value="office" className="space-y-6">
+          <OfficeAppInstallCard />
+          <AppGuide
+            overview="The Office App is a home screen for the office team. Each person unlocks it with their own username and PIN and gets one-tap access to the everyday office tools: diary, load reports, stock, weighbridge and health & safety."
+            badges={[
+              { icon: Key, label: "Username + PIN" },
+              { icon: Lock, label: "Lock between users" },
+              { icon: Shield, label: "Section Visibility applies" },
+              { icon: RefreshCw, label: "Always latest version" },
+            ]}
+            steps={officeSteps}
+            features={officeFeatures}
+            extra={
+              <div className="flex flex-wrap gap-2">
+                <LaunchButton url="/office" label="Open Office App" />
+              </div>
+            }
+          />
+        </TabsContent>
 
         {/* Driver App */}
         <TabsContent value="driver">

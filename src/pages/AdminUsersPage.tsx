@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { AdminPageLayout } from "@/components/AdminPageLayout";
 import { UserManagement } from "@/components/UserManagement";
-import { LoadReportsInstallCard } from "@/components/apps/LoadReportsInstallCard";
 
 const AdminUsersPage = () => {
   const navigate = useNavigate();
@@ -32,10 +31,7 @@ const AdminUsersPage = () => {
 
   return (
     <AdminPageLayout title="Users Admin" description="Manage user accounts, roles, and compliance tracking">
-      <div className="space-y-6">
-        <LoadReportsInstallCard />
-        <UserManagement />
-      </div>
+      <UserManagement />
     </AdminPageLayout>
   );
 };
