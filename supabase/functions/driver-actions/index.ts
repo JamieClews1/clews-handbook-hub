@@ -28,6 +28,7 @@ const CONTAMINATION_FIELDS = new Set([
   "waste_type_id", "contamination_type", "contamination_pct", "sorting_minutes",
   "pricing_tier_id", "calculated_charge", "charge_amount", "query_reason",
   "photos", "customer_signature", "customer_signoff_name", "customer_signoff_at",
+  "reported_items",
 ]);
 
 const pick = (obj: Record<string, unknown>, allowed: Set<string>) => {

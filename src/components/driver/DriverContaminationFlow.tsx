@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { driverAction } from "@/lib/driver-api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -320,15 +321,11 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
     enabled: !standalone && !!job?.job_number,
     queryKey: ["driver-existing-contamination", job?.job_number, driverId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("contamination_queries")
-        .select("*")
-        .eq("job_number", job!.job_number)
-        .eq("reporter_driver_id", driverId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data;
+      const { record } = await driverAction<{ record: any }>("get_my_contamination", {
+        job_number: job!.job_number,
+        reporter_driver_id: driverId,
+      });
+      return record ?? null;
     },
   });
 
@@ -454,59 +451,19 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
       };
 
 
+      const { id } = await driverAction<{ id: string }>("submit_contamination", {
+        edit_id: editId,
+        reporter_name: driverName,
+        points_per_report: pointsPerReport,
+        payload,
+      });
+
       if (editId) {
-        // Update the existing report for this job (keeps it editable on re-open)
-        const { error: updateError } = await supabase
-          .from("contamination_queries")
-          .update(payload)
-          .eq("id", editId);
-        if (updateError) throw updateError;
-
-        await supabase.from("contamination_activity_log").insert({
-          query_id: editId,
-          user_name: driverName,
-          action_type: "updated",
-          new_value: selectedWasteName,
-          notes: "Updated via Driver App",
-        });
-
         toast.success("Contamination report updated");
         onSubmitted(selectedWasteName);
         return;
       }
-
-      const { data: created, error: insertError } = await supabase
-        .from("contamination_queries")
-        .insert({
-          ...payload,
-          status: "query",
-          approval_status: "pending",
-          points_awarded: pointsPerReport,
-        })
-        .select("id")
-        .single();
-
-      if (insertError) throw insertError;
-      setEditId(created.id);
-
-      // Award points to the reporter
-      const { error: pointsError } = await supabase.from("contamination_points").insert({
-        query_id: created.id,
-        driver_id: reporter.type === "driver" ? driverId : null,
-        reporter_name: driverName,
-        points: pointsPerReport,
-        reason: `Contamination report — Job #${jobNumber}`,
-      });
-      if (pointsError) console.error("Points award error:", pointsError);
-
-      // Activity log
-      await supabase.from("contamination_activity_log").insert({
-        query_id: created.id,
-        user_name: driverName,
-        action_type: "reported",
-        new_value: selectedWasteName,
-        notes: "Reported via Driver App",
-      });
+      setEditId(id);
 
       toast.success(`Contamination reported · +${pointsPerReport} points`);
       onSubmitted(selectedWasteName);
