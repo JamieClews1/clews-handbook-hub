@@ -1,7 +1,7 @@
 import type { OverRentalJob, ClampPos } from "./overRental";
 import { categoriseContainer, containerTypeCap } from "./overRental";
 import { isCompletedRentalMovement } from "./rental-open-movements";
-import { withStandingBins, type StandingBinRule } from "./standing-bins";
+import { withStandingBins, isStandingBinJob, type StandingBinRule } from "./standing-bins";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 
 export type HistoryJob = OverRentalJob & { source: string; address?: string | null; address2?: string | null; address3?: string | null; driver?: string | null; weight_t?: number | null };
@@ -34,14 +34,19 @@ export function historyStatus(job: HistoryJob, today: string) {
   return "Not completed";
 }
 
+/** Most recent completed physical movement for one container type on a site. */
+export type LastMovement = { date: string; movement: string; jobId: string; jobNumber: string; waste: string | null; ewc: string | null };
+
 /** Same window, completed movements, per-waste estimate and type clamp as Live Jobs. */
 export function currentSiteContainers(jobs: HistoryJob[], rules: StandingBinRule[], settings: LiveJobsSettings, since: string, today: string) {
   const recent = jobs.filter(j => j.job_date && j.job_date >= since && ["Deliver", "Exchange", "Collect", "Tip/Return"].includes(j.movement_type ?? "") && isCompletedRentalMovement(j, today));
-  const types = new Map<string, { container: string; category: string; wastes: Set<string>; positions: Map<string, ClampPos> }>();
+  const types = new Map<string, { container: string; category: string; wastes: Set<string>; positions: Map<string, ClampPos>; lastMoved: LastMovement | null }>();
   for (const j of withStandingBins(recent, rules, today)) {
     const category = categoriseContainer(j.container_type, j.vehicle_registration, settings);
     if (!j.container_type || !category || category === "artic") continue;
-    const t = types.get(j.container_type) ?? { container: j.container_type, category, wastes: new Set<string>(), positions: new Map<string, ClampPos>() };
+    const t = types.get(j.container_type) ?? { container: j.container_type, category, wastes: new Set<string>(), positions: new Map<string, ClampPos>(), lastMoved: null as LastMovement | null };
+    // Virtual standing-bin deliveries only restore counts; they are never a real movement date.
+    if (!isStandingBinJob(j) && j.job_date && (!t.lastMoved || j.job_date > t.lastMoved.date)) t.lastMoved = { date: j.job_date, movement: j.movement_type ?? "", jobId: j.id, jobNumber: j.job_number, waste: j.waste_description ?? null, ewc: j.ewc ?? null };
     const key = j.ewc?.trim() || "__none__";
     const p = t.positions.get(key) ?? { delivered: 0, collected: 0, exchanged: 0, tipReturn: 0, lastKeepDate: null, lastCollectionDate: null };
     if (j.movement_type === "Deliver") p.delivered++;
@@ -60,6 +65,6 @@ export function currentSiteContainers(jobs: HistoryJob[], rules: StandingBinRule
       const cleared = p.lastCollectionDate && p.lastKeepDate && p.lastCollectionDate >= p.lastKeepDate;
       return n + (cleared && net <= 0 ? 0 : Math.max(net, net >= 0 && (p.exchanged > 0 || p.tipReturn > 0) ? Math.max(1, net) : 0));
     }, 0);
-    return { container: t.container, category: t.category, wastes: [...t.wastes], count: Math.min(estimate, containerTypeCap(positions)) };
+    return { container: t.container, category: t.category, wastes: [...t.wastes], count: Math.min(estimate, containerTypeCap(positions)), lastMoved: t.lastMoved };
   }).filter(t => t.count > 0);
 }

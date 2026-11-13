@@ -32,6 +32,8 @@ import { WasteOutSkipPanel } from "./WasteOutSkipPanel";
 import { WasteOutBookingFields } from "./WasteOutBookingFields";
 import { applyBookingKind, isWasteOutJob } from "@/lib/waste-out-job";
 import { WasteClassificationFields, asClassification } from "@/components/dwt/WasteClassificationFields";
+import { SiteContainersDialog, type OnSiteContainer } from "./SiteContainersDialog";
+import { recordedContainerBooking } from "@/lib/recorded-container-booking";
 
 /** Legacy static labels — configured job types come from route_one_job_types. */
 export const JOB_TYPE_LABELS: Record<string, string> = {
@@ -193,6 +195,7 @@ export function JobFormFields({
   const [postcodeSearched, setPostcodeSearched] = useState(false);
   const [manualSite, setManualSite] = useState(false);
   const [prevOpen, setPrevOpen] = useState(false);
+  const [containersSite, setContainersSite] = useState<PostcodeMatch | null>(null);
   const [prevJobs, setPrevJobs] = useState<any[]>([]);
   const [prevLoading, setPrevLoading] = useState(false);
   const [itemsOpen, setItemsOpen] = useState(false);
@@ -307,8 +310,7 @@ export function JobFormFields({
   };
 
   /** Fill the form from a postcode match and jump straight to previous jobs. */
-  const applyPostcodeMatch = (m: PostcodeMatch) => {
-    setForm({
+  const postcodeMatchForm = (m: PostcodeMatch) => ({
       ...form,
       customer_name: m.customer || form.customer_name,
       site_name: m.site || form.site_name,
@@ -317,8 +319,23 @@ export function JobFormFields({
       site_contact_name: "", site_contact_phone: "", site_area: "",
       site_postcode: m.postcode || postcodeQuery.trim(),
     });
+  const applyPostcodeMatch = (m: PostcodeMatch) => {
+    setForm(postcodeMatchForm(m));
     setPostcodeMatches([]);
     setPostcodeSearched(false);
+    setContainersSite(null);
+  };
+
+  /** Exchange a container chosen from the on-site pop-up, reusing the previous-job prefill. */
+  const bookExchangeFromSite = async (m: PostcodeMatch, container: OnSiteContainer) => {
+    if (!container.lastMoved) return;
+    const { data, error } = await supabase.from("data_hub_jobs").select("job_number, job_date, customer, site, movement_type, container_type, waste_description, ewc, weight_t, raw").eq("id", container.lastMoved.jobId).maybeSingle();
+    if (error || !data) { setSiteLoadError("That container's last job could not be loaded. Use previous job / exchange instead."); return; }
+    const base = postcodeMatchForm(m);
+    await applyPrevious({ ...data, _source: "skiptrak", customer: m.customer || data.customer, site: m.site || data.site }, base, true);
+    setPostcodeMatches([]);
+    setPostcodeSearched(false);
+    setContainersSite(null);
   };
 
   /** Start a brand new site (and delivery) from scratch at the searched postcode. */
@@ -386,9 +403,11 @@ export function JobFormFields({
 
 
   /** Prefill the form from a previous job, defaulting to an exchange. */
-  const applyPrevious = async (j: any) => {
+  const applyPrevious = async (j: any, base: any = form, keepSiteAddress = false) => {
+    const form = base;
+    const recorded = j._source === "routeone" ? null : recordedContainerBooking(j.container_type);
     let bookingDate = form.scheduled_date;
-    try { bookingDate = await loadExchangeBookingDate({ container_type: j.container_type, container_size: j.container_size, site_postcode: j.site_postcode || j.postcode || rawText(j.raw, ["Postcode", "Location Postc"]) || form.site_postcode }) || bookingDate; }
+    try { bookingDate = await loadExchangeBookingDate({ container_type: recorded?.container_type ?? j.container_type, container_size: recorded?.container_size ?? j.container_size, site_postcode: j.site_postcode || j.postcode || rawText(j.raw, ["Postcode", "Location Postc"]) || form.site_postcode }) || bookingDate; }
     catch { setSiteLoadError("Booking dates unavailable. Check the exchange date before saving."); }
     if (j._source === "routeone") {
       setForm({
@@ -418,10 +437,11 @@ export function JobFormFields({
         ...form,
         customer_name: j.customer || form.customer_name,
         site_name: j.site || form.site_name,
-        site_address: previousAddress || form.site_address,
-        site_postcode: previousPostcode || form.site_postcode,
+        site_address: keepSiteAddress ? form.site_address || previousAddress : previousAddress || form.site_address,
+        site_postcode: keepSiteAddress ? form.site_postcode || previousPostcode : previousPostcode || form.site_postcode,
         job_type: "exchange",
-        container_type: j.container_type || "",
+        container_type: recorded?.container_type || j.container_type || "",
+        container_size: recorded?.container_size || "",
         ...standardBookingWaste(j.waste_description, j.ewc, { source: "skiptrak" }),
         scheduled_date: bookingDate,
         ...importedBookingPrices(j.raw || {}),
@@ -518,7 +538,7 @@ export function JobFormFields({
                   key={i}
                   type="button"
                   className="h-auto w-full text-left px-3 py-2 text-xs flex-col items-stretch rounded-none"
-                  onClick={() => applyPostcodeMatch(m)}
+                  onClick={() => setContainersSite(m)}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium truncate">{m.customer} · {m.site || m.address || m.postcode}</span>
@@ -829,6 +849,12 @@ export function JobFormFields({
         <p className="text-sm text-muted-foreground">Internal cost assessment — to be added later.</p>
       </TabsContent>
       </Tabs>
+      <SiteContainersDialog
+        site={containersSite && { customer: containersSite.customer, site: containersSite.site, address: containersSite.address, postcode: containersSite.postcode }}
+        onOpenChange={open => { if (!open) setContainersSite(null); }}
+        onUseSite={() => containersSite && applyPostcodeMatch(containersSite)}
+        onBookExchange={c => containersSite ? bookExchangeFromSite(containersSite, c) : Promise.resolve()}
+      />
       {/* Previous jobs dialog */}
       <Dialog open={prevOpen} onOpenChange={setPrevOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
