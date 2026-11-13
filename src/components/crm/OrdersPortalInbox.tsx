@@ -99,6 +99,8 @@ export function OrdersPortalInbox() {
   const [custOpen, setCustOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const signedRef = useRef<Record<string, { url: string; expires: number }>>({});
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const portalLink = publicUrl("/orders");
 
   const loadConvs = useCallback(async () => {
@@ -119,7 +121,18 @@ export function OrdersPortalInbox() {
       .select("id, sender, staff_name, body, attachments, created_at")
       .eq("conversation_id", id)
       .order("created_at");
-    setMessages(((data ?? []) as unknown) as Msg[]);
+    const msgs = ((data ?? []) as unknown) as Msg[];
+    // Sign file links up front so a click is a plain link (no pop-up blocking or blank tabs).
+    const now = Date.now();
+    const cache = signedRef.current;
+    const needed = [...new Set(msgs.flatMap((m) => (m.attachments ?? []).map((a) => a.path)))]
+      .filter((path) => !cache[path] || cache[path].expires < now + 5 * 60_000);
+    if (needed.length) {
+      const { data: signed } = await supabase.storage.from(ORDERS_PORTAL_BUCKET).createSignedUrls(needed, 60 * 60);
+      for (const s of signed ?? []) if (s.path && s.signedUrl) cache[s.path] = { url: s.signedUrl, expires: now + 60 * 60_000 };
+      setSignedUrls(Object.fromEntries(Object.entries(cache).map(([k, v]) => [k, v.url])));
+    }
+    setMessages(msgs);
   }, []);
 
   useEffect(() => {
@@ -189,28 +202,9 @@ export function OrdersPortalInbox() {
   };
 
   const openFile = async (a: OrderAttachment) => {
-    // Open the tab synchronously inside the click so browsers don't treat it as a blocked pop-up.
-    const tab = window.open("about:blank", "_blank");
-    const { data, error } = await supabase.storage.from(ORDERS_PORTAL_BUCKET).createSignedUrl(a.path, 600);
-    if (error || !data) {
-      tab?.close();
-      return toast.error("Could not open file");
-    }
-    if (tab && !tab.closed) {
-      tab.opener = null;
-      tab.location.href = data.signedUrl;
-      return;
-    }
-    // Pop-ups blocked: fall back to a direct download.
-    const { data: dl } = await supabase.storage.from(ORDERS_PORTAL_BUCKET).createSignedUrl(a.path, 600, { download: a.name });
-    const link = document.createElement("a");
-    link.href = dl?.signedUrl ?? data.signedUrl;
-    link.download = a.name;
-    link.rel = "noopener";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    toast.info("Your browser blocked the new tab, so the file is downloading instead");
+    const { data, error } = await supabase.storage.from(ORDERS_PORTAL_BUCKET).createSignedUrl(a.path, 600, { download: a.name });
+    if (error || !data) return toast.error("Could not open file");
+    window.location.assign(data.signedUrl);
   };
 
   const sendReply = async () => {
@@ -381,13 +375,25 @@ export function OrdersPortalInbox() {
                         </p>
                         {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
                         {(m.attachments ?? []).map((a) => (
-                          <button
-                            key={a.path}
-                            onClick={() => openFile(a)}
-                            className={cn("mt-1 flex w-full items-center gap-1.5 rounded border px-2 py-1 text-left text-xs hover:underline", staff && "border-primary-foreground/30")}
-                          >
-                            <FileText className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{a.name}</span> <span className="opacity-70">({formatBytes(a.size)})</span>
-                          </button>
+                          signedUrls[a.path] ? (
+                            <a
+                              key={a.path}
+                              href={signedUrls[a.path]}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={cn("mt-1 flex w-full items-center gap-1.5 rounded border px-2 py-1 text-left text-xs hover:underline", staff && "border-primary-foreground/30")}
+                            >
+                              <FileText className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{a.name}</span> <span className="opacity-70">({formatBytes(a.size)})</span>
+                            </a>
+                          ) : (
+                            <button
+                              key={a.path}
+                              onClick={() => openFile(a)}
+                              className={cn("mt-1 flex w-full items-center gap-1.5 rounded border px-2 py-1 text-left text-xs hover:underline", staff && "border-primary-foreground/30")}
+                            >
+                              <FileText className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{a.name}</span> <span className="opacity-70">({formatBytes(a.size)})</span>
+                            </button>
+                          )
                         ))}
                       </div>
                     </div>
