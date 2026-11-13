@@ -267,21 +267,22 @@ export function SiteContainersDialog({ site, onOpenChange, onUseSite, onBookExch
         </div>}
       </DialogHeader>
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+      {/* Flex column: the timeline takes the spare height and scrolls itself, keeping its sideways scrollbar on screen. */}
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
         {loading && <div role="status" className="flex items-center gap-2 py-8 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Checking containers on site…</div>}
         {error && !loading && <div role="alert" className="flex flex-wrap items-center gap-3 py-4 text-destructive"><span>{error}</span><Button type="button" variant="outline" size="sm" onClick={() => setRetry(n => n + 1)}>Try again</Button></div>}
 
         {!loading && !error && <>
-          {rows.length > 0 && <TimelineLegend />}
+          {rows.length > 0 && <div className="shrink-0"><TimelineLegend /></div>}
           {rows.length > 0 ? <ContainerTimeline rows={rows} today={today} focusJob={focusJob} selectedKey={selected} onSelect={setSelected} />
             : <div className="space-y-1 text-sm">
               <p className="text-muted-foreground">No containers currently identified on site.</p>
               {lastJob && <p>Last job here: <span className="font-medium">{lastJob.movement_type}</span> · {lastJob.container_type} · {dateLabel(lastJob.job_date)} ({daysAgo(lastJob.job_date ?? "", today)})</p>}
             </div>}
 
-          {otherBooked.length > 0 && <div className="space-y-2">
+          {otherBooked.length > 0 && <div className="shrink-0 space-y-2">
             <h3 className="flex items-center gap-1.5 text-sm font-semibold"><Truck className="h-4 w-4" />{rows.length ? "Other upcoming bookings here" : "Upcoming bookings"}</h3>
-            <ul className="divide-y divide-border rounded-md border border-border text-sm">
+            <ul className="max-h-40 divide-y divide-border overflow-y-auto rounded-md border border-border text-sm">
               {otherBooked.map(b => <li key={`${b.source}:${b.key}`} className="flex flex-wrap items-center gap-2 px-3 py-2"><span className="font-medium tabular-nums">{dateLabel(b.date)}</span><span className="capitalize">{b.type.replace(/_/g, " ")}</span><span className="text-muted-foreground">{b.container}</span><Badge variant="outline" className="ml-auto">{b.source} #{b.key}</Badge></li>)}
             </ul>
           </div>}

@@ -187,7 +187,7 @@ export function ContainerTimeline({ rows, today, focusJob, selectedKey, onSelect
   ];
   const tint = (row: TimelineRowModel) => row === focusRow;
 
-  if (narrow) return <div ref={scroller} className="space-y-4">
+  if (narrow) return <div ref={scroller} className="shrink-0 space-y-4">
     {groups.map(g => {
       const list = rows.filter(r => r.group === g.id);
       if (!list.length) return null;
@@ -203,9 +203,10 @@ export function ContainerTimeline({ rows, today, focusJob, selectedKey, onSelect
     })}
   </div>;
 
-  return <div ref={scroller} className="overflow-x-auto rounded-md border border-border bg-card">
+  // Scrolls both ways inside its own box so the sideways scrollbar and the date row stay in view while scrolling down.
+  return <div ref={scroller} className="min-h-[260px] flex-1 overflow-auto overscroll-contain rounded-md border border-border bg-card">
     <div style={{ width: LEFT + width }}>
-      <div className="flex border-b border-border">
+      <div className="sticky top-0 z-[7] flex border-b border-border bg-card">
         <div className="sticky left-0 z-[6] shrink-0 border-r border-border bg-card px-3 py-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground" style={{ width: LEFT }}>Week beginning</div>
         <div className="relative h-[22px]" style={{ width }}><AxisLabels mondays={axis.mondays} start={axis.start} today={today} /></div>
       </div>
