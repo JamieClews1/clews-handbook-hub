@@ -10,7 +10,7 @@ import { BanksmanAppGuide } from "@/components/apps/BanksmanAppGuide";
 import { BanksmanInstallCard } from "@/components/apps/BanksmanInstallCard";
 import { LoadReportsInstallCard } from "@/components/apps/LoadReportsInstallCard";
 import { OfficeAppInstallCard } from "@/components/apps/OfficeAppInstallCard";
-import { OFFICE_APP_TILES, officeTileNavItem } from "@/lib/office-app";
+import { OFFICE_APP_TILES, officeTileIcon } from "@/lib/office-app";
 import {
   Smartphone,
   Download,
@@ -332,7 +332,7 @@ const officeSteps: Step[] = [
 ];
 
 const officeFeatures: Feature[] = OFFICE_APP_TILES.map((t) => ({
-  icon: (officeTileNavItem(t)?.icon as typeof Globe | undefined) ?? ClipboardList,
+  icon: officeTileIcon(t) as typeof Globe,
   title: t.label,
   description: t.description,
 }));

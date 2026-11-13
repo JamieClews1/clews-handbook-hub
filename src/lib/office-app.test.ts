@@ -1,22 +1,38 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { OFFICE_APP_TILES, newPinProblem, officeTileNavItem, visibleOfficeTiles, rememberPerson, rememberedPeople, updateRememberedToken, forgetPerson } from "./office-app";
+import { OFFICE_APP_TILES, newPinProblem, officeTileIcon, officeTileNavItem, visibleOfficeTiles, rememberPerson, rememberedPeople, updateRememberedToken, forgetPerson } from "./office-app";
 
 const staff = { isAdmin: false, canAccessFinance: false, canAccessPl: false };
 
 describe("Office App tiles", () => {
   it("lists the eight requested tools in order", () => {
     assert.deepEqual(OFFICE_APP_TILES.map((t) => t.label), [
-      "Diary", "Load Reports Input", "Stock Check", "Weighbridge App", "Near Misses", "Toolbox Talks", "RAMS", "Walk Around Checks",
+      "Diary", "Load Reports Input", "Stock Check", "Banksman App", "Near Misses", "Toolbox Talks", "RAMS", "Walk Around Checks",
     ]);
   });
 
-  it("every tile reuses an existing staff navigation entry", () => {
-    for (const tile of OFFICE_APP_TILES) assert.ok(officeTileNavItem(tile), tile.label);
+  it("every tile reuses a staff navigation entry or carries its own icon", () => {
+    for (const tile of OFFICE_APP_TILES) assert.ok(officeTileNavItem(tile) || tile.icon, tile.label);
   });
 
-  it("the Weighbridge App opens WeighOne in tablet view", () => {
-    assert.equal(OFFICE_APP_TILES.find((t) => t.label === "Weighbridge App")?.path, "/weigh-one?tablet=1");
+  it("Stock Check opens straight on the New Stock Take tally", () => {
+    assert.equal(OFFICE_APP_TILES.find((t) => t.label === "Stock Check")?.path, "/performance-hub/stock-check?tab=tally");
+  });
+
+  it("the Banksman App opens the full Banksman app", () => {
+    const tile = OFFICE_APP_TILES.find((t) => t.label === "Banksman App");
+    assert.equal(tile?.path, "/banksman");
+    assert.ok(officeTileIcon(tile!), "Banksman tile has an icon without a sidebar entry");
+  });
+
+  it("Near Misses opens the near miss reporting page", () => {
+    assert.equal(OFFICE_APP_TILES.find((t) => t.label === "Near Misses")?.path, "/nearmissreport");
+  });
+
+  it("the Banksman App tile shows for everyone (the app has its own PIN sign-in)", () => {
+    const tiles = visibleOfficeTiles(staff, new Set(["weigh-one", "hs-near-miss"]), false);
+    assert.ok(tiles.map((t) => t.label).includes("Banksman App"));
+    assert.ok(!tiles.map((t) => t.label).includes("Near Misses"));
   });
 
   it("hides a tile when Section Visibility hides that section", () => {

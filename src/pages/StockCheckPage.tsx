@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,8 +20,10 @@ const StockCheckPage = () => {
   const navigate = useNavigate();
   const { user, isAdmin, loading } = useAuth();
   const [isManagement, setIsManagement] = useState(false);
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("live");
-  const [liveTab, setLiveTab] = useState("current");
+  // ?tab=tally opens straight on the New Stock Take tally (used by the Office App tile).
+  const [liveTab, setLiveTab] = useState(searchParams.get("tab") === "tally" ? "tally" : "current");
   const [editCheckId, setEditCheckId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Keeps the expected-fleet snapshot fresh for the public share page,

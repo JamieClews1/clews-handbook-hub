@@ -10,7 +10,7 @@ import { useCompanyPlAccess } from "@/hooks/useCompanyPlAccess";
 import { isSuperAdminEmail } from "@/lib/super-admin";
 import { usernameToEmail, emailToUsername } from "@/lib/auth-utils";
 import {
-  OFFICE_APP_TILES, visibleOfficeTiles, officeTileNavItem, newPinProblem, normaliseOfficeUsername,
+  OFFICE_APP_TILES, visibleOfficeTiles, officeTileIcon, newPinProblem, normaliseOfficeUsername,
   isOfficeLocked, setOfficeLocked, setOfficeMode, rememberedPeople, rememberPerson, forgetPerson,
 } from "@/lib/office-app";
 import { officePinCall } from "@/lib/office-app-session";
@@ -344,7 +344,7 @@ function OfficeDashboard({ onLock }: { onLock: () => void }) {
 
         <nav aria-label="Office tools" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {tiles.map((tile) => {
-            const Icon = officeTileNavItem(tile)!.icon;
+            const Icon = officeTileIcon(tile);
             return (
               <Link key={tile.path} to={tile.path}
                 className="group flex items-center gap-4 rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">

@@ -1,3 +1,4 @@
+import { ClipboardList, HardHat, type LucideIcon } from "lucide-react";
 import { QUICK_LINKS, STAFF_NAV_GROUPS, navigationAllowed, type NavigationAccess, type StaffNavItem } from "@/lib/staff-navigation";
 
 /**
@@ -7,14 +8,14 @@ import { QUICK_LINKS, STAFF_NAV_GROUPS, navigationAllowed, type NavigationAccess
 export const OFFICE_APP_PATH = "/office";
 export const STARTING_PIN = "1234";
 
-export type OfficeTile = { label: string; description: string; path: string; navPath: string };
+export type OfficeTile = { label: string; description: string; path: string; navPath: string; icon?: LucideIcon };
 
 export const OFFICE_APP_TILES: OfficeTile[] = [
   { label: "Diary", description: "Office diary and week notes", path: "/diary", navPath: "/diary" },
   { label: "Load Reports Input", description: "Tally and submit load reports", path: "/load-reports", navPath: "/load-reports" },
-  { label: "Stock Check", description: "Live yard stock and inventory", path: "/performance-hub/stock-check", navPath: "/performance-hub/stock-check" },
-  { label: "Weighbridge App", description: "WeighOne tablet view", path: "/weigh-one?tablet=1", navPath: "/weigh-one" },
-  { label: "Near Misses", description: "Report and review near misses", path: "/near-miss", navPath: "/near-miss" },
+  { label: "Stock Check", description: "Start a new stock take", path: "/performance-hub/stock-check?tab=tally", navPath: "/performance-hub/stock-check" },
+  { label: "Banksman App", description: "Yard jobs, tickets and contamination", path: "/banksman", navPath: "/banksman", icon: HardHat },
+  { label: "Near Misses", description: "Report a near miss", path: "/nearmissreport", navPath: "/near-miss" },
   { label: "Toolbox Talks", description: "Read and sign toolbox talks", path: "/toolbox-talks", navPath: "/toolbox-talks" },
   { label: "RAMS", description: "Risk assessments and method statements", path: "/rams", navPath: "/rams" },
   { label: "Walk Around Checks", description: "Site inspections and job list", path: "/walk-around-checks", navPath: "/walk-around-checks" },
@@ -26,11 +27,18 @@ export function officeTileNavItem(tile: OfficeTile): StaffNavItem | undefined {
   return ALL_NAV.find((item) => item.path === tile.navPath);
 }
 
+/** Tile icon: the shared navigation entry's icon, or the tile's own for standalone apps. */
+export function officeTileIcon(tile: OfficeTile): LucideIcon {
+  return officeTileNavItem(tile)?.icon ?? tile.icon ?? ClipboardList;
+}
+
 /** Tiles this person may open, using the same gates as the sidebar. */
 export function visibleOfficeTiles(access: NavigationAccess, hidden: Set<string>, isSuperAdmin: boolean): OfficeTile[] {
   return OFFICE_APP_TILES.filter((tile) => {
     const item = officeTileNavItem(tile);
-    if (!item) return false;
+    // Standalone apps with their own sign-in (e.g. the PIN-based Banksman app) have no
+    // sidebar entry or Section Visibility gate; the app itself controls access.
+    if (!item) return Boolean(tile.icon);
     if (item.key && hidden.has(item.key) && !isSuperAdmin) return false;
     return navigationAllowed(item, access);
   });
