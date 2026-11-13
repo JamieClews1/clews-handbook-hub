@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, addDays, startOfWeek, endOfWeek } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { List } from "lucide-react";
+import { ScheduledJobsPanel } from "@/components/route-one/ScheduledJobsPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -1005,6 +1006,22 @@ const RouteOnePage = () => {
               Reorganise Day
             </Button>
           )}
+
+          {/* Repeating bookings */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" title="Scheduled jobs">
+                <Repeat2 className="h-3.5 w-3.5" />
+                Scheduled
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[850px] sm:max-w-[850px] overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Scheduled jobs</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4"><ScheduledJobsPanel onChanged={() => queryClient.invalidateQueries({ queryKey: ["route-one-jobs"] })} /></div>
+            </SheetContent>
+          </Sheet>
 
           {/* Settings Sheet */}
           <Sheet>

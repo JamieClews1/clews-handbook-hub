@@ -8875,6 +8875,117 @@ export type Database = {
           },
         ]
       }
+      route_one_job_schedules: {
+        Row: {
+          active: boolean
+          book_ahead_days: number
+          booked_until: string | null
+          charge_per_tonne: number | null
+          container_size: string | null
+          container_type: string | null
+          cost_items: Json
+          created_at: string
+          created_by: string | null
+          customer_name: string
+          end_date: string | null
+          ewc_code: string | null
+          haulage_cost: number | null
+          id: string
+          interval_weeks: number
+          job_type: Database["public"]["Enums"]["route_one_job_type"]
+          match_container: string | null
+          match_site: string | null
+          min_weight_charge: number | null
+          notes: string | null
+          own_container: boolean
+          po_number: string | null
+          site_address: string | null
+          site_address_2: string | null
+          site_contact_name: string | null
+          site_contact_phone: string | null
+          site_name: string | null
+          site_postcode: string | null
+          source_job_number: string | null
+          start_date: string
+          updated_at: string
+          vat_rate: number
+          waste_type: string | null
+          weight_included_t: number | null
+        }
+        Insert: {
+          active?: boolean
+          book_ahead_days?: number
+          booked_until?: string | null
+          charge_per_tonne?: number | null
+          container_size?: string | null
+          container_type?: string | null
+          cost_items?: Json
+          created_at?: string
+          created_by?: string | null
+          customer_name: string
+          end_date?: string | null
+          ewc_code?: string | null
+          haulage_cost?: number | null
+          id?: string
+          interval_weeks?: number
+          job_type?: Database["public"]["Enums"]["route_one_job_type"]
+          match_container?: string | null
+          match_site?: string | null
+          min_weight_charge?: number | null
+          notes?: string | null
+          own_container?: boolean
+          po_number?: string | null
+          site_address?: string | null
+          site_address_2?: string | null
+          site_contact_name?: string | null
+          site_contact_phone?: string | null
+          site_name?: string | null
+          site_postcode?: string | null
+          source_job_number?: string | null
+          start_date: string
+          updated_at?: string
+          vat_rate?: number
+          waste_type?: string | null
+          weight_included_t?: number | null
+        }
+        Update: {
+          active?: boolean
+          book_ahead_days?: number
+          booked_until?: string | null
+          charge_per_tonne?: number | null
+          container_size?: string | null
+          container_type?: string | null
+          cost_items?: Json
+          created_at?: string
+          created_by?: string | null
+          customer_name?: string
+          end_date?: string | null
+          ewc_code?: string | null
+          haulage_cost?: number | null
+          id?: string
+          interval_weeks?: number
+          job_type?: Database["public"]["Enums"]["route_one_job_type"]
+          match_container?: string | null
+          match_site?: string | null
+          min_weight_charge?: number | null
+          notes?: string | null
+          own_container?: boolean
+          po_number?: string | null
+          site_address?: string | null
+          site_address_2?: string | null
+          site_contact_name?: string | null
+          site_contact_phone?: string | null
+          site_name?: string | null
+          site_postcode?: string | null
+          source_job_number?: string | null
+          start_date?: string
+          updated_at?: string
+          vat_rate?: number
+          waste_type?: string | null
+          weight_included_t?: number | null
+        }
+        Relationships: []
+      }
       route_one_job_types: {
         Row: {
           color: string
@@ -8999,6 +9110,7 @@ export type Database = {
           rental_free_days: number | null
           rental_start_date: string | null
           rental_weekly_rate: number | null
+          schedule_id: string | null
           scheduled_date: string
           scheduled_time: string | null
           sic_code: string | null
@@ -9076,6 +9188,7 @@ export type Database = {
           rental_free_days?: number | null
           rental_start_date?: string | null
           rental_weekly_rate?: number | null
+          schedule_id?: string | null
           scheduled_date?: string
           scheduled_time?: string | null
           sic_code?: string | null
@@ -9153,6 +9266,7 @@ export type Database = {
           rental_free_days?: number | null
           rental_start_date?: string | null
           rental_weekly_rate?: number | null
+          schedule_id?: string | null
           scheduled_date?: string
           scheduled_time?: string | null
           sic_code?: string | null
@@ -9192,6 +9306,13 @@ export type Database = {
             columns: ["permit_application_id"]
             isOneToOne: false
             referencedRelation: "permit_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_one_jobs_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "route_one_job_schedules"
             referencedColumns: ["id"]
           },
           {
@@ -11571,6 +11692,10 @@ export type Database = {
       }
       crm_match_customer_by_email: { Args: { _email: string }; Returns: string }
       dispatch_monthly_ceo_report: { Args: never; Returns: undefined }
+      generate_route_one_scheduled_jobs: {
+        Args: { p_schedule_id?: string }
+        Returns: number
+      }
       generate_ticket_number: { Args: never; Returns: string }
       get_common_waste_types: {
         Args: { _months?: number }

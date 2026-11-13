@@ -35,6 +35,7 @@ import { WasteClassificationFields, asClassification } from "@/components/dwt/Wa
 import { SiteContainersDialog, type OnSiteContainer, type PreviousJobMode } from "./SiteContainersDialog";
 import { isArticContainer, skiptrakMovementJobType } from "@/lib/artic-site-jobs";
 import { recordedContainerBooking } from "@/lib/recorded-container-booking";
+import { nextExchangeAfterBookings } from "@/lib/route-job-schedules";
 
 /** Legacy static labels — configured job types come from route_one_job_types. */
 export const JOB_TYPE_LABELS: Record<string, string> = {
@@ -333,7 +334,7 @@ export function JobFormFields({
     const { data, error } = await supabase.from("data_hub_jobs").select("job_number, job_date, customer, site, movement_type, container_type, waste_description, ewc, weight_t, raw").eq("id", container.lastMoved.jobId).maybeSingle();
     if (error || !data) { setSiteLoadError("That container's last job could not be loaded. Use previous job / exchange instead."); return; }
     const base = postcodeMatchForm(m);
-    await applyPrevious({ ...data, _source: "skiptrak", customer: m.customer || data.customer, site: m.site || data.site }, base, true);
+    await applyPrevious({ ...data, _source: "skiptrak", customer: m.customer || data.customer, site: m.site || data.site }, base, true, "exchange", container.after);
     setPostcodeMatches([]);
     setPostcodeSearched(false);
     setContainersSite(null);
@@ -414,18 +415,20 @@ export function JobFormFields({
 
 
   /** Prefill the form from a previous job, defaulting to an exchange; "duplicate" repeats the same job type. */
-  const applyPrevious = async (j: any, base: any = form, keepSiteAddress = false, mode: PreviousJobMode = "exchange") => {
+  const applyPrevious = async (j: any, base: any = form, keepSiteAddress = false, mode: PreviousJobMode = "exchange", after?: OnSiteContainer["after"]) => {
     const form = base;
     const recorded = j._source === "routeone" ? null : recordedContainerBooking(j.container_type);
     const duplicate = mode === "duplicate";
     const wanted = duplicate ? (j._source === "routeone" ? j.job_type : skiptrakMovementJobType(j.movement_type)) : "exchange";
     // A repeat of a job type that is switched off in Setup (e.g. Waste Truck) is booked as an exchange.
     const jobType = wanted && jobTypes.some(t => t.key === wanted) ? wanted : "exchange";
-    const note = !duplicate ? `Exchange of container from job ${j.job_number || ""}` : jobType === wanted ? `Repeat of job ${j.job_number || ""}` : `Repeat of job ${j.job_number || ""} (${String(j.movement_type || j.job_type || "previous job").replace(/^WasteTruck$/, "Waste Truck")}, booked as an exchange)`;
+    const note = after ? `Next exchange after booked job ${after.jobNumber} (${after.date.split("-").reverse().join("/")}); container from job ${j.job_number || ""}` : !duplicate ? `Exchange of container from job ${j.job_number || ""}` : jobType === wanted ? `Repeat of job ${j.job_number || ""}` : `Repeat of job ${j.job_number || ""} (${String(j.movement_type || j.job_type || "previous job").replace(/^WasteTruck$/, "Waste Truck")}, booked as an exchange)`;
     let bookingDate = form.scheduled_date;
     // Exchange dates follow the booking-window rule; a repeat keeps the date staff are booking for.
     if (jobType === "exchange") try { bookingDate = await loadExchangeBookingDate({ container_type: recorded?.container_type ?? j.container_type, container_size: recorded?.container_size ?? j.container_size, site_postcode: j.site_postcode || j.postcode || rawText(j.raw, ["Postcode", "Location Postc"]) || form.site_postcode }) || bookingDate; }
     catch { setSiteLoadError("Booking dates unavailable. Check the exchange date before saving."); }
+    // Exchanges already booked for this bin (e.g. a fortnightly run): follow the last one.
+    if (after) bookingDate = nextExchangeAfterBookings(after.date, after.cadenceWeeks, bookingDate || null) || bookingDate;
     if (j._source === "routeone") {
       setForm({
         ...form,

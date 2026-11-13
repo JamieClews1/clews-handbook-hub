@@ -575,6 +575,13 @@
       "when": 1794580851512,
       "tag": "0081_weighbridge_min_charge_weight",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1794587882842,
+      "tag": "0082_route_one_job_schedules",
+      "breakpoints": true
     }
   ]
 }
