@@ -18,6 +18,7 @@ import { boardJobType } from "@/lib/route-board-presentation";
 
 import { JobPricingPicker } from "./JobPricingPicker";
 import { EwcCodePicker, SicCodePicker } from "@/components/codes/CodePicker";
+import { WasteStreamPicker } from "./WasteStreamPicker";
 import { EstablishedSitePicker } from "./EstablishedSitePicker";
 import { pricingContainerOptions, type PricingSize } from "@/lib/booking-container-options";
 import { CONTAINER_GROUPS, containerGroup } from "@/lib/container-taxonomy";
@@ -589,7 +590,7 @@ export function JobFormFields({
       </section>
       <section className="booking-section space-y-3">
         <h4 className="booking-step"><span>3</span>Waste</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><Label className="text-xs">EWC code</Label><EwcCodePicker value={form.ewc_code || ""} onChange={v => setForm({ ...form, ewc_code: v })} /></div><div><Label className="text-xs">Waste type</Label><Input aria-label="Waste type" value={form.waste_type || ""} onChange={e => setForm({ ...form, waste_type: e.target.value })} placeholder="Mixed waste" /></div></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><Label className="text-xs">Waste type</Label><WasteStreamPicker value={form.waste_type || ""} ewc={form.ewc_code} outgoing={isWasteOutJob(form.job_type)} onChange={s => setForm({ ...form, waste_type: s.name, ewc_code: s.ewc ?? "" })} /></div><div><Label className="text-xs">EWC code</Label><EwcCodePicker value={form.ewc_code || ""} onChange={v => setForm({ ...form, ewc_code: v })} /></div></div>
       </section>
       <section className="booking-section space-y-3">
         <h4 className="booking-step"><span>4</span>{exchangeMode ? "Exchange schedule" : "Schedule"}</h4>

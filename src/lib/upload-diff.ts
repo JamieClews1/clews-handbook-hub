@@ -36,3 +36,16 @@ export function rowNeedsWrite(
   }
   return false;
 }
+
+/**
+ * Jobs whose waste name/EWC staff corrected in the portal (waste stream
+ * standardisation) keep the corrected values when the same job is uploaded
+ * again from an export that still carries the old wording.
+ */
+export function keepCorrectedWaste<T extends { ewc?: string | null; waste_description?: string | null }>(
+  incoming: T,
+  existing: { ewc?: string | null; waste_description?: string | null; waste_corrected_at?: string | null } | undefined | null,
+): T {
+  if (!existing?.waste_corrected_at) return incoming;
+  return { ...incoming, ewc: existing.ewc ?? null, waste_description: existing.waste_description ?? null };
+}

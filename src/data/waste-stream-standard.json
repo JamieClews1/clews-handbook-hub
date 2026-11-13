@@ -1,0 +1,2720 @@
+{
+ "version": "v5 (13 Nov 2026)",
+ "streams": [
+  {
+   "ref": "GEN",
+   "name": "General Waste",
+   "ewc": "20 03 01",
+   "direction": "incoming"
+  },
+  {
+   "ref": "GEN-NR",
+   "name": "General Waste – Non-Recoverable (Landfill)",
+   "ewc": "20 03 01",
+   "direction": "incoming"
+  },
+  {
+   "ref": "GEN-RDF",
+   "name": "General Waste – Non-Recoverable (RDF)",
+   "ewc": "20 03 01",
+   "direction": "incoming"
+  },
+  {
+   "ref": "CD",
+   "name": "Construction & Demolition",
+   "ewc": "17 09 04",
+   "direction": "incoming"
+  },
+  {
+   "ref": "CARD",
+   "name": "Cardboard & Paper Packaging",
+   "ewc": "15 01 01",
+   "direction": "incoming"
+  },
+  {
+   "ref": "PAPER",
+   "name": "Paper & Cardboard (non-packaging)",
+   "ewc": "20 01 01",
+   "direction": "incoming"
+  },
+  {
+   "ref": "DMR",
+   "name": "Mixed Packaging (Co-mingled / DMR)",
+   "ewc": "15 01 06",
+   "direction": "incoming"
+  },
+  {
+   "ref": "PLPK",
+   "name": "Plastic Packaging",
+   "ewc": "15 01 02",
+   "direction": "incoming"
+  },
+  {
+   "ref": "PLCD",
+   "name": "Plastics (construction)",
+   "ewc": "17 02 03",
+   "direction": "incoming"
+  },
+  {
+   "ref": "PLMN",
+   "name": "Plastics (household)",
+   "ewc": "20 01 39",
+   "direction": "incoming"
+  },
+  {
+   "ref": "GLPK",
+   "name": "Glass Packaging",
+   "ewc": "15 01 07",
+   "direction": "incoming"
+  },
+  {
+   "ref": "GLCD",
+   "name": "Glass (construction)",
+   "ewc": "17 02 02",
+   "direction": "incoming"
+  },
+  {
+   "ref": "GLMN",
+   "name": "Glass (household)",
+   "ewc": "20 01 02",
+   "direction": "incoming"
+  },
+  {
+   "ref": "WOODA",
+   "name": "Wood – Packaging / Pallets",
+   "ewc": "15 01 03",
+   "direction": "incoming"
+  },
+  {
+   "ref": "WOODC",
+   "name": "Wood – Construction",
+   "ewc": "17 02 01",
+   "direction": "incoming"
+  },
+  {
+   "ref": "WOODM",
+   "name": "Wood (household)",
+   "ewc": "20 01 38",
+   "direction": "incoming"
+  },
+  {
+   "ref": "HAZW-D",
+   "name": "Hazardous Wood – Demolition",
+   "ewc": "17 02 04*",
+   "direction": "incoming"
+  },
+  {
+   "ref": "HAZW-O",
+   "name": "Hazardous Wood – Other",
+   "ewc": "20 01 37*",
+   "direction": "incoming"
+  },
+  {
+   "ref": "PB",
+   "name": "Plasterboard",
+   "ewc": "17 08 02",
+   "direction": "incoming"
+  },
+  {
+   "ref": "HARD",
+   "name": "Hardcore (Concrete, Bricks, Tiles & Ceramics)",
+   "ewc": "17 01 07",
+   "direction": "incoming"
+  },
+  {
+   "ref": "CONC",
+   "name": "Concrete",
+   "ewc": "17 01 01",
+   "direction": "incoming"
+  },
+  {
+   "ref": "BRICK",
+   "name": "Brick Rubble",
+   "ewc": "17 01 02",
+   "direction": "incoming"
+  },
+  {
+   "ref": "SOIL",
+   "name": "Soil & Stones (Inert)",
+   "ewc": "17 05 04",
+   "direction": "incoming"
+  },
+  {
+   "ref": "GREEN",
+   "name": "Green Waste",
+   "ewc": "20 02 01",
+   "direction": "incoming"
+  },
+  {
+   "ref": "GINERT",
+   "name": "Garden Soil & Stones",
+   "ewc": "20 02 02",
+   "direction": "incoming"
+  },
+  {
+   "ref": "BULKY",
+   "name": "Bulky Waste",
+   "ewc": "20 03 07",
+   "direction": "incoming"
+  },
+  {
+   "ref": "POPS",
+   "name": "POPs Waste (Upholstered Seating)",
+   "ewc": "20 03 07*",
+   "direction": "incoming"
+  },
+  {
+   "ref": "WEEE",
+   "name": "WEEE (excl. fridges, TVs & tubes)",
+   "ewc": "20 01 36",
+   "direction": "incoming"
+  },
+  {
+   "ref": "FRIDGE",
+   "name": "Fridges & Freezers",
+   "ewc": "20 01 23*",
+   "direction": "incoming"
+  },
+  {
+   "ref": "ELV",
+   "name": "End of Life Vehicle Components",
+   "ewc": "16 01 22",
+   "direction": "incoming"
+  },
+  {
+   "ref": "TYRE",
+   "name": "Tyres",
+   "ewc": "16 01 03",
+   "direction": "incoming"
+  },
+  {
+   "ref": "METDEM",
+   "name": "Mixed Metal (Demolition)",
+   "ewc": "17 04 07",
+   "direction": "incoming"
+  },
+  {
+   "ref": "METMUN",
+   "name": "Metal (Municipal Wastes)",
+   "ewc": "20 01 40",
+   "direction": "incoming"
+  },
+  {
+   "ref": "METVEH",
+   "name": "Metals (Vehicle Parts)",
+   "ewc": "16 01 17",
+   "direction": "incoming"
+  },
+  {
+   "ref": "NONFER",
+   "name": "Non-Ferrous Metal / Aluminium",
+   "ewc": "17 04 02",
+   "direction": "incoming"
+  },
+  {
+   "ref": "CANS",
+   "name": "Aluminium Cans",
+   "ewc": "15 01 04",
+   "direction": "incoming"
+  },
+  {
+   "ref": "FBA",
+   "name": "Furnace Bottom Ash",
+   "ewc": "10 01 03",
+   "direction": "incoming"
+  },
+  {
+   "ref": "CREM",
+   "name": "Cremation / Incinerator Ash",
+   "ewc": "19 01 12",
+   "direction": "incoming"
+  },
+  {
+   "ref": "OILPK",
+   "name": "Oil-Contaminated Packaging, Absorbents & PPE",
+   "ewc": "15 02 02*",
+   "direction": "incoming"
+  },
+  {
+   "ref": "FARMPL",
+   "name": "Farm Plastics (rinsed containers & bags)",
+   "ewc": "02 01 04",
+   "direction": "incoming"
+  },
+  {
+   "ref": "FOOD",
+   "name": "Food Unsuitable for Consumption (Baking)",
+   "ewc": "02 06 01",
+   "direction": "incoming"
+  },
+  {
+   "ref": "DRINK",
+   "name": "Drink Unsuitable for Consumption",
+   "ewc": "02 07 04",
+   "direction": "incoming"
+  },
+  {
+   "ref": "FILTER",
+   "name": "Hazardous Filter Cake",
+   "ewc": "12 01 14*",
+   "direction": "incoming"
+  },
+  {
+   "ref": "ASB",
+   "name": "Asbestos (Cement-Bonded)",
+   "ewc": "17 06 05*",
+   "direction": "incoming"
+  },
+  {
+   "ref": "TEXT",
+   "name": "Textiles",
+   "ewc": "20 01 11",
+   "direction": "incoming"
+  },
+  {
+   "ref": "BATT",
+   "name": "Batteries",
+   "ewc": "20 01 34",
+   "direction": "incoming"
+  },
+  {
+   "ref": "INSUL",
+   "name": "Insulation",
+   "ewc": "17 06 04",
+   "direction": "incoming"
+  },
+  {
+   "ref": "BITUM",
+   "name": "Bituminous Mixtures",
+   "ewc": "17 03 02",
+   "direction": "incoming"
+  },
+  {
+   "ref": "HAUL",
+   "name": "Haulage Only",
+   "ewc": null,
+   "direction": "job_type"
+  },
+  {
+   "ref": "O-LF",
+   "name": "Waste Out – Landfill",
+   "ewc": "19 12 12",
+   "direction": "outgoing"
+  },
+  {
+   "ref": "O-RDFWO",
+   "name": "Waste Out – for RDF",
+   "ewc": "19 12 12",
+   "direction": "outgoing"
+  },
+  {
+   "ref": "O-TROM",
+   "name": "Trommel Fines",
+   "ewc": "19 12 12",
+   "direction": "outgoing"
+  },
+  {
+   "ref": "O-RDF",
+   "name": "RDF (Waste to Energy)",
+   "ewc": "19 12 10",
+   "direction": "outgoing"
+  },
+  {
+   "ref": "O-WOODA",
+   "name": "Wood Grade A – Out",
+   "ewc": "19 12 07",
+   "direction": "outgoing"
+  },
+  {
+   "ref": "O-WOODC",
+   "name": "Wood Grade C – Out",
+   "ewc": "19 12 07",
+   "direction": "outgoing"
+  },
+  {
+   "ref": "O-CARD",
+   "name": "Paper & Card – Out",
+   "ewc": "19 12 01",
+   "direction": "outgoing"
+  },
+  {
+   "ref": "O-FER",
+   "name": "Ferrous Metal – Out",
+   "ewc": "19 12 02",
+   "direction": "outgoing"
+  },
+  {
+   "ref": "O-NONFER",
+   "name": "Non-Ferrous Metal – Out",
+   "ewc": "19 12 03",
+   "direction": "outgoing"
+  },
+  {
+   "ref": "O-PLAST",
+   "name": "Plastic – Out",
+   "ewc": "19 12 04",
+   "direction": "outgoing"
+  },
+  {
+   "ref": "O-TYRE",
+   "name": "Tyres – Out",
+   "ewc": "19 12 04",
+   "direction": "outgoing"
+  },
+  {
+   "ref": "O-HARD",
+   "name": "Processed Hardcore – Out",
+   "ewc": "19 12 09",
+   "direction": "outgoing"
+  },
+  {
+   "ref": "O-WEEE",
+   "name": "WEEE – Out (excl. fridges, TVs & tubes)",
+   "ewc": "20 01 35*",
+   "direction": "outgoing"
+  }
+ ],
+ "aliases": [
+  {
+   "system": "skiptrak",
+   "name": "Mixed Construction & Demolition",
+   "ewc": "17 09 04",
+   "ref": "CD"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Mixed Municipal Waste",
+   "ewc": "20 03 01",
+   "ref": "GEN"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Cardboard & Paper Packaging",
+   "ewc": "15 01 01",
+   "ref": "CARD"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Wood",
+   "ewc": "17 02 01",
+   "ref": "WOODC"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Plasterboard",
+   "ewc": "17 08 02",
+   "ref": "PB"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Furnace Bottom Ash",
+   "ewc": "10 01 03",
+   "ref": "FBA"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Co-Mingled Mixed Packaging",
+   "ewc": "15 01 06",
+   "ref": "DMR"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Wooden packaging",
+   "ewc": "15 01 03",
+   "ref": "WOODA"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Plastics",
+   "ewc": "17 02 03",
+   "ref": "PLCD"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Wooden packaging (Pallets)",
+   "ewc": "15 01 03",
+   "ref": "WOODA"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Mixed Concrete/Bricks/Tiles",
+   "ewc": "17 01 07",
+   "ref": "HARD"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Soil and Stone",
+   "ewc": "17 05 04",
+   "ref": "SOIL"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Green Waste (Vegetation)",
+   "ewc": "20 02 01",
+   "ref": "GREEN"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Bulky waste",
+   "ewc": "20 03 07",
+   "ref": "BULKY"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Plastic Packaging",
+   "ewc": "15 01 02",
+   "ref": "PLPK"
+  },
+  {
+   "system": "skiptrak",
+   "name": "End of life vehicle components",
+   "ewc": "16 01 22",
+   "ref": "ELV"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Plastics",
+   "ewc": "20 01 39",
+   "ref": "PLMN"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Mixed Metals",
+   "ewc": "17 04 07",
+   "ref": "METDEM"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Wood",
+   "ewc": "20 01 38",
+   "ref": "WOODM"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Paper and Cardboard",
+   "ewc": "15 01 01",
+   "ref": "CARD"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Oil Contaminated Packaging, absorbents, PPE",
+   "ewc": "15 02 02",
+   "ref": "OILPK"
+  },
+  {
+   "system": "skiptrak",
+   "name": "WEEE Waste",
+   "ewc": "20 01 35",
+   "ref": "WEEE"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Mixed Inert Waste",
+   "ewc": "20 02 02",
+   "ref": "GINERT"
+  },
+  {
+   "system": "skiptrak",
+   "name": "unsuitable for consumption or processing",
+   "ewc": "02 06 01",
+   "ref": "FOOD"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Mixed Ferrous Metal. Warehouse",
+   "ewc": "20 01 40",
+   "ref": "METMUN"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Disposal of liquids: Wastes not otherwise specified",
+   "ewc": "02 07 99",
+   "ref": "DRINK"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Mixed Metals. Demolition",
+   "ewc": "17 04 07",
+   "ref": "METDEM"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Mixed Ferrous Metal",
+   "ewc": "16 01 17",
+   "ref": "METVEH"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Paper and Cardboard",
+   "ewc": "20 01 01",
+   "ref": "PAPER"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Empty Skip",
+   "ewc": "00 00 00",
+   "ref": "HAUL"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Wooden packaging (Pallets)",
+   "ewc": "17 02 01",
+   "ref": "WOODA"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Concrete",
+   "ewc": "17 01 01",
+   "ref": "CONC"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Non Hazardous Filter Cake",
+   "ewc": "12 01 14",
+   "ref": "FILTER"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Aluminium",
+   "ewc": "17 04 02",
+   "ref": "NONFER"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Glass Packaging",
+   "ewc": "15 01 07",
+   "ref": "GLPK"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Inert & Non-Hazardous",
+   "ewc": "19 01 12",
+   "ref": "CREM"
+  },
+  {
+   "system": "skiptrak",
+   "name": "General Waste",
+   "ewc": "20 03 01",
+   "ref": "GEN"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Non Recoverable Non haz Waste",
+   "ewc": "20 03 01 NR",
+   "ref": "GEN-NR"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Mixed Non Ferrous Metal",
+   "ewc": "19 12 03",
+   "ref": "O-NONFER"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Furnace Bottom Ash",
+   "ewc": "10 01 01",
+   "ref": "FBA"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Mixed Construction",
+   "ewc": "17 09 04",
+   "ref": "CD"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Mixed Ferrous Metal",
+   "ewc": "20 01 40",
+   "ref": "METMUN"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Waste Plastics (Except Packaging) inc Agriculture",
+   "ewc": "02 01 04",
+   "ref": "FARMPL"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Glass",
+   "ewc": "17 02 02",
+   "ref": "GLCD"
+  },
+  {
+   "system": "skiptrak",
+   "name": "POPS- domestic seating waste containing POPs",
+   "ewc": "20 03 07*",
+   "ref": "POPS"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Cement Bonded Asbestos",
+   "ewc": "17 01 06",
+   "ref": "ASB"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Mechanical Treatment of Waste",
+   "ewc": "19 12 12",
+   "ref": "O-LF"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Brick Rubble",
+   "ewc": "17 01 02",
+   "ref": "BRICK"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Mixed Concrete/Bricks/Tiles",
+   "ewc": "200301",
+   "ref": "HARD"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Plastic and rubber",
+   "ewc": "19 12 04",
+   "ref": "O-PLAST"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Mixed Municipal Waste",
+   "ewc": "02 01 03",
+   "ref": "GEN"
+  },
+  {
+   "system": "skiptrak",
+   "name": "WEEE Waste",
+   "ewc": "20 01 36",
+   "ref": "WEEE"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Hazardous Wood",
+   "ewc": "20 01 37",
+   "ref": "HAZW-O"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Cardboard & Paper Packaging",
+   "ewc": "17 09 04",
+   "ref": "CARD"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Co-Mingled Mixed Packaging",
+   "ewc": "15 01 01",
+   "ref": "DMR"
+  },
+  {
+   "system": "skiptrak",
+   "name": "End of Life Tyres",
+   "ewc": "16 01 03",
+   "ref": "TYRE"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Mixed Municipal Waste",
+   "ewc": "17 02 01",
+   "ref": "GEN"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Mixed Construction & Demolition",
+   "ewc": "17 02 01",
+   "ref": "CD"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Wooden packaging (Pallets)",
+   "ewc": "16 01 17",
+   "ref": "WOODA"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Liquid not suitable for consumption",
+   "ewc": "02 07 04",
+   "ref": "DRINK"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Iron and Steel",
+   "ewc": "17 04 05",
+   "ref": "METMUN"
+  },
+  {
+   "system": "route_one",
+   "name": "Mixed Construction & Demolition",
+   "ewc": "17 09 04",
+   "ref": "CD"
+  },
+  {
+   "system": "route_one",
+   "name": "Mixed Municipal Waste",
+   "ewc": "20 03 01",
+   "ref": "GEN"
+  },
+  {
+   "system": "route_one",
+   "name": "Cardboard & Paper Packaging",
+   "ewc": "15 01 01",
+   "ref": "CARD"
+  },
+  {
+   "system": "route_one",
+   "name": "Furnace Bottom Ash",
+   "ewc": "10 01 03",
+   "ref": "FBA"
+  },
+  {
+   "system": "route_one",
+   "name": "Plasterboard",
+   "ewc": "17 08 02",
+   "ref": "PB"
+  },
+  {
+   "system": "route_one",
+   "name": "Wood",
+   "ewc": "17 02 01",
+   "ref": "WOODC"
+  },
+  {
+   "system": "route_one",
+   "name": "Mixed Concrete/Bricks/Tiles",
+   "ewc": "17 01 07",
+   "ref": "HARD"
+  },
+  {
+   "system": "route_one",
+   "name": "Plastics",
+   "ewc": "17 02 03",
+   "ref": "PLCD"
+  },
+  {
+   "system": "route_one",
+   "name": "Co-Mingled Mixed Packaging",
+   "ewc": "15 01 06",
+   "ref": "DMR"
+  },
+  {
+   "system": "route_one",
+   "name": "Plastic Packaging",
+   "ewc": "15 01 02",
+   "ref": "PLPK"
+  },
+  {
+   "system": "route_one",
+   "name": "Wooden packaging",
+   "ewc": "15 01 03",
+   "ref": "WOODA"
+  },
+  {
+   "system": "route_one",
+   "name": "Wooden packaging (Pallets)",
+   "ewc": "15 01 03",
+   "ref": "WOODA"
+  },
+  {
+   "system": "route_one",
+   "name": "End of life vehicle components",
+   "ewc": "16 01 22",
+   "ref": "ELV"
+  },
+  {
+   "system": "route_one",
+   "name": "Plastics",
+   "ewc": "20 01 39",
+   "ref": "PLMN"
+  },
+  {
+   "system": "route_one",
+   "name": "Oil Contaminated Packaging, absorbents, PPE",
+   "ewc": "15 02 02",
+   "ref": "OILPK"
+  },
+  {
+   "system": "route_one",
+   "name": "Mixed Ferrous Metal",
+   "ewc": "16 01 17",
+   "ref": "METVEH"
+  },
+  {
+   "system": "route_one",
+   "name": "Green Waste (Vegetation)",
+   "ewc": "20 02 01",
+   "ref": "GREEN"
+  },
+  {
+   "system": "route_one",
+   "name": "Mixed Metals",
+   "ewc": "17 04 07",
+   "ref": "METDEM"
+  },
+  {
+   "system": "route_one",
+   "name": "Paper and Cardboard",
+   "ewc": "15 01 01",
+   "ref": "CARD"
+  },
+  {
+   "system": "route_one",
+   "name": "Glass",
+   "ewc": "17 02 02",
+   "ref": "GLCD"
+  },
+  {
+   "system": "route_one",
+   "name": "Mixed Metals. Demolition",
+   "ewc": "17 04 07",
+   "ref": "METDEM"
+  },
+  {
+   "system": "route_one",
+   "name": "Empty Skip",
+   "ewc": "00 00 00",
+   "ref": "HAUL"
+  },
+  {
+   "system": "route_one",
+   "name": "WEEE Waste",
+   "ewc": "20 01 35",
+   "ref": "WEEE"
+  },
+  {
+   "system": "route_one",
+   "name": "unsuitable for consumption or processing",
+   "ewc": "02 06 01",
+   "ref": "FOOD"
+  },
+  {
+   "system": "route_one",
+   "name": "Waste out – landfill",
+   "ewc": "19 12 12",
+   "ref": "O-LF"
+  },
+  {
+   "system": "route_one",
+   "name": "Soil and Stone",
+   "ewc": "17 05 04",
+   "ref": "SOIL"
+  },
+  {
+   "system": "route_one",
+   "name": "Furnace Bottom Ash",
+   "ewc": null,
+   "ref": "FBA"
+  },
+  {
+   "system": "route_one",
+   "name": "Mixed Ferrous Metal. Warehouse",
+   "ewc": "20 01 40",
+   "ref": "METMUN"
+  },
+  {
+   "system": "route_one",
+   "name": "Wood",
+   "ewc": "20 01 38",
+   "ref": "WOODM"
+  },
+  {
+   "system": "route_one",
+   "name": "Non Hazardous Filter Cake",
+   "ewc": "12 01 14",
+   "ref": "FILTER"
+  },
+  {
+   "system": "route_one",
+   "name": "Waste Plastics (Except Packaging) inc Agriculture",
+   "ewc": "02 01 04",
+   "ref": "FARMPL"
+  },
+  {
+   "system": "route_one",
+   "name": "Wooden packaging (Pallets)",
+   "ewc": "17 02 01",
+   "ref": "WOODA"
+  },
+  {
+   "system": "route_one",
+   "name": "Aluminium",
+   "ewc": null,
+   "ref": "NONFER"
+  },
+  {
+   "system": "route_one",
+   "name": "Brick Rubble",
+   "ewc": "17 01 02",
+   "ref": "BRICK"
+  },
+  {
+   "system": "route_one",
+   "name": "Aluminium",
+   "ewc": "17 04 02",
+   "ref": "NONFER"
+  },
+  {
+   "system": "route_one",
+   "name": "Paper and Cardboard",
+   "ewc": "20 01 01",
+   "ref": "PAPER"
+  },
+  {
+   "system": "route_one",
+   "name": "Inert & Non-Hazardous",
+   "ewc": "19 01 12",
+   "ref": "CREM"
+  },
+  {
+   "system": "route_one",
+   "name": "Disposal of liquids: Wastes not otherwise specified",
+   "ewc": "02 07 99",
+   "ref": "DRINK"
+  },
+  {
+   "system": "route_one",
+   "name": "Mixed Inert Waste",
+   "ewc": "20 02 02",
+   "ref": "GINERT"
+  },
+  {
+   "system": "route_one",
+   "name": "General Waste",
+   "ewc": "20 03 01",
+   "ref": "GEN"
+  },
+  {
+   "system": "route_one",
+   "name": "Concrete",
+   "ewc": "17 01 01",
+   "ref": "CONC"
+  },
+  {
+   "system": "midweigh",
+   "name": "Mixed Municipal Waste",
+   "ewc": "20 03 01",
+   "ref": "GEN"
+  },
+  {
+   "system": "midweigh",
+   "name": "Mixed Construction & Demolition",
+   "ewc": "17 09 04",
+   "ref": "CD"
+  },
+  {
+   "system": "midweigh",
+   "name": "Cardboard & Paper Packaging",
+   "ewc": "15 01 01",
+   "ref": "CARD"
+  },
+  {
+   "system": "midweigh",
+   "name": "wood",
+   "ewc": "17 02 01",
+   "ref": "WOODC"
+  },
+  {
+   "system": "midweigh",
+   "name": "paper and cardboard packaging",
+   "ewc": "15 01 01",
+   "ref": "CARD"
+  },
+  {
+   "system": "midweigh",
+   "name": "Plasterboard",
+   "ewc": "17 08 02",
+   "ref": "PB"
+  },
+  {
+   "system": "midweigh",
+   "name": "other wastes (including mixtures of materials) from mechanical treatment of wastes other than those mentioned in 19 12 11",
+   "ewc": "19 12 12",
+   "ref": "O-LF"
+  },
+  {
+   "system": "midweigh",
+   "name": "WASTEIN",
+   "ewc": "20 03 07",
+   "ref": "BULKY"
+  },
+  {
+   "system": "midweigh",
+   "name": "wooden packaging",
+   "ewc": "15 01 03",
+   "ref": "WOODA"
+  },
+  {
+   "system": "midweigh",
+   "name": "Co-Mingled Mixed Packaging",
+   "ewc": "15 01 06",
+   "ref": "DMR"
+  },
+  {
+   "system": "midweigh",
+   "name": "biodegradable waste",
+   "ewc": "20 02 01",
+   "ref": "GREEN"
+  },
+  {
+   "system": "midweigh",
+   "name": "wood other than that mentioned in 19 12 06",
+   "ewc": "19 12 07",
+   "ref": "O-WOODC"
+  },
+  {
+   "system": "midweigh",
+   "name": "Plastics",
+   "ewc": "17 02 03",
+   "ref": "PLCD"
+  },
+  {
+   "system": "midweigh",
+   "name": "Wooden packaging (Pallets)",
+   "ewc": "15 01 03",
+   "ref": "WOODA"
+  },
+  {
+   "system": "midweigh",
+   "name": "discarded electrical and electronic equipment other than those mentioned in 20 01 21 and 20 01 23 containing hazardous components7 M",
+   "ewc": "20 01 35",
+   "ref": "WEEE"
+  },
+  {
+   "system": "midweigh",
+   "name": "paper and cardboard",
+   "ewc": "19 12 01",
+   "ref": "O-CARD"
+  },
+  {
+   "system": "midweigh",
+   "name": "mixtures of concrete bricks tiles and ceramics other than those mentioned in 17 01 06",
+   "ewc": "17 01 07",
+   "ref": "HARD"
+  },
+  {
+   "system": "midweigh",
+   "name": "combustible waste (refuse derived fuel)",
+   "ewc": "19 12 10",
+   "ref": "O-RDF"
+  },
+  {
+   "system": "midweigh",
+   "name": "Plastic Packaging",
+   "ewc": "15 01 02",
+   "ref": "PLPK"
+  },
+  {
+   "system": "midweigh",
+   "name": "mixed construction and demolition wastes other than those mentioned in 17 09 01 17 09 02 and 17 09 03",
+   "ewc": "17 09 04",
+   "ref": "CD"
+  },
+  {
+   "system": "midweigh",
+   "name": "End of life vehicle components",
+   "ewc": "16 01 22",
+   "ref": "ELV"
+  },
+  {
+   "system": "midweigh",
+   "name": "ferrous metal",
+   "ewc": "19 12 02",
+   "ref": "O-FER"
+  },
+  {
+   "system": "midweigh",
+   "name": "gypsum-based construction materials other than those mentioned in 17 08 01",
+   "ewc": "17 08 02",
+   "ref": "PB"
+  },
+  {
+   "system": "midweigh",
+   "name": "Plastics",
+   "ewc": "20 01 39",
+   "ref": "PLMN"
+  },
+  {
+   "system": "midweigh",
+   "name": "minerals (for example sand stones)",
+   "ewc": "19 12 09",
+   "ref": "O-HARD"
+  },
+  {
+   "system": "midweigh",
+   "name": "Paper and Cardboard",
+   "ewc": "15 01 01",
+   "ref": "CARD"
+  },
+  {
+   "system": "midweigh",
+   "name": "mixed packaging",
+   "ewc": "15 01 06",
+   "ref": "DMR"
+  },
+  {
+   "system": "midweigh",
+   "name": "Wood",
+   "ewc": "20 01 38",
+   "ref": "WOODM"
+  },
+  {
+   "system": "midweigh",
+   "name": "soil and stones other than those mentioned in 17 05 03",
+   "ewc": "17 05 04",
+   "ref": "SOIL"
+  },
+  {
+   "system": "midweigh",
+   "name": "non-ferrous metal",
+   "ewc": "19 12 03",
+   "ref": "O-NONFER"
+  },
+  {
+   "system": "midweigh",
+   "name": "plastic and rubber",
+   "ewc": "19 12 04",
+   "ref": "O-PLAST"
+  },
+  {
+   "system": "midweigh",
+   "name": "Soil and Stone",
+   "ewc": "17 05 04",
+   "ref": "SOIL"
+  },
+  {
+   "system": "midweigh",
+   "name": "glass",
+   "ewc": "20 01 02",
+   "ref": "GLMN"
+  },
+  {
+   "system": "midweigh",
+   "name": "WEEE Waste",
+   "ewc": "20 01 35",
+   "ref": "WEEE"
+  },
+  {
+   "system": "midweigh",
+   "name": "agrochemical waste other than those mentioned in 02 01 08",
+   "ewc": "02 01 09",
+   "ref": "FARMPL"
+  },
+  {
+   "system": "midweigh",
+   "name": "Mixed Municipal Waste",
+   "ewc": "20 03 07",
+   "ref": "GEN"
+  },
+  {
+   "system": "midweigh",
+   "name": "Wooden packaging (Pallets)",
+   "ewc": "17 02 01",
+   "ref": "WOODA"
+  },
+  {
+   "system": "midweigh",
+   "name": "discarded electrical and electronic equipment other than those mentioned in 20 01 21 and 20 01 23 containing hazardous components7 M",
+   "ewc": "20 01 35",
+   "ref": "O-WEEE"
+  },
+  {
+   "system": "midweigh",
+   "name": "metals",
+   "ewc": "20 01 40",
+   "ref": "METMUN"
+  },
+  {
+   "system": "midweigh",
+   "name": "Paper and Cardboard",
+   "ewc": "20 01 01",
+   "ref": "PAPER"
+  },
+  {
+   "system": "midweigh",
+   "name": "General Waste",
+   "ewc": "20 03 01",
+   "ref": "GEN"
+  },
+  {
+   "system": "midweigh",
+   "name": "Mixed Construction",
+   "ewc": "17 09 04",
+   "ref": "CD"
+  },
+  {
+   "system": "midweigh",
+   "name": "Green Waste (Vegetation)",
+   "ewc": "20 02 01",
+   "ref": "GREEN"
+  },
+  {
+   "system": "midweigh",
+   "name": "WASTEOUT",
+   "ewc": "20 03 07",
+   "ref": "BULKY"
+  },
+  {
+   "system": "midweigh",
+   "name": "Mixed Inert Waste",
+   "ewc": "20 02 02",
+   "ref": "GINERT"
+  },
+  {
+   "system": "midweigh",
+   "name": "mixed metals",
+   "ewc": "17 04 07",
+   "ref": "METDEM"
+  },
+  {
+   "system": "midweigh",
+   "name": "Waste Plastics (Except Packaging) inc Agriculture",
+   "ewc": "02 01 04",
+   "ref": "FARMPL"
+  },
+  {
+   "system": "midweigh",
+   "name": "Non Recoverable Non haz Waste",
+   "ewc": "20 03 01 NR",
+   "ref": "GEN-NR"
+  },
+  {
+   "system": "midweigh",
+   "name": "Mixed Ferrous Metal. Warehouse",
+   "ewc": "20 01 40",
+   "ref": "METMUN"
+  },
+  {
+   "system": "midweigh",
+   "name": "end-of-life tyres",
+   "ewc": "16 01 03",
+   "ref": "O-TYRE"
+  },
+  {
+   "system": "midweigh",
+   "name": "Mixed Concrete/Bricks/Tiles",
+   "ewc": "17 01 07",
+   "ref": "HARD"
+  },
+  {
+   "system": "midweigh",
+   "name": "Bulky waste",
+   "ewc": "20 03 07",
+   "ref": "BULKY"
+  },
+  {
+   "system": "midweigh",
+   "name": "Aluminium",
+   "ewc": "17 04 02",
+   "ref": "NONFER"
+  },
+  {
+   "system": "midweigh",
+   "name": "plastic",
+   "ewc": "17 02 03",
+   "ref": "PLCD"
+  },
+  {
+   "system": "midweigh",
+   "name": "ferrous metal",
+   "ewc": "19 12 02",
+   "ref": "METMUN"
+  },
+  {
+   "system": "midweigh",
+   "name": "Empty Skip",
+   "ewc": "00 00 00",
+   "ref": "HAUL"
+  },
+  {
+   "system": "midweigh",
+   "name": "Concrete",
+   "ewc": "17 01 01",
+   "ref": "CONC"
+  },
+  {
+   "system": "midweigh",
+   "name": "discarded equipment other than those mentioned in 16 02 09 to 16 02 13",
+   "ewc": "16 02 14",
+   "ref": "WEEE"
+  },
+  {
+   "system": "midweigh",
+   "name": "wood containing dangerous substances M",
+   "ewc": "20 01 37",
+   "ref": "HAZW-O"
+  },
+  {
+   "system": "midweigh",
+   "name": "Glass",
+   "ewc": "17 02 02",
+   "ref": "GLCD"
+  },
+  {
+   "system": "midweigh",
+   "name": "Mixed Metals. Demolition",
+   "ewc": "17 04 07",
+   "ref": "METDEM"
+  },
+  {
+   "system": "midweigh",
+   "name": "Mixed Concrete/Bricks/Tiles",
+   "ewc": "200301",
+   "ref": "HARD"
+  },
+  {
+   "system": "midweigh",
+   "name": "Glass Packaging",
+   "ewc": "15 01 07",
+   "ref": "GLPK"
+  },
+  {
+   "system": "midweigh",
+   "name": "Brick Rubble",
+   "ewc": "17 01 02",
+   "ref": "BRICK"
+  },
+  {
+   "system": "midweigh",
+   "name": "discarded electrical and electronic equipment other than those mentioned in 20 01 21 and 20 01 23 containing hazardous components7 M",
+   "ewc": "20 03 07",
+   "ref": "WEEE"
+  },
+  {
+   "system": "midweigh",
+   "name": "construction and demolition wastes containing mercury M",
+   "ewc": "17 09 01",
+   "ref": "CD"
+  },
+  {
+   "system": "midweigh",
+   "name": "Mixed Ferrous Metal",
+   "ewc": "20 01 40",
+   "ref": "METMUN"
+  },
+  {
+   "system": "midweigh",
+   "name": "Hazardous Wood",
+   "ewc": "20 01 37",
+   "ref": "HAZW-O"
+  },
+  {
+   "system": "midweigh",
+   "name": "Mixed Municipal Waste",
+   "ewc": "02 01 03",
+   "ref": "GEN"
+  },
+  {
+   "system": "midweigh",
+   "name": "batteries and accumulators other than those mentioned in 20 01 33",
+   "ewc": "20 01 34",
+   "ref": "BATT"
+  },
+  {
+   "system": "midweigh",
+   "name": "POPS- domestic seating waste containing POPs",
+   "ewc": "20 03 07*",
+   "ref": "POPS"
+  },
+  {
+   "system": "midweigh",
+   "name": "Mixed Ferrous Metal",
+   "ewc": "16 01 17",
+   "ref": "METVEH"
+  },
+  {
+   "system": "midweigh",
+   "name": "metallic packaging",
+   "ewc": "15 01 04",
+   "ref": "CANS"
+  },
+  {
+   "system": "midweigh",
+   "name": "unsuitable for consumption or processing",
+   "ewc": "02 06 01",
+   "ref": "FOOD"
+  },
+  {
+   "system": "midweigh",
+   "name": "Inert & Non-Hazardous",
+   "ewc": "19 01 12",
+   "ref": "SOIL"
+  },
+  {
+   "system": "midweigh",
+   "name": "paper and cardboard packaging",
+   "ewc": "20 03 07",
+   "ref": "CARD"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "MIX MUN",
+   "ewc": "20 03 01",
+   "ref": "GEN"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "WOOD-C",
+   "ewc": "17 02 01",
+   "ref": "WOODC"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "CARD",
+   "ewc": "15 01 01",
+   "ref": "CARD"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "WOOD A",
+   "ewc": "15 01 03",
+   "ref": "WOODA"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "POPS -TONNE",
+   "ewc": "20 03 07",
+   "ref": "POPS"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "GREEN",
+   "ewc": "20 02 01",
+   "ref": "GREEN"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "WASTE OUT",
+   "ewc": "19 12 12",
+   "ref": "O-LF"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "WOOD-C OUT",
+   "ewc": "19 12 07",
+   "ref": "O-WOODC"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "RDF",
+   "ewc": "19 12 10",
+   "ref": "O-RDF"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "HARD",
+   "ewc": "17 01 07",
+   "ref": "HARD"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "TROMMEL",
+   "ewc": "19 12 12",
+   "ref": "O-TROM"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "CARDOUT",
+   "ewc": "19 12 01",
+   "ref": "O-CARD"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "CON",
+   "ewc": "17 09 04",
+   "ref": "CD"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "FRIDGE",
+   "ewc": "20 01 35",
+   "ref": "FRIDGE"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "OUT-FER",
+   "ewc": "19 12 02",
+   "ref": "O-FER"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "NONRE",
+   "ewc": "20 03 01",
+   "ref": "GEN-NR"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "PLASTER",
+   "ewc": "17 08 02",
+   "ref": "PB"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "PAPER OUT",
+   "ewc": "19 12 01",
+   "ref": "O-CARD"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "OUTHAR",
+   "ewc": "19 12 09",
+   "ref": "O-HARD"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "POPS-LARGE",
+   "ewc": "20 03 07",
+   "ref": "POPS"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "CO MINGLE",
+   "ewc": "15 01 06",
+   "ref": "DMR"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "PLASTICS",
+   "ewc": "20 01 39",
+   "ref": "PLMN"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "INERT",
+   "ewc": "17 05 04",
+   "ref": "SOIL"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "WOOD A OUT",
+   "ewc": "19 12 07",
+   "ref": "O-WOODA"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "NON FER",
+   "ewc": "19 12 03",
+   "ref": "O-NONFER"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "PLAST OUT",
+   "ewc": "19 12 04",
+   "ref": "O-PLAST"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "WEEE",
+   "ewc": "20 01 35",
+   "ref": "WEEE"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "WASTE OUT (FOR RDF)",
+   "ewc": "19 12 12",
+   "ref": "O-RDFWO"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "FARM PL",
+   "ewc": "02 01 09",
+   "ref": "FARMPL"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "GLASS",
+   "ewc": "20 01 02",
+   "ref": "GLMN"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "PLASTIC PACKAGING",
+   "ewc": "15 01 02",
+   "ref": "PLPK"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "MATT",
+   "ewc": "20 03 07",
+   "ref": "BULKY"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "FERROUS",
+   "ewc": "20 01 40",
+   "ref": "METMUN"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "FRIDGECOM",
+   "ewc": "20 01 35",
+   "ref": "FRIDGE"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "MIXMET",
+   "ewc": "17 04 07",
+   "ref": "METDEM"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "TYRE 1",
+   "ewc": "16 01 03",
+   "ref": "O-TYRE"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "WEEE",
+   "ewc": "20 01 35",
+   "ref": "O-WEEE"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "PLAS CON",
+   "ewc": "17 02 03",
+   "ref": "PLCD"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "HAZWOOD",
+   "ewc": "20 01 37",
+   "ref": "HAZW-O"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "WEE-IT",
+   "ewc": "16 02 14",
+   "ref": "WEEE"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "MIX MUN",
+   "ewc": "17 09 04",
+   "ref": "GEN"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "PAPER",
+   "ewc": "15 01 01",
+   "ref": "CARD"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "CANS",
+   "ewc": "15 01 04",
+   "ref": "CANS"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "BATTER",
+   "ewc": "20 01 34",
+   "ref": "BATT"
+  },
+  {
+   "system": "midweigh_code",
+   "name": "POPS-SMALL",
+   "ewc": "20 03 07",
+   "ref": "POPS"
+  },
+  {
+   "system": "rate_card",
+   "name": "Aluminium",
+   "ewc": "17 04 02",
+   "ref": "NONFER"
+  },
+  {
+   "system": "rate_card",
+   "name": "Batteries",
+   "ewc": "20 01 34",
+   "ref": "BATT"
+  },
+  {
+   "system": "rate_card",
+   "name": "Bituminous Mixtures",
+   "ewc": "17 03 02",
+   "ref": "BITUM"
+  },
+  {
+   "system": "rate_card",
+   "name": "Black Bin Bag / Bulky to Landfill",
+   "ewc": "Varied",
+   "ref": "GEN-NR"
+  },
+  {
+   "system": "rate_card",
+   "name": "Brick Rubble",
+   "ewc": "17 01 02",
+   "ref": "BRICK"
+  },
+  {
+   "system": "rate_card",
+   "name": "Bulky waste",
+   "ewc": "20 03 07",
+   "ref": "BULKY"
+  },
+  {
+   "system": "rate_card",
+   "name": "Cardboard (clean & dry - FOC)",
+   "ewc": "15 01 01",
+   "ref": "CARD"
+  },
+  {
+   "system": "rate_card",
+   "name": "Cardboard (FOC)",
+   "ewc": "15 01 01",
+   "ref": "CARD"
+  },
+  {
+   "system": "rate_card",
+   "name": "Cardboard & Paper Packaging",
+   "ewc": "15 01 01",
+   "ref": "CARD"
+  },
+  {
+   "system": "rate_card",
+   "name": "Clean Wood (Grade A - pallets only)",
+   "ewc": "17 02 01",
+   "ref": "WOODA"
+  },
+  {
+   "system": "rate_card",
+   "name": "Co-Mingled / DMR / Mixed Packaging",
+   "ewc": "15 01 06",
+   "ref": "DMR"
+  },
+  {
+   "system": "rate_card",
+   "name": "Co-Mingled Mixed Packaging",
+   "ewc": "15 01 06",
+   "ref": "DMR"
+  },
+  {
+   "system": "rate_card",
+   "name": "Co-Mingled/DMR/Mixed Packaging",
+   "ewc": "15 01 06",
+   "ref": "DMR"
+  },
+  {
+   "system": "rate_card",
+   "name": "Concrete",
+   "ewc": "17 01 01",
+   "ref": "CONC"
+  },
+  {
+   "system": "rate_card",
+   "name": "Empty Skip",
+   "ewc": null,
+   "ref": "HAUL"
+  },
+  {
+   "system": "rate_card",
+   "name": "Farmer's rinsed plastic containers & poly bags (FOC)",
+   "ewc": "02 01 09",
+   "ref": "FARMPL"
+  },
+  {
+   "system": "rate_card",
+   "name": "Furnace Bottom Ash",
+   "ewc": "10 01 01",
+   "ref": "FBA"
+  },
+  {
+   "system": "rate_card",
+   "name": "General Waste",
+   "ewc": "20 03 01",
+   "ref": "GEN"
+  },
+  {
+   "system": "rate_card",
+   "name": "General Waste (min 60% recoverable)",
+   "ewc": "17 09 04",
+   "ref": "CD"
+  },
+  {
+   "system": "rate_card",
+   "name": "GENERAL WASTE: Min 60% Recoverable",
+   "ewc": "17 09 04",
+   "ref": "CD"
+  },
+  {
+   "system": "rate_card",
+   "name": "Glass",
+   "ewc": "20 01 02",
+   "ref": "GLMN"
+  },
+  {
+   "system": "rate_card",
+   "name": "Green Waste",
+   "ewc": "20 02 01",
+   "ref": "GREEN"
+  },
+  {
+   "system": "rate_card",
+   "name": "Green Waste (Vegetation)",
+   "ewc": "20 02 01",
+   "ref": "GREEN"
+  },
+  {
+   "system": "rate_card",
+   "name": "Hardcore (bricks, slate, ceramics, glass)",
+   "ewc": "17 01 07",
+   "ref": "HARD"
+  },
+  {
+   "system": "rate_card",
+   "name": "Hazardous Wood",
+   "ewc": "17 02 04*",
+   "ref": "HAZW-D"
+  },
+  {
+   "system": "rate_card",
+   "name": "Inert Mixed",
+   "ewc": "17 05 04",
+   "ref": "SOIL"
+  },
+  {
+   "system": "rate_card",
+   "name": "Insulation Materials",
+   "ewc": "17 06 04",
+   "ref": "INSUL"
+  },
+  {
+   "system": "rate_card",
+   "name": "Low Grade Wood (Grade C)",
+   "ewc": "17 02 01",
+   "ref": "WOODC"
+  },
+  {
+   "system": "rate_card",
+   "name": "Mattress",
+   "ewc": "20 03 07",
+   "ref": "BULKY"
+  },
+  {
+   "system": "rate_card",
+   "name": "Mixed Concrete/Bricks/Tiles",
+   "ewc": "17 01 07",
+   "ref": "HARD"
+  },
+  {
+   "system": "rate_card",
+   "name": "Mixed Construction & Demolition",
+   "ewc": "17 09 04",
+   "ref": "CD"
+  },
+  {
+   "system": "rate_card",
+   "name": "Mixed Ferrous Metal",
+   "ewc": "17 04 05",
+   "ref": "METMUN"
+  },
+  {
+   "system": "rate_card",
+   "name": "Mixed Metals",
+   "ewc": "17 04 07",
+   "ref": "METDEM"
+  },
+  {
+   "system": "rate_card",
+   "name": "Mixed Municipal Waste",
+   "ewc": "20 03 01",
+   "ref": "GEN"
+  },
+  {
+   "system": "rate_card",
+   "name": "Mixed Non Ferrous Metal",
+   "ewc": "17 04 02",
+   "ref": "NONFER"
+  },
+  {
+   "system": "rate_card",
+   "name": "Paper (clean & dry - FOC)",
+   "ewc": "15 01 01",
+   "ref": "CARD"
+  },
+  {
+   "system": "rate_card",
+   "name": "Paper (FOC)",
+   "ewc": "15 01 01",
+   "ref": "CARD"
+  },
+  {
+   "system": "rate_card",
+   "name": "Paper and Cardboard",
+   "ewc": "20 01 01",
+   "ref": "PAPER"
+  },
+  {
+   "system": "rate_card",
+   "name": "Plasterboard",
+   "ewc": "17 08 02",
+   "ref": "PB"
+  },
+  {
+   "system": "rate_card",
+   "name": "Plasterboard (priced)",
+   "ewc": "17 08 02",
+   "ref": "PB"
+  },
+  {
+   "system": "rate_card",
+   "name": "Plastic Packaging",
+   "ewc": "15 01 02",
+   "ref": "PLPK"
+  },
+  {
+   "system": "rate_card",
+   "name": "Plastics",
+   "ewc": "20 01 39",
+   "ref": "PLMN"
+  },
+  {
+   "system": "rate_card",
+   "name": "Polystyrene",
+   "ewc": "20 01 39",
+   "ref": "PLMN"
+  },
+  {
+   "system": "rate_card",
+   "name": "POPs (per tonne)",
+   "ewc": "20 01 04",
+   "ref": "POPS"
+  },
+  {
+   "system": "rate_card",
+   "name": "POPS / Tonne",
+   "ewc": "20 01 04",
+   "ref": "POPS"
+  },
+  {
+   "system": "rate_card",
+   "name": "RDF (suitable for RDF / pre-shred)",
+   "ewc": "Varied",
+   "ref": "GEN-RDF"
+  },
+  {
+   "system": "rate_card",
+   "name": "RDF: Waste suitable for RDF or pre shred",
+   "ewc": "Varied",
+   "ref": "GEN-RDF"
+  },
+  {
+   "system": "rate_card",
+   "name": "Sand",
+   "ewc": "17 05 04",
+   "ref": "SOIL"
+  },
+  {
+   "system": "rate_card",
+   "name": "Scrap Metal (all types - FOC)",
+   "ewc": "Varied",
+   "ref": "METDEM"
+  },
+  {
+   "system": "rate_card",
+   "name": "Scrap Metal (FOC)",
+   "ewc": "Varied",
+   "ref": "METDEM"
+  },
+  {
+   "system": "rate_card",
+   "name": "Soil and Stone",
+   "ewc": "17 05 04",
+   "ref": "SOIL"
+  },
+  {
+   "system": "rate_card",
+   "name": "Textiles",
+   "ewc": "20 01 11",
+   "ref": "TEXT"
+  },
+  {
+   "system": "rate_card",
+   "name": "Tyres",
+   "ewc": "16 01 03",
+   "ref": "TYRE"
+  },
+  {
+   "system": "rate_card",
+   "name": "UPVC Windows (deglazed, FOC)",
+   "ewc": "17 02 03",
+   "ref": "PLCD"
+  },
+  {
+   "system": "rate_card",
+   "name": "WEEE",
+   "ewc": "20 01 36",
+   "ref": "WEEE"
+  },
+  {
+   "system": "rate_card",
+   "name": "WEEE (excl fridges, TVs & tubes)",
+   "ewc": "16 02 14",
+   "ref": "WEEE"
+  },
+  {
+   "system": "rate_card",
+   "name": "WEEE (excl. fridges, TVs & tubes)",
+   "ewc": "16 02 14",
+   "ref": "WEEE"
+  },
+  {
+   "system": "rate_card",
+   "name": "Wood",
+   "ewc": "20 01 38",
+   "ref": "WOODM"
+  },
+  {
+   "system": "rate_card",
+   "name": "Wooden Packaging (Pallets)",
+   "ewc": "15 01 03",
+   "ref": "WOODA"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Aluminium cans",
+   "ewc": "15 01 04",
+   "ref": "CANS"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Bulky waste",
+   "ewc": "20 03 07",
+   "ref": "BULKY"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Car tyres",
+   "ewc": "16 01 03",
+   "ref": "O-TYRE"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Cardboard",
+   "ewc": "15 01 01",
+   "ref": "CARD"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Domestic fridges",
+   "ewc": "20 01 35",
+   "ref": "FRIDGE"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Ferrous metal",
+   "ewc": "19 12 02",
+   "ref": "O-FER"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Ferrous metal (shearing/light iron)",
+   "ewc": "20 01 40",
+   "ref": "METMUN"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "General waste",
+   "ewc": "20 03 01",
+   "ref": "GEN"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Green waste",
+   "ewc": "20 02 01",
+   "ref": "GREEN"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Hardcore and rubble",
+   "ewc": "17 01 07",
+   "ref": "HARD"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Hazardous wood",
+   "ewc": "20 01 37",
+   "ref": "HAZW-O"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Mixed construction waste",
+   "ewc": "17 09 04",
+   "ref": "CD"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Mixed metals",
+   "ewc": "17 04 07",
+   "ref": "METDEM"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Mixed packaging",
+   "ewc": "15 01 06",
+   "ref": "DMR"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Mixed papers",
+   "ewc": "19 12 01",
+   "ref": "O-CARD"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Non-ferrous metal",
+   "ewc": "19 12 03",
+   "ref": "O-NONFER"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Paper",
+   "ewc": "15 01 01",
+   "ref": "CARD"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Paper and card",
+   "ewc": "19 12 01",
+   "ref": "O-CARD"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Plasterboard",
+   "ewc": "17 08 02",
+   "ref": "PB"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Plastic packaging",
+   "ewc": "15 01 02",
+   "ref": "PLPK"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Plastics",
+   "ewc": "20 01 39",
+   "ref": "PLMN"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Plastics",
+   "ewc": "19 12 04",
+   "ref": "O-PLAST"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "POPs waste",
+   "ewc": "20 03 07",
+   "ref": "POPS"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Processed hardcore",
+   "ewc": "19 12 09",
+   "ref": "O-HARD"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "RDF (waste to energy)",
+   "ewc": "19 12 10",
+   "ref": "O-RDF"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Soil and stones",
+   "ewc": "17 05 04",
+   "ref": "SOIL"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Transfer station waste",
+   "ewc": "19 12 12",
+   "ref": "O-LF"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Trommel fines",
+   "ewc": "19 12 12",
+   "ref": "O-TROM"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Waste out – landfill",
+   "ewc": "19 12 12",
+   "ref": "O-LF"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Waste out – RDF",
+   "ewc": "19 12 12",
+   "ref": "O-RDFWO"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "WEEE",
+   "ewc": "20 01 35",
+   "ref": "WEEE"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Wood grade A",
+   "ewc": "19 12 07",
+   "ref": "O-WOODC"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Wood grade A",
+   "ewc": "15 01 03",
+   "ref": "WOODA"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Wood grade C",
+   "ewc": "19 12 07",
+   "ref": "O-WOODC"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Wood grade C",
+   "ewc": "17 02 01",
+   "ref": "WOODC"
+  },
+  {
+   "system": "website",
+   "name": "General Waste",
+   "ewc": null,
+   "ref": "GEN"
+  },
+  {
+   "system": "website",
+   "name": "Mixed Construction",
+   "ewc": null,
+   "ref": "CD"
+  },
+  {
+   "system": "website",
+   "name": "Soil / Hardcore Waste",
+   "ewc": null,
+   "ref": "HARD"
+  },
+  {
+   "system": "website",
+   "name": "Wood Waste",
+   "ewc": null,
+   "ref": "WOODC"
+  },
+  {
+   "system": "website",
+   "name": "Green Waste",
+   "ewc": null,
+   "ref": "GREEN"
+  },
+  {
+   "system": "website",
+   "name": "Plasterboard",
+   "ewc": null,
+   "ref": "PB"
+  }
+ ],
+ "hazardous_codes": [
+  "01 03 04",
+  "01 03 05",
+  "01 03 07",
+  "01 04 07",
+  "01 05 05",
+  "01 05 06",
+  "02 01 08",
+  "03 01 04",
+  "03 02 01",
+  "03 02 02",
+  "03 02 03",
+  "03 02 04",
+  "03 02 05",
+  "04 01 03",
+  "04 02 14",
+  "04 02 16",
+  "04 02 19",
+  "05 01 02",
+  "05 01 03",
+  "05 01 04",
+  "05 01 05",
+  "05 01 06",
+  "05 01 07",
+  "05 01 08",
+  "05 01 09",
+  "05 01 11",
+  "05 01 12",
+  "05 01 15",
+  "05 06 01",
+  "05 06 03",
+  "05 07 01",
+  "06 01 01",
+  "06 01 02",
+  "06 01 03",
+  "06 01 04",
+  "06 01 05",
+  "06 01 06",
+  "06 02 01",
+  "06 02 03",
+  "06 02 04",
+  "06 02 05",
+  "06 03 11",
+  "06 03 13",
+  "06 03 15",
+  "06 04 03",
+  "06 04 04",
+  "06 04 05",
+  "06 05 02",
+  "06 06 02",
+  "06 07 01",
+  "06 07 02",
+  "06 07 03",
+  "06 07 04",
+  "06 08 02",
+  "06 09 03",
+  "06 10 02",
+  "06 13 01",
+  "06 13 02",
+  "06 13 04",
+  "06 13 05",
+  "07 01 01",
+  "07 01 03",
+  "07 01 04",
+  "07 01 07",
+  "07 01 08",
+  "07 01 09",
+  "07 01 10",
+  "07 01 11",
+  "07 02 01",
+  "07 02 03",
+  "07 02 04",
+  "07 02 07",
+  "07 02 08",
+  "07 02 09",
+  "07 02 10",
+  "07 02 11",
+  "07 02 14",
+  "07 02 16",
+  "07 03 01",
+  "07 03 03",
+  "07 03 04",
+  "07 03 07",
+  "07 03 08",
+  "07 03 09",
+  "07 03 10",
+  "07 03 11",
+  "07 04 01",
+  "07 04 03",
+  "07 04 04",
+  "07 04 07",
+  "07 04 08",
+  "07 04 09",
+  "07 04 10",
+  "07 04 11",
+  "07 04 13",
+  "07 05 01",
+  "07 05 03",
+  "07 05 04",
+  "07 05 07",
+  "07 05 08",
+  "07 05 09",
+  "07 05 10",
+  "07 05 11",
+  "07 05 13",
+  "07 06 01",
+  "07 06 03",
+  "07 06 04",
+  "07 06 07",
+  "07 06 08",
+  "07 06 09",
+  "07 06 10",
+  "07 06 11",
+  "07 07 01",
+  "07 07 03",
+  "07 07 04",
+  "07 07 07",
+  "07 07 08",
+  "07 07 09",
+  "07 07 10",
+  "07 07 11",
+  "08 01 11",
+  "08 01 13",
+  "08 01 15",
+  "08 03 12",
+  "08 03 14",
+  "08 03 16",
+  "08 03 17",
+  "08 03 19",
+  "08 04 09",
+  "08 04 11",
+  "08 04 13",
+  "08 04 15",
+  "08 04 17",
+  "08 05 01",
+  "09 01 01",
+  "09 01 02",
+  "09 01 03",
+  "09 01 04",
+  "09 01 05",
+  "09 01 06",
+  "09 01 11",
+  "09 01 13",
+  "10 01 04",
+  "10 01 09",
+  "10 01 13",
+  "10 01 14",
+  "10 01 16",
+  "10 01 18",
+  "10 01 20",
+  "10 01 22",
+  "10 02 07",
+  "10 02 11",
+  "10 02 13",
+  "10 03 04",
+  "10 03 08",
+  "10 03 09",
+  "10 03 15",
+  "10 03 17",
+  "10 03 19",
+  "10 03 21",
+  "10 03 23",
+  "10 03 25",
+  "10 03 27",
+  "10 03 29",
+  "10 04 01",
+  "10 04 02",
+  "10 04 03",
+  "10 04 04",
+  "10 04 05",
+  "10 04 06",
+  "10 04 07",
+  "10 04 09",
+  "10 05 03",
+  "10 05 05",
+  "10 05 06",
+  "10 05 08",
+  "10 05 10",
+  "10 06 03",
+  "10 06 06",
+  "10 06 07",
+  "10 06 09",
+  "10 07 07",
+  "10 08 08",
+  "10 08 10",
+  "10 08 12",
+  "10 08 15",
+  "10 08 17",
+  "10 08 19",
+  "10 09 05",
+  "10 09 07",
+  "10 09 09",
+  "10 09 11",
+  "10 09 13",
+  "10 09 15",
+  "10 10 05",
+  "10 10 07",
+  "10 10 09",
+  "10 10 11",
+  "10 10 13",
+  "10 10 15",
+  "10 11 09",
+  "10 11 11",
+  "10 11 13",
+  "10 11 15",
+  "10 11 17",
+  "10 11 19",
+  "10 12 09",
+  "10 12 11",
+  "10 13 09",
+  "10 13 12",
+  "10 14 01",
+  "11 01 05",
+  "11 01 06",
+  "11 01 07",
+  "11 01 08",
+  "11 01 09",
+  "11 01 11",
+  "11 01 13",
+  "11 01 15",
+  "11 01 16",
+  "11 01 98",
+  "11 02 02",
+  "11 02 05",
+  "11 02 07",
+  "11 03 01",
+  "11 03 02",
+  "11 05 03",
+  "11 05 04",
+  "12 01 06",
+  "12 01 07",
+  "12 01 08",
+  "12 01 09",
+  "12 01 10",
+  "12 01 12",
+  "12 01 14",
+  "12 01 16",
+  "12 01 18",
+  "12 01 19",
+  "12 01 20",
+  "12 03 01",
+  "12 03 02",
+  "13 01 01",
+  "13 01 04",
+  "13 01 05",
+  "13 01 09",
+  "13 01 10",
+  "13 01 11",
+  "13 01 12",
+  "13 01 13",
+  "13 02 04",
+  "13 02 05",
+  "13 02 06",
+  "13 02 07",
+  "13 02 08",
+  "13 03 01",
+  "13 03 06",
+  "13 03 07",
+  "13 03 08",
+  "13 03 09",
+  "13 03 10",
+  "13 04 01",
+  "13 04 02",
+  "13 04 03",
+  "13 05 01",
+  "13 05 02",
+  "13 05 03",
+  "13 05 06",
+  "13 05 07",
+  "13 05 08",
+  "13 07 01",
+  "13 07 02",
+  "13 07 03",
+  "13 08 01",
+  "13 08 02",
+  "13 08 99",
+  "14 06 01",
+  "14 06 02",
+  "14 06 03",
+  "14 06 04",
+  "14 06 05",
+  "15 01 10",
+  "15 01 11",
+  "15 02 02",
+  "16 01 04",
+  "16 01 07",
+  "16 01 08",
+  "16 01 09",
+  "16 01 10",
+  "16 01 11",
+  "16 01 13",
+  "16 01 14",
+  "16 01 21",
+  "16 02 09",
+  "16 02 10",
+  "16 02 11",
+  "16 02 12",
+  "16 02 13",
+  "16 02 15",
+  "16 03 03",
+  "16 03 05",
+  "16 04 01",
+  "16 04 02",
+  "16 04 03",
+  "16 05 04",
+  "16 05 06",
+  "16 05 07",
+  "16 05 08",
+  "16 06 01",
+  "16 06 02",
+  "16 06 03",
+  "16 06 06",
+  "16 07 08",
+  "16 07 09",
+  "16 08 02",
+  "16 08 05",
+  "16 08 06",
+  "16 08 07",
+  "16 09 01",
+  "16 09 02",
+  "16 09 03",
+  "16 09 04",
+  "16 10 01",
+  "16 10 03",
+  "16 11 01",
+  "16 11 03",
+  "16 11 05",
+  "17 01 06",
+  "17 02 04",
+  "17 03 01",
+  "17 03 03",
+  "17 04 09",
+  "17 04 10",
+  "17 05 03",
+  "17 05 05",
+  "17 05 07",
+  "17 06 01",
+  "17 06 03",
+  "17 06 05",
+  "17 08 01",
+  "17 09 01",
+  "17 09 02",
+  "17 09 03",
+  "18 01 03",
+  "18 01 06",
+  "18 01 08",
+  "18 01 10",
+  "18 02 02",
+  "18 02 05",
+  "18 02 07",
+  "19 01 05",
+  "19 01 06",
+  "19 01 07",
+  "19 01 10",
+  "19 01 11",
+  "19 01 13",
+  "19 01 15",
+  "19 01 17",
+  "19 02 04",
+  "19 02 05",
+  "19 02 07",
+  "19 02 08",
+  "19 02 09",
+  "19 02 11",
+  "19 03 04",
+  "19 03 06",
+  "19 04 02",
+  "19 04 03",
+  "19 07 02",
+  "19 08 06",
+  "19 08 07",
+  "19 08 10",
+  "19 08 11",
+  "19 08 13",
+  "19 10 03",
+  "19 10 05",
+  "19 11 01",
+  "19 11 02",
+  "19 11 03",
+  "19 11 04",
+  "19 11 05",
+  "19 11 07",
+  "19 12 06",
+  "19 12 11",
+  "19 13 01",
+  "19 13 03",
+  "19 13 05",
+  "19 13 07",
+  "20 01 13",
+  "20 01 14",
+  "20 01 15",
+  "20 01 17",
+  "20 01 19",
+  "20 01 21",
+  "20 01 23",
+  "20 01 26",
+  "20 01 27",
+  "20 01 29",
+  "20 01 31",
+  "20 01 33",
+  "20 01 35",
+  "20 01 37"
+ ]
+}

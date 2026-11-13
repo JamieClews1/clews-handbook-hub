@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { standardWasteName } from "@/lib/waste-streams";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -362,7 +363,7 @@ export default function WeightChecksPage() {
                             <td className="py-2 pr-4 whitespace-nowrap">{formatDate(m.job_date)}</td>
                             <td className="py-2 pr-4">{m.site ?? "—"}</td>
                             <td className="py-2 pr-4 font-mono whitespace-nowrap">{m.postcode ?? "—"}</td>
-                            <td className="py-2 pr-4">{m.waste_description ?? "—"}</td>
+                            <td className="py-2 pr-4">{m.waste_description ? standardWasteName(m.waste_description, null, { source: m.source }) : "—"}</td>
                             <td className="py-2 pr-4 text-right whitespace-nowrap">
                               {m.weight_t === null ? (
                                 <Badge variant="secondary" className="gap-1">

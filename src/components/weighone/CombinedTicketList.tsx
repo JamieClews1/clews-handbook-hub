@@ -11,6 +11,7 @@ import { CalendarClock, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Refre
 import { fetchAllRows } from "@/lib/fetch-all";
 import { combineTickets, ticketWeightTonnes, type CombinedTicket } from "@/lib/weighone-ticket-list";
 import { parseLoadReportDate } from "@/lib/load-report-dates";
+import { formatEwc, standardWasteName } from "@/lib/waste-streams";
 import { JobPhotosSection } from "@/components/route-one/JobPhotosSection";
 import { WeighbridgeAttachments } from "./WeighbridgeAttachments";
 import { MidweighPrintButton } from "./MidweighPrintButton";
@@ -59,8 +60,8 @@ export function CombinedTicketList({ tablet = false, banksmanJobs = [] }: { tabl
           date: job.scheduled_date, customer: job.customer_name, site: job.site_name || job.site_address,
           siteAddress: [job.site_address, job.site_address_2].filter(Boolean).join(", ") || null,
           postcode: job.site_postcode,
-          vehicle: job.vehicle_reg, driver: job.driver_signoff_name, waste: job.waste_type,
-          ewc: job.ewc_code, movement: job.job_type, status: job.status,
+          vehicle: job.vehicle_reg, driver: job.driver_signoff_name, waste: job.waste_type ? standardWasteName(job.waste_type, job.ewc_code, { source: "route_one", direction: job.job_type === "waste_out_skip" ? "outgoing" : "incoming" }) : job.waste_type,
+          ewc: job.ewc_code ? formatEwc(job.ewc_code) : job.ewc_code, wasteRecorded: job.waste_type, movement: job.job_type, status: job.status,
           weightTonnes: ticketWeightTonnes(job.outbound_weight_t, "routeone"), transactionId: job.weighbridge_transaction_id,
         })),
         hubJobs.filter(job => job.source !== "skiptrak" || !nativeNumbers.has(job.job_number.trim().toUpperCase())).map((job): CombinedTicket => ({
@@ -68,7 +69,9 @@ export function CombinedTicketList({ tablet = false, banksmanJobs = [] }: { tabl
           customer: job.customer, site: job.site, vehicle: job.vehicle_registration,
           siteAddress: rawStr(job.raw, "Address 1", "Address 2", "Address 3", "Address 4", "Address 5", "Address 2nd LIne"),
           postcode: rawStr(job.raw, "Location Postc", "Location Postc_1", "Postcode"),
-          driver: job.driver, waste: job.waste_description, ewc: job.ewc,
+          driver: job.driver,
+          waste: job.waste_description ? standardWasteName(job.waste_description, job.ewc, { source: job.source, productCode: rawStr(job.raw, "Product"), direction: /OUT/i.test(job.movement_type ?? "") ? "outgoing" : "incoming" }) : job.waste_description,
+          ewc: job.ewc ? formatEwc(job.ewc) : job.ewc, wasteRecorded: job.waste_description,
           movement: job.movement_type, status: null,
           weightTonnes: ticketWeightTonnes(job.weight_t, job.source === "midweigh" ? "midweigh" : "skiptrak"), raw: job.raw,
         })),
@@ -88,7 +91,7 @@ export function CombinedTicketList({ tablet = false, banksmanJobs = [] }: { tabl
   const filtered = useMemo(() => tickets.filter(ticket => {
     const term = search.trim().toLowerCase();
     const report = banksmanJobs.find(j => j.weighbridge_transaction_id === ticket.transactionId);
-    return (reportFilter === "all" || !!report?.has_contamination) && (source === "all" || (source === "routeone" ? ticket.source !== "midweigh" : ticket.source === source)) && (!term || [ticket.ticket, ticket.customer, ticket.vehicle, ticket.site, ticket.siteAddress, ticket.postcode, ticket.waste, ticket.driver, ticket.ewc].some(value => value?.toLowerCase().includes(term)));
+    return (reportFilter === "all" || !!report?.has_contamination) && (source === "all" || (source === "routeone" ? ticket.source !== "midweigh" : ticket.source === source)) && (!term || [ticket.ticket, ticket.customer, ticket.vehicle, ticket.site, ticket.siteAddress, ticket.postcode, ticket.waste, ticket.wasteRecorded, ticket.driver, ticket.ewc].some(value => value?.toLowerCase().includes(term)));
   }), [tickets, search, source, reportFilter, banksmanJobs]);
 
   useEffect(() => { setPage(1); setExpanded(null); }, [start, end, search, source, reportFilter]);

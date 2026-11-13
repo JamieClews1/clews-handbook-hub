@@ -80,3 +80,15 @@ describe("waste out product picker order", () => {
     assert.equal(rankWasteOutProducts(products, 0).length, products.length);
   });
 });
+
+import { dedupeWasteOutProducts } from "./waste-out-product-order";
+import { test as t2 } from "node:test";
+t2("shows one Waste Out entry per standard name, keeping the selected one", () => {
+  const list = [
+    { id: "a", recorded_name: "Paper and Card", display_name: "Paper & Card – Out", ewc_code: "19 12 01" },
+    { id: "b", recorded_name: "Mixed Papers", display_name: "Paper & Card – Out", ewc_code: "19 12 01" },
+    { id: "c", recorded_name: "Car Tyres", display_name: "Tyres – Out", ewc_code: "19 12 04" },
+  ];
+  assert.equal(dedupeWasteOutProducts(list).length, 2);
+  assert.deepEqual(dedupeWasteOutProducts(list, "b").map((p) => p.id).sort(), ["b", "c"]);
+});

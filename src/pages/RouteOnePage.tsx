@@ -1,4 +1,5 @@
 import { bookingRentalFields } from "@/lib/booking-container-options";
+import { standardWasteName } from "@/lib/waste-streams";
 import { bookingContainerLabel } from "@/lib/container-taxonomy";
 import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -112,7 +113,7 @@ const LIST_COLUMNS: ListColumnDef[] = [
   { key: "type", label: "Type", defaultVisible: true, getNative: (j) => j.job_type, getSkiptrak: (s) => s.movement_type || "—" },
   { key: "container", label: "Container", defaultVisible: true, getNative: (j) => bookingContainerLabel(j.container_type, j.container_size) || "—", getSkiptrak: (s) => s.container_type || "—" },
   { key: "weight", label: "Net Weight", defaultVisible: true, getNative: (j) => fmtWeight(j.net_weight_t ?? j.weight_t), getSkiptrak: (s) => fmtWeight(s.weight_t) },
-  { key: "waste", label: "Waste", defaultVisible: true, getNative: (j) => j.waste_type || "—", getSkiptrak: (s) => s.waste_description || "—" },
+  { key: "waste", label: "Waste", defaultVisible: true, getNative: (j) => (j.waste_type ? standardWasteName(j.waste_type, j.ewc_code, { source: "route_one" }) : "—"), getSkiptrak: (s) => (s.waste_description ? standardWasteName(s.waste_description, s.ewc, { source: "skiptrak" }) : "—") },
   { key: "driver", label: "Driver", defaultVisible: true, getNative: (_j, d) => d?.driver_name || "Unassigned", getSkiptrak: (s) => s.driver || "—" },
   { key: "date", label: "Date", defaultVisible: true, getNative: (j) => fmtDate(j.scheduled_date), getSkiptrak: (s) => fmtDate(s.job_date) },
   { key: "po", label: "PO", defaultVisible: true, getNative: (j) => j.po_number || "—", getSkiptrak: (s) => s.order_number_override || "—" },

@@ -93,7 +93,7 @@ export function WasteInTypePicker({ types, value, onChange, bookedWaste, placeho
             )}
             {shown.map((t, i) => {
               const showHeader = i === 0 || (topIds.has(t.id) !== topIds.has(shown[i - 1].id));
-              const loads = wasteInLoadsFor(t.waste_type);
+              const loads = wasteInLoadsFor(t.waste_type, t.ewc_code);
               return (
                 <div key={t.id}>
                   {showHeader && (

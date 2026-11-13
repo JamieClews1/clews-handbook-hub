@@ -3014,6 +3014,7 @@ export type Database = {
           customer: string | null
           driver: string | null
           ewc: string | null
+          ewc_original: string | null
           gross_weight: number | null
           haulier: string | null
           id: string
@@ -3033,7 +3034,9 @@ export type Database = {
           tipping_location: string | null
           updated_at: string
           vehicle_registration: string | null
+          waste_corrected_at: string | null
           waste_description: string | null
+          waste_description_original: string | null
           weight_t: number | null
         }
         Insert: {
@@ -3045,6 +3048,7 @@ export type Database = {
           customer?: string | null
           driver?: string | null
           ewc?: string | null
+          ewc_original?: string | null
           gross_weight?: number | null
           haulier?: string | null
           id?: string
@@ -3064,7 +3068,9 @@ export type Database = {
           tipping_location?: string | null
           updated_at?: string
           vehicle_registration?: string | null
+          waste_corrected_at?: string | null
           waste_description?: string | null
+          waste_description_original?: string | null
           weight_t?: number | null
         }
         Update: {
@@ -3076,6 +3082,7 @@ export type Database = {
           customer?: string | null
           driver?: string | null
           ewc?: string | null
+          ewc_original?: string | null
           gross_weight?: number | null
           haulier?: string | null
           id?: string
@@ -3095,7 +3102,9 @@ export type Database = {
           tipping_location?: string | null
           updated_at?: string
           vehicle_registration?: string | null
+          waste_corrected_at?: string | null
           waste_description?: string | null
+          waste_description_original?: string | null
           weight_t?: number | null
         }
         Relationships: []

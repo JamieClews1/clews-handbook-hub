@@ -1,4 +1,5 @@
 import { getBrandLogoUrl } from "./brand-logo";
+import { formatEwc } from "@/lib/waste-streams";
 /**
  * Waste Transfer Note (A4) design used by WeighOne.
  *
@@ -183,7 +184,9 @@ SIC: {{receiving_sic}}</div>
 export type WtnVars = Record<string, string>;
 
 export function renderWtnHalf(template: string, vars: WtnVars): string {
-  return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, key: string) => vars[key] ?? "");
+  // Hazardous EWCs always print with their * (agreed waste stream standard).
+  return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, key: string) =>
+    key === "ewc_code" && vars[key] ? formatEwc(vars[key]) : vars[key] ?? "");
 }
 
 const TEST_MARKER = `<div class="wtn-test" data-wtn-test>TEST TICKET — NOT A REAL WASTE TRANSFER NOTE</div>`;

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import {
+  dedupeWasteOutProducts,
   rankWasteOutProducts,
   searchWasteOutProducts,
   wasteOutLoadsFor,
@@ -31,7 +32,7 @@ export function WasteOutProductPicker({ products, value, onChange, placeholder =
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
-  const ranked = useMemo(() => rankWasteOutProducts(products), [products]);
+  const ranked = useMemo(() => rankWasteOutProducts(dedupeWasteOutProducts(products, value)), [products, value]);
   const shown = useMemo(() => searchWasteOutProducts(ranked, query), [ranked, query]);
   const selected = products.find(p => p.id === value) ?? null;
   const topIds = useMemo(() => new Set(ranked.slice(0, WASTE_OUT_TOP_N).map(p => p.id)), [ranked]);

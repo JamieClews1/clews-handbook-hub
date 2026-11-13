@@ -1,5 +1,6 @@
 import wasteIn from "@/data/midweigh-waste-in-types.json";
 import { productKey } from "@/lib/waste-products";
+import { resolveWasteStream } from "@/lib/waste-streams";
 
 /** How many of the most common inbound waste types are pulled to the top of the picker. */
 export const WASTE_IN_TOP_N = 10;
@@ -21,9 +22,22 @@ export function wasteInTypeLoads(): Map<string, number> {
 
 const TYPE_LOADS = wasteInTypeLoads();
 
+/** Loads per agreed standard stream, so renamed price lines keep their popularity. */
+const STREAM_LOADS = (() => {
+  const loads = new Map<string, number>();
+  for (const row of (wasteIn.rows as (Row & { ewc?: string | null })[]) ?? []) {
+    const ref = resolveWasteStream({ name: row?.waste_type, ewc: row?.ewc, source: "midweigh", direction: "incoming" })?.ref;
+    if (ref) loads.set(ref, (loads.get(ref) ?? 0) + Number(row?.loads ?? 0));
+  }
+  return loads;
+})();
+
 /** Loads recorded for a waste type name, or null when the analysis has never seen it. */
-export const wasteInLoadsFor = (wasteType: string | null | undefined): number | null =>
-  TYPE_LOADS.get(productKey(wasteType ?? "")) ?? null;
+export const wasteInLoadsFor = (wasteType: string | null | undefined, ewc?: string | null): number | null => {
+  const ref = resolveWasteStream({ name: wasteType, ewc, source: "weighone", direction: "incoming" })?.ref;
+  const byStream = ref ? STREAM_LOADS.get(ref) : undefined;
+  return byStream || TYPE_LOADS.get(productKey(wasteType ?? "")) || null;
+};
 
 export type WasteInPickable = { waste_type?: string | null; ewc_code?: string | null };
 
@@ -35,11 +49,11 @@ export type WasteInPickable = { waste_type?: string | null; ewc_code?: string | 
 export function rankWasteInTypes<T extends WasteInPickable>(types: T[], topN = WASTE_IN_TOP_N): T[] {
   const ranked: T[] = [];
   for (const t of types) {
-    const loads = wasteInLoadsFor(t.waste_type);
+    const loads = wasteInLoadsFor(t.waste_type, t.ewc_code);
     if (loads && loads > 0) ranked.push(t);
   }
   ranked.sort((a, b) =>
-    (wasteInLoadsFor(b.waste_type) ?? 0) - (wasteInLoadsFor(a.waste_type) ?? 0) ||
+    (wasteInLoadsFor(b.waste_type, b.ewc_code) ?? 0) - (wasteInLoadsFor(a.waste_type, a.ewc_code) ?? 0) ||
     (a.waste_type ?? "").localeCompare(b.waste_type ?? "", "en", { sensitivity: "base" }),
   );
   const top = ranked.slice(0, Math.max(0, topN));

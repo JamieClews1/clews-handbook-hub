@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { standardWasteName } from "@/lib/waste-streams";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -273,7 +274,7 @@ export function CustomerPortalPods({ customerId, accessibleSiteIds }: Props) {
                   <TableCell className="font-mono text-sm">{getOrderNumber(job) ?? "-"}</TableCell>
                   <TableCell>{job.site ?? "-"}</TableCell>
                   <TableCell>{job.container_type ?? "-"}</TableCell>
-                  <TableCell>{job.waste_description ?? "-"}</TableCell>
+                  <TableCell>{job.waste_description ? standardWasteName(job.waste_description, null, { source: "skiptrak" }) : "-"}</TableCell>
                   <TableCell className="text-center">
                     {podJobs.has(job.job_number) ? (
                       <Button size="sm" variant="outline" onClick={() => download(job.job_number, "pod")} disabled={downloading === `pod-${job.job_number}`}>

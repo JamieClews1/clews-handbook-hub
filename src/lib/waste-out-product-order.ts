@@ -63,3 +63,23 @@ export function searchWasteOutProducts<T extends WasteOutPickable & { ewc_code?:
   if (!needle) return ranked;
   return ranked.filter(p => compact(`${p.display_name} ${p.ewc_code ?? ""} ${p.recorded_name ?? ""}`).includes(needle));
 }
+
+/**
+ * One entry per standard product name + EWC. Several recorded Midweigh products
+ * now share a standard name (e.g. "Paper and Card" and "Mixed Papers" are both
+ * Paper & Card – Out); keep the selected one, otherwise the busiest.
+ */
+export function dedupeWasteOutProducts<T extends WasteOutPickable & { id: string; ewc_code?: string | null }>(
+  products: T[],
+  keepId?: string,
+): T[] {
+  const byKey = new Map<string, T>();
+  for (const p of products) {
+    const key = `${compact(p.display_name)}|${compact(p.ewc_code ?? "")}`;
+    const current = byKey.get(key);
+    if (!current) { byKey.set(key, p); continue; }
+    if (current.id === keepId) continue;
+    if (p.id === keepId || (wasteOutLoadsFor(p.recorded_name) ?? 0) > (wasteOutLoadsFor(current.recorded_name) ?? 0)) byKey.set(key, p);
+  }
+  return [...byKey.values()];
+}

@@ -12,6 +12,8 @@ export interface CombinedTicket {
   vehicle: string | null;
   driver: string | null;
   waste: string | null;
+  /** Waste wording as recorded, kept searchable when the standard name is shown. */
+  wasteRecorded?: string | null;
   ewc: string | null;
   movement: string | null;
   status: string | null;

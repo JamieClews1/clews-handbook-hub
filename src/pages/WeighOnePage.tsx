@@ -12,6 +12,7 @@ import { INBOUND_CONTAINER_GROUPS, isPickedContainer } from "@/lib/weighone-cont
 import { ContainerAccordion } from "@/components/weighone/ContainerAccordion";
 import { WasteOutProductPicker, type WasteOutProductOption } from "@/components/weighone/WasteOutProductPicker";
 import { WasteInTypePicker } from "@/components/weighone/WasteInTypePicker";
+import { findSameWasteStream } from "@/lib/waste-streams";
 import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
 import { BanksmanSettings } from "@/components/banksman/BanksmanSettings";
 import { CombinedTicketList } from "@/components/weighone/CombinedTicketList";
@@ -314,7 +315,7 @@ const WeighOnePage = () => {
   const applyRouteOneJob = (job: ArrivingJob) => {
     setArrivingJob(job);
     const details = routeOneSkipDetails(job);
-    const wt = activeWasteTypes.find(w => (w.waste_type || "").toLowerCase() === (job.waste_type || "").toLowerCase());
+    const wt = findSameWasteStream(activeWasteTypes, w => ({ name: w.waste_type, ewc: w.ewc_code }), job.waste_type, job.ewc_code, { source: "route_one" });
     setFormData(p => ({
       ...p,
       job_type: job.job_type === "waste_out_skip" ? "waste_out" : "skip",
@@ -595,7 +596,7 @@ const WeighOnePage = () => {
     const job = skiptrakJobs.find((j) => j.job_number === jobNumber);
     if (!job) return;
     const waste = importedSkipWaste(job);
-    const wt = activeWasteTypes.find(w => w.waste_type.toLowerCase() === waste.waste_description.toLowerCase());
+    const wt = findSameWasteStream(activeWasteTypes, w => ({ name: w.waste_type, ewc: w.ewc_code }), waste.waste_description, waste.ewc_code, { source: "skiptrak" });
     setFormData((p) => ({
       ...p,
       ...waste,

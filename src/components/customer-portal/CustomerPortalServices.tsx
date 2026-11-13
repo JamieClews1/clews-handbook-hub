@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { standardWasteName } from "@/lib/waste-streams";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -202,7 +203,7 @@ export const CustomerPortalServices = ({ customerId, customerName, accessibleSit
       const alias = siteAliases.find(a => a.dataHubNames.some(n => n.toLowerCase() === job.site!.toLowerCase()));
       if (!alias) continue;
 
-      const wasteDesc = job.waste_description || "Unknown";
+      const wasteDesc = job.waste_description ? standardWasteName(job.waste_description, null, { source: "skiptrak" }) : "Unknown";
 
       // Future-dated movements are upcoming scheduled services, not "last activity".
       if (job.job_date && job.job_date > todayStr) {

@@ -28,7 +28,8 @@ import { ArchivedJobsPanel } from "@/components/data-uploads/ArchivedJobsPanel";
 import { LiveUploadsPanel } from "@/components/data-uploads/LiveUploadsPanel";
 import { PodsPanel } from "@/components/data-uploads/PodsPanel";
 import { JobWtnDocuments } from "@/components/wtn";
-import { rowNeedsWrite } from "@/lib/upload-diff";
+import { keepCorrectedWaste, rowNeedsWrite } from "@/lib/upload-diff";
+import { formatEwc, standardWasteName } from "@/lib/waste-streams";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -113,6 +114,7 @@ const formatMoney = (n: number | null) =>
 
 type ExistingJobFields = {
   job_number: string;
+  waste_corrected_at?: string | null;
   job_date: string | null;
   customer: string | null;
   site: string | null;
@@ -770,7 +772,7 @@ const DataUploadsPage = () => {
         const existingByJob = new Map<string, ExistingJobFields>();
         const { data: existing, error: fetchError } = await supabase
           .from("data_hub_jobs")
-          .select("job_number,customer,site,ewc,waste_description,category,movement_type,container_type,job_type,weight_t,vehicle_registration,job_date,driver,tipping_location,account_code,haulier,carrier_number,gross_weight,tare_weight,linked_skip_job,raw")
+          .select("job_number,customer,site,ewc,waste_description,category,movement_type,container_type,job_type,weight_t,vehicle_registration,job_date,driver,tipping_location,account_code,haulier,carrier_number,gross_weight,tare_weight,linked_skip_job,raw,waste_corrected_at")
           .in("job_number", jobNumbers)
           .eq("source", source);
         
@@ -780,7 +782,7 @@ const DataUploadsPage = () => {
         // Merge with existing data (avoid overwriting non-empty fields with blanks)
         const mergedBatch = batch.map((j) => {
           const existingRow = existingByJob.get(j.job_number);
-          return {
+          return keepCorrectedWaste({
             ...j,
             job_date: j.job_date ?? (existingRow?.job_date as any) ?? null,
             customer: j.customer ?? (existingRow?.customer as any) ?? null,
@@ -800,7 +802,7 @@ const DataUploadsPage = () => {
             gross_weight: j.gross_weight ?? (existingRow as any)?.gross_weight ?? null,
             tare_weight: j.tare_weight ?? (existingRow as any)?.tare_weight ?? null,
             linked_skip_job: j.linked_skip_job ?? (existingRow as any)?.linked_skip_job ?? null,
-          } satisfies DataHubJobRow;
+          } satisfies DataHubJobRow, existingRow);
         });
 
         // Midweigh tickets carry no site of their own. Where the ticket references a
@@ -1441,9 +1443,9 @@ const DataUploadsPage = () => {
                           <TableCell className="whitespace-nowrap">{excelValueToISODate(j.job_date) ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.customer ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{j.site ?? "—"}</TableCell>
-                          <TableCell className="whitespace-nowrap">{j.ewc ?? "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{j.ewc ? formatEwc(j.ewc) : "—"}</TableCell>
                           <TableCell className="max-w-[24rem] truncate" title={j.waste_description ?? ""}>
-                            {j.waste_description ?? "—"}
+                            {j.waste_description ? standardWasteName(j.waste_description, j.ewc, { source: j.source, direction: /OUT/i.test(j.movement_type ?? "") ? "outgoing" : "incoming" }) : "—"}
                           </TableCell>
                           <TableCell className="text-right whitespace-nowrap">
                             {j.weight_t == null
@@ -1510,8 +1512,9 @@ const DataUploadsPage = () => {
                     ["Date", excelValueToISODate(detailJob.job_date) ?? "—"],
                     ["Customer", detailJob.customer],
                     ["Site", detailJob.site],
-                    ["EWC", detailJob.ewc],
-                    ["Waste description", detailJob.waste_description],
+                    ["EWC", detailJob.ewc ? formatEwc(detailJob.ewc) : detailJob.ewc],
+                    ["Standard waste name", detailJob.waste_description ? standardWasteName(detailJob.waste_description, detailJob.ewc, { source: detailJob.source }) : null],
+                    ["Waste description (as recorded)", detailJob.waste_description],
                     ["Category", detailJob.category],
                     ["Movement type", detailJob.movement_type],
                     ["Job type", detailJob.job_type],
