@@ -46,3 +46,26 @@ test("searching old wording finds the standard stream", async () => {
   const hits = searchWasteStreams(pickableWasteStreams("incoming"), "mixed municipal").map((s) => s.name);
   assert.ok(hits.includes("General Waste"));
 });
+
+test("copied booking waste takes the standard name and EWC", async () => {
+  const { standardBookingWaste } = await import("./waste-streams");
+  assert.deepEqual(standardBookingWaste("Mixed Municipal Waste", "20 03 01", { source: "skiptrak" }), { waste_type: "General Waste", ewc_code: "20 03 01" });
+  assert.deepEqual(standardBookingWaste("Empty Skip", "00 00 00", { source: "skiptrak" }), { waste_type: "Haulage Only", ewc_code: "" });
+  assert.deepEqual(standardBookingWaste("Something new", "99 99 99"), { waste_type: "Something new", ewc_code: "99 99 99" });
+});
+
+test("rate card per-tonne lines price their standard stream", async () => {
+  const { rateCardTonnageStream } = await import("./waste-streams");
+  assert.equal(rateCardTonnageStream("Grade A Wood Waste")?.name, "Wood – Packaging / Pallets");
+  assert.equal(rateCardTonnageStream("Grade C Wood Waste")?.name, "Wood – Construction");
+  assert.equal(rateCardTonnageStream("LANDFILL: Non Recyclable")?.name, "General Waste – Non-Recoverable (Landfill)");
+  assert.equal(rateCardTonnageStream("Dry Mixed Recyclables")?.ewc, "15 01 06");
+  assert.equal(rateCardTonnageStream("Mixed Inert  (soils & hardcore)"), null);
+  assert.equal(rateCardTonnageStream("Rental"), null);
+});
+
+test("recorded Waste Out product names show the agreed name only on their own code", () => {
+  assert.equal(standardWasteName("Plastic Packaging Out", "15 01 02", { source: "midweigh", direction: "outgoing" }), "Plastic Packaging");
+  assert.equal(standardWasteName("Ferrous Metals", "19 12 02", { source: "midweigh", direction: "outgoing" }), "Ferrous Metal – Out");
+  assert.equal(standardWasteName("Ferrous Metals", "20 01 40", { source: "midweigh" }), "Ferrous Metals");
+});

@@ -1,5 +1,5 @@
 import { bookingRentalFields } from "@/lib/booking-container-options";
-import { standardWasteName } from "@/lib/waste-streams";
+import { standardBookingWaste, standardWasteName } from "@/lib/waste-streams";
 import { bookingContainerLabel } from "@/lib/container-taxonomy";
 import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -347,7 +347,7 @@ const RouteOnePage = () => {
       site_postcode: g("postcode") || prev.site_postcode,
       po_number: g("po") || prev.po_number,
       container_size: g("container") || prev.container_size,
-      waste_type: g("waste") || prev.waste_type,
+      ...(g("waste") ? standardBookingWaste(g("waste"), g("ewc") || null, { source: "route_one" }) : { waste_type: prev.waste_type }),
       scheduled_date: g("date") || prev.scheduled_date,
       job_type: (["delivery", "exchange", "collection"].includes(type) ? type : prev.job_type) as JobType,
       notes: g("notes") || prev.notes,

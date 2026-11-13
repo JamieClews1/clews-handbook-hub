@@ -11,7 +11,8 @@ import standard from "@/data/waste-stream-standard.json";
 export type WasteStreamDirection = "incoming" | "outgoing" | "job_type";
 export interface WasteStream { ref: string; name: string; ewc: string | null; direction: WasteStreamDirection }
 type AliasSystem = "skiptrak" | "midweigh" | "midweigh_code" | "route_one" | "rate_card" | "duty_of_care" | "website";
-interface Alias { system: AliasSystem; name: string; ewc: string | null; ref: string }
+/** strict: a recorded product name that only counts on its own EWC (e.g. "Ferrous Metals" on 19 12 02 is outgoing, not 20 01 40). */
+interface Alias { system: AliasSystem; name: string; ewc: string | null; ref: string; strict?: boolean }
 
 export const WASTE_STREAM_STANDARD_VERSION: string = standard.version;
 export const WASTE_STREAMS: WasteStream[] = standard.streams as WasteStream[];
@@ -101,7 +102,8 @@ export function resolveWasteStream(input: ResolveInput): WasteStream | null {
   }
   if (key) {
     // Name alone only when every known use of that name points to one stream.
-    const hit = pick(ALIASES_BY_NAME.get(key) ?? [], { ...input, source: null });
+    const loose = (ALIASES_BY_NAME.get(key) ?? []).filter((a) => !a.strict || !ewc || ewcKey(a.ewc) === ewc);
+    const hit = pick(loose, { ...input, source: null });
     if (hit) return hit;
   }
   return null;
@@ -176,4 +178,46 @@ export function findSameWasteStream<T>(
     const g = get(item);
     return resolveWasteStream({ name: g.name, ewc: g.ewc, source: "weighone" })?.ref === target.ref;
   });
+}
+
+/**
+ * Standard name and EWC for a waste carried into a new booking (copied job,
+ * linked weighbridge ticket, link from the Inbox). Wording that cannot be told
+ * apart safely is kept as recorded so staff pick the standard type themselves.
+ */
+export function standardBookingWaste(
+  name: string | null | undefined,
+  ewc?: string | null,
+  opts: Omit<ResolveInput, "name" | "ewc"> = {},
+): { waste_type: string; ewc_code: string } {
+  const stream = resolveWasteStream({ ...opts, name, ewc });
+  if (stream) return { waste_type: stream.name, ewc_code: stream.ewc ?? "" };
+  return { waste_type: (name ?? "").trim(), ewc_code: (ewc ?? "").trim() };
+}
+
+/**
+ * Per-tonne material lines on the Trade and Broker rate cards, matched to their
+ * standard stream. Lines covering more than one stream ("Mixed Inert (soils &
+ * hardcore)", "RECOVERY: Non Recyclable") and non-waste lines ("Rental") are left out.
+ */
+const RATE_CARD_TONNAGE_REFS: Record<string, string> = {
+  generalwaste: "GEN",
+  cleanhardcore: "HARD",
+  landfillnonrecyclable: "GEN-NR",
+  plasterboard: "PB",
+  gradeawoodwaste: "WOODA",
+  gradecwoodwaste: "WOODC",
+  weee: "WEEE",
+  drymixedrecyclables: "DMR",
+  green: "GREEN",
+  pops: "POPS",
+};
+
+/** The standard stream a rate card per-tonne line prices, or null when the line is not one stream. */
+export function rateCardTonnageStream(label: string | null | undefined): WasteStream | null {
+  const key = nameKey(label);
+  const ref = RATE_CARD_TONNAGE_REFS[key];
+  if (ref) return wasteStreamByRef(ref);
+  const exact = STANDARD_BY_NAME.get(key);
+  return exact && exact.ref !== HAULAGE_ONLY_REF ? exact : null;
 }

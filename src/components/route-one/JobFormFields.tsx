@@ -19,6 +19,7 @@ import { boardJobType } from "@/lib/route-board-presentation";
 import { JobPricingPicker } from "./JobPricingPicker";
 import { EwcCodePicker, SicCodePicker } from "@/components/codes/CodePicker";
 import { WasteStreamPicker } from "./WasteStreamPicker";
+import { standardBookingWaste } from "@/lib/waste-streams";
 import { EstablishedSitePicker } from "./EstablishedSitePicker";
 import { pricingContainerOptions, type PricingSize } from "@/lib/booking-container-options";
 import { CONTAINER_GROUPS, containerGroup } from "@/lib/container-taxonomy";
@@ -348,7 +349,7 @@ export function JobFormFields({
     const customerSearch = normaliseCustomer(customer);
     let q = supabase
       .from("data_hub_jobs")
-      .select("job_number, job_date, customer, site, movement_type, container_type, waste_description, weight_t, raw")
+      .select("job_number, job_date, customer, site, movement_type, container_type, waste_description, ewc, weight_t, raw")
       .limit(200);
     // The selected site is the strongest key. Customer names often carry source
     // suffixes such as “(Weighbridge)”, so normalise those before matching.
@@ -359,7 +360,7 @@ export function JobFormFields({
 
     let rq = supabase
       .from("route_one_jobs")
-      .select("id, job_number, scheduled_date, customer_name, site_name, site_address, site_postcode, job_type, container_type, container_size, waste_type, haulage_cost, charge_per_tonne, min_weight_charge, weight_included_t, cost_items, vat_rate, po_number")
+      .select("id, job_number, scheduled_date, customer_name, site_name, site_address, site_postcode, job_type, container_type, container_size, waste_type, ewc_code, haulage_cost, charge_per_tonne, min_weight_charge, weight_included_t, cost_items, vat_rate, po_number")
       .order("scheduled_date", { ascending: false })
       .limit(25);
     if (customerSearch) rq = rq.ilike("customer_name", `%${customerSearch}%`);
@@ -400,7 +401,7 @@ export function JobFormFields({
         container_type: j.container_type || "",
         container_size: j.container_size || "",
         scheduled_date: bookingDate,
-        waste_type: j.waste_type || "",
+        ...standardBookingWaste(j.waste_type, j.ewc_code, { source: "route_one" }),
         po_number: j.po_number || form.po_number,
         haulage_cost: j.haulage_cost ?? "",
         charge_per_tonne: j.charge_per_tonne ?? "",
@@ -421,7 +422,7 @@ export function JobFormFields({
         site_postcode: previousPostcode || form.site_postcode,
         job_type: "exchange",
         container_type: j.container_type || "",
-        waste_type: j.waste_description || "",
+        ...standardBookingWaste(j.waste_description, j.ewc, { source: "skiptrak" }),
         scheduled_date: bookingDate,
         ...importedBookingPrices(j.raw || {}),
         notes: `${form.notes ? form.notes + "\n" : ""}Exchange of container from job ${j.job_number || ""}`.trim(),

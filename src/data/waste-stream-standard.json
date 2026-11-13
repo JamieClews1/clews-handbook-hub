@@ -2312,6 +2312,153 @@
    "name": "Plasterboard",
    "ewc": null,
    "ref": "PB"
+  },
+  {
+   "system": "midweigh",
+   "name": "Qualifying Trommel Fines",
+   "ewc": "19 12 12",
+   "ref": "O-TROM",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Transfer Station Waste. Landfill",
+   "ewc": "19 12 12",
+   "ref": "O-LF",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Waste Transfer Station. RDF",
+   "ewc": "19 12 12",
+   "ref": "O-RDFWO",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Wood C grade Outgoing",
+   "ewc": "19 12 07",
+   "ref": "O-WOODC",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Wood A grade outgoing",
+   "ewc": "19 12 07",
+   "ref": "O-WOODA",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "(Waste to Energy) RDF",
+   "ewc": "19 12 10",
+   "ref": "O-RDF",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Ferrous Metals",
+   "ewc": "19 12 02",
+   "ref": "O-FER",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Hardcore Mechanically processed",
+   "ewc": "19 12 09",
+   "ref": "O-HARD",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Clean Wood (Grade A)",
+   "ewc": "15 01 03",
+   "ref": "WOODA",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Hardcore/Bricks/Rubble/Tiles/Ceramics",
+   "ewc": "17 01 07",
+   "ref": "HARD",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Non Ferrous Metals (Ali,copper,brass,lead,cable)",
+   "ewc": "19 12 03",
+   "ref": "O-NONFER",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Plastics Outgoing",
+   "ewc": "19 12 04",
+   "ref": "O-PLAST",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Plastic Packaging Out",
+   "ewc": "15 01 02",
+   "ref": "PLPK",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Green Waste/Biodegradable Waste",
+   "ewc": "20 02 01",
+   "ref": "GREEN",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Ferrous Metals (Shearing/Light Iorn/Cast/Frag)",
+   "ewc": "20 01 40",
+   "ref": "METMUN",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Bulky Household waste (furniture, large items)",
+   "ewc": "20 03 07",
+   "ref": "BULKY",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Mixed Metals ferrous and Non",
+   "ewc": "17 04 07",
+   "ref": "METDEM",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Mixed Municipal/ General Waste",
+   "ewc": "20 03 01",
+   "ref": "GEN",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Mixed Packaging/ Co Mingled waste",
+   "ewc": "15 01 06",
+   "ref": "DMR",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Inert (Soil and Stones)",
+   "ewc": "17 05 04",
+   "ref": "SOIL",
+   "strict": true
+  },
+  {
+   "system": "midweigh",
+   "name": "Mixed Construction Demolition /Builders Waste",
+   "ewc": "17 09 04",
+   "ref": "CD",
+   "strict": true
   }
  ],
  "hazardous_codes": [

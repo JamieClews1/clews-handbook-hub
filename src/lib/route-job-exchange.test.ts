@@ -18,4 +18,11 @@ describe("new exchange", () => {
     result.cost_items[0].charge = 0;
     assert.deepEqual(original, before);
   });
+  it("uses the agreed standard waste name and EWC on the new exchange", () => {
+    const old = { ...original, waste_type: "Mixed Municipal Waste", ewc_code: "20 03 01" };
+    const result = newExchangeForm({}, old, "2026-10-27");
+    assert.equal(result.waste_type, "General Waste");
+    assert.equal(result.ewc_code, "20 03 01");
+    assert.equal(old.waste_type, "Mixed Municipal Waste");
+  });
 });

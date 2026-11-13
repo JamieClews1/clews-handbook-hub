@@ -16,6 +16,7 @@ import {
 } from "@/components/pricing/useRateCard";
 import { matchMatrixPostcode, type MatrixPostcode } from "@/lib/matrix-postcode-zone";
 import { rateContainerLabel, rateContainerSection } from "@/lib/container-taxonomy";
+import { rateCardTonnageStream } from "@/lib/waste-streams";
 
 /** Rate-card zone codes keyed by the zone label held on pricing_zone_postcodes. */
 const POSTCODE_ZONE_TO_CODE: Record<string, string> = {
@@ -190,7 +191,9 @@ export function JobPricingPicker({ form, setForm }: { form: any; setForm: (f: an
   };
 
   const applyTonnage = (label: string, price: number) => {
-    setForm({ ...form, charge_per_tonne: price, waste_type: form.waste_type || label });
+    // Only an agreed standard name (and its EWC) may fill an empty waste type — never the rate card wording.
+    const stream = form.waste_type ? null : rateCardTonnageStream(label);
+    setForm({ ...form, charge_per_tonne: price, ...(stream ? { waste_type: stream.name, ewc_code: stream.ewc ?? "" } : {}) });
   };
 
   const applyPrevPricing = () => {
@@ -322,7 +325,10 @@ export function JobPricingPicker({ form, setForm }: { form: any; setForm: (f: an
                   onClick={() => applyTonnage(it.label, it.price)}
                   className="w-full flex items-center justify-between gap-2 px-2 py-1.5 text-xs hover:bg-accent text-left"
                 >
-                  <span className="truncate">{it.label}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate">{it.label}</span>
+                    {(() => { const s = rateCardTonnageStream(it.label); return s && s.name !== it.label ? <span className="block truncate text-[11px] text-muted-foreground">{s.name}</span> : null; })()}
+                  </span>
                   <span className="font-medium shrink-0">{money(it.price)}/t</span>
                 </button>
               ))

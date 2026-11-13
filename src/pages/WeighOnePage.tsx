@@ -12,7 +12,8 @@ import { INBOUND_CONTAINER_GROUPS, isPickedContainer } from "@/lib/weighone-cont
 import { ContainerAccordion } from "@/components/weighone/ContainerAccordion";
 import { WasteOutProductPicker, type WasteOutProductOption } from "@/components/weighone/WasteOutProductPicker";
 import { WasteInTypePicker } from "@/components/weighone/WasteInTypePicker";
-import { findSameWasteStream } from "@/lib/waste-streams";
+import { findSameWasteStream, formatEwc } from "@/lib/waste-streams";
+import { WasteStreamPicker } from "@/components/route-one/WasteStreamPicker";
 import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
 import { BanksmanSettings } from "@/components/banksman/BanksmanSettings";
 import { CombinedTicketList } from "@/components/weighone/CombinedTicketList";
@@ -2711,7 +2712,7 @@ const WeighOnePage = () => {
                   <div key={wt.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{wt.waste_type}</p>
-                      {wt.ewc_code && <p className="text-xs text-muted-foreground">EWC: {wt.ewc_code}</p>}
+                      {wt.ewc_code && <p className="text-xs text-muted-foreground">EWC: {formatEwc(wt.ewc_code)}</p>}
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="text-xs text-muted-foreground">£/t:</span>
@@ -2739,16 +2740,14 @@ const WeighOnePage = () => {
             <div className="border-t border-border pt-4 space-y-3">
               <p className="text-sm font-medium">Add New Waste Type</p>
               <div className="grid grid-cols-3 gap-2">
-                <Input
-                  placeholder="Waste type"
-                  value={newWasteType.waste_type}
-                  onChange={(e) => setNewWasteType(p => ({ ...p, waste_type: e.target.value }))}
-                />
-                <Input
-                  placeholder="EWC code"
-                  value={newWasteType.ewc_code}
-                  onChange={(e) => setNewWasteType(p => ({ ...p, ewc_code: e.target.value }))}
-                />
+                <div className="col-span-2">
+                  <WasteStreamPicker
+                    value={newWasteType.waste_type}
+                    ewc={newWasteType.ewc_code}
+                    only="incoming"
+                    onChange={(s) => setNewWasteType(p => ({ ...p, waste_type: s.name, ewc_code: s.ewc ?? "" }))}
+                  />
+                </div>
                 <Input
                   type="number"
                   placeholder="£/tonne"
@@ -2759,7 +2758,7 @@ const WeighOnePage = () => {
               <Button
                 size="sm"
                 className="w-full gap-1"
-                disabled={!newWasteType.waste_type || addWasteTypeMutation.isPending}
+                disabled={!newWasteType.waste_type || wasteTypes.some(w => w.waste_type === newWasteType.waste_type) || addWasteTypeMutation.isPending}
                 onClick={() => addWasteTypeMutation.mutate()}
               >
                 <Plus className="h-4 w-4" /> Add Waste Type

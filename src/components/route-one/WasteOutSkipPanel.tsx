@@ -1,3 +1,4 @@
+import { standardBookingWaste } from "@/lib/waste-streams";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -74,8 +75,9 @@ export function WasteOutSkipPanel({ form, setForm }: { form: any; setForm: (f: a
       vehicle_reg: t.vehicle_reg || form.vehicle_reg,
       carrier_name: t.carrier_name || form.carrier_name,
       container_type: t.container_type || form.container_type,
-      waste_type: t.waste_description || form.waste_type,
-      ewc_code: t.ewc_code || form.ewc_code,
+      ...(t.waste_description
+        ? standardBookingWaste(t.waste_description, t.ewc_code, { source: "weighone", direction: "outgoing" })
+        : { waste_type: form.waste_type, ewc_code: t.ewc_code || form.ewc_code }),
     });
     setOpen(false);
   };

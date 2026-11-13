@@ -18,11 +18,13 @@ type Props = {
   ewc?: string | null;
   /** Waste Out bookings list the outgoing streams first. */
   outgoing?: boolean;
+  /** Limit the list to one direction (e.g. weighbridge Waste In price lines); Haulage Only is left out. */
+  only?: "incoming" | "outgoing";
   onChange: (stream: WasteStream) => void;
 };
 
 /** Booking waste choice from the agreed standard list; picking one also sets its EWC. */
-export function WasteStreamPicker({ value, ewc, outgoing = false, onChange }: Props) {
+export function WasteStreamPicker({ value, ewc, outgoing = false, only, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const current = useMemo(() => resolveWasteStream({ name: value, ewc, source: "route_one" }), [value, ewc]);
@@ -33,9 +35,10 @@ export function WasteStreamPicker({ value, ewc, outgoing = false, onChange }: Pr
     const list: { label: string; items: WasteStream[] }[] = outgoing
       ? [{ label: "Waste out", items: out }, { label: "Incoming", items: incoming }]
       : [{ label: "Incoming", items: incoming }, { label: "Waste out", items: out }];
-    list.push({ label: "No waste", items: haul });
-    return list.map((g) => ({ ...g, items: searchWasteStreams(g.items, query) })).filter((g) => g.items.length);
-  }, [outgoing, query]);
+    if (!only) list.push({ label: "No waste", items: haul });
+    const shown = only ? list.filter((g) => g.label === (only === "incoming" ? "Incoming" : "Waste out")) : list;
+    return shown.map((g) => ({ ...g, items: searchWasteStreams(g.items, query) })).filter((g) => g.items.length);
+  }, [outgoing, only, query]);
   const isStandard = !!current && current.name === value;
 
   return (

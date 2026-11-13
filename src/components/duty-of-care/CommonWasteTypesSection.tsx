@@ -4,6 +4,7 @@ import { normaliseEwcCode } from "@/lib/code-registers";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import wasteOut from "@/data/midweigh-waste-out-types.json";
+import { formatEwc, standardWasteName } from "@/lib/waste-streams";
 
 type Part = { name: string; loads: number; tonnes: number };
 type Row = { ewc: string; description: string; loads: number; tonnes: number; products: Part[]; destinations: Part[] };
@@ -18,6 +19,17 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
 
 const fmtT = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 1 });
 const fmtDate = (d: string) => new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+
+/** Recorded Midweigh products shown under their agreed standard name, merged when several share one. */
+function standardProducts(products: Part[], ewc: string): Part[] {
+  const merged = new Map<string, Part>();
+  for (const p of products) {
+    const name = standardWasteName(p.name, ewc, { source: "midweigh", direction: "outgoing" });
+    const cur = merged.get(name);
+    merged.set(name, cur ? { name, loads: cur.loads + p.loads, tonnes: cur.tonnes + p.tonnes } : { ...p, name });
+  }
+  return [...merged.values()].sort((a, b) => b.loads - a.loads);
+}
 
 const ewcNumber = (ewc: string) => Number(ewc.replace(/[^0-9]/g, ""));
 
@@ -64,9 +76,9 @@ export function CommonWasteTypesSection() {
         <tbody className="divide-y divide-border">{sorted.map(r => {
           const reg = register.get(r.ewc.replace(/[^0-9]/g, ""));
           return <tr key={r.ewc} className="align-top hover:bg-muted/30">
-            <td className="p-3 font-mono font-medium whitespace-nowrap">{normaliseEwcCode(r.ewc)}</td>
+            <td className="p-3 font-mono font-medium whitespace-nowrap">{formatEwc(normaliseEwcCode(r.ewc))}</td>
             <td className="p-3 min-w-[200px]">{reg ? <span>{reg.description} {reg.hazardous && <Badge variant="destructive" className="ml-1">Hazardous</Badge>}</span> : <span className="text-muted-foreground">{r.description}</span>}</td>
-            <td className="p-3 text-muted-foreground min-w-[180px]">{r.products.map(p => <div key={p.name}>{p.name} <span className="tabular-nums">({p.loads})</span></div>)}</td>
+            <td className="p-3 text-muted-foreground min-w-[180px]">{standardProducts(r.products, r.ewc).map(p => <div key={p.name}>{p.name} <span className="tabular-nums">({p.loads})</span></div>)}</td>
             <td className="p-3 text-muted-foreground min-w-[200px]">{r.destinations.map(p => <div key={p.name}>{p.name} <span className="tabular-nums">· {fmtT(p.tonnes)}t</span></div>)}</td>
             <td className="p-3 text-right tabular-nums font-semibold">{r.loads.toLocaleString()}</td>
             <td className="p-3 text-right tabular-nums">{fmtT(r.tonnes)}</td>

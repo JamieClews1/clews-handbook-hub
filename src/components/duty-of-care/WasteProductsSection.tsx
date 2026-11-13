@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { WasteStreamPicker } from "@/components/route-one/WasteStreamPicker";
+import { formatEwc } from "@/lib/waste-streams";
 import { filterProducts, PRODUCT_STATUS, type WasteProduct, type WasteProductStatus } from "@/lib/waste-products";
 
 export function useWasteProducts() {
@@ -55,7 +57,7 @@ export function WasteProductsSection({ isAdmin }: { isAdmin: boolean }) {
           {rows.map(p => <tr key={p.id} className="align-top">
             <td className="p-3 font-medium">{p.display_name}</td>
             <td className="p-3 text-muted-foreground">{p.recorded_name}</td>
-            <td className="p-3 font-mono whitespace-nowrap">{p.ewc_code}</td>
+            <td className="p-3 font-mono whitespace-nowrap">{formatEwc(p.ewc_code)}</td>
             <td className="p-3"><Badge variant={p.status === "needs_review" ? "destructive" : p.status === "retired" ? "outline" : "secondary"}>{PRODUCT_STATUS[p.status]}</Badge></td>
             <td className="p-3 text-muted-foreground max-w-[320px]">{p.notes}</td>
             {isAdmin && <td className="p-3"><Button variant="ghost" size="icon" aria-label={`Edit ${p.display_name}`} onClick={() => setEdit({ ...p })}><Pencil className="h-4 w-4" /></Button></td>}
@@ -68,7 +70,7 @@ export function WasteProductsSection({ isAdmin }: { isAdmin: boolean }) {
         <DialogHeader><DialogTitle>Edit product</DialogTitle></DialogHeader>
         {edit && <div className="space-y-3">
           <p className="text-sm text-muted-foreground">Recorded on tickets as <strong className="text-foreground">{edit.recorded_name}</strong></p>
-          <label className="block space-y-1 text-sm font-medium">Product name<Input value={edit.display_name} onChange={e => setEdit({ ...edit, display_name: e.target.value })} /></label>
+          <div className="space-y-1 text-sm font-medium">Product name (agreed standard list)<WasteStreamPicker value={edit.display_name} ewc={edit.ewc_code} outgoing onChange={s => setEdit({ ...edit, display_name: s.name, ewc_code: s.ewc ?? edit.ewc_code })} /></div>
           <label className="block space-y-1 text-sm font-medium">Usual waste code<Input value={edit.ewc_code} onChange={e => setEdit({ ...edit, ewc_code: e.target.value })} /></label>
           <div className="space-y-1 text-sm font-medium">Status<Select value={edit.status} onValueChange={v => setEdit({ ...edit, status: v as WasteProductStatus })}><SelectTrigger aria-label="Status"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(PRODUCT_STATUS).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent></Select></div>
           <label className="block space-y-1 text-sm font-medium">Notes<Textarea value={edit.notes ?? ""} onChange={e => setEdit({ ...edit, notes: e.target.value })} /></label>
