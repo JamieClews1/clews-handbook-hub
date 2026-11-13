@@ -97,3 +97,87 @@ export function currentSiteContainers(jobs: HistoryJob[], rules: StandingBinRule
     return { container: t.container, category: t.category, count: t.count, wastes: [...new Set(bins.map(b => b.waste).filter((w): w is string => Boolean(w)))], lastMoved: bins[0]?.lastMoved ?? null, bins };
   });
 }
+
+/** Skiptrak order fields read alongside the history (order override wins, as on the portal). */
+export const HISTORY_ORDER_FIELDS = "order_no:raw->>Order No,order_number_override";
+export type HistoryOrder = { order_no?: string | null; order_number_override?: string | null };
+export const historyOrderNumber = (job: HistoryOrder) => {
+  const value = (job.order_number_override || job.order_no || "").trim();
+  return value && !/^(tbc|n\/?a|none|-)$/i.test(value) ? value : null;
+};
+/** Weighbridge ticket linked to a Skiptrak job (Midweigh weight is recorded in kg). */
+export type LinkedTicket = { id: string; job_number: string; job_date: string | null; weight_kg: number | null };
+/** Skiptrak weight_t is tonnes; Midweigh weight_t is kg. */
+export const jobWeightTonnes = (job: Pick<HistoryJob, "source" | "weight_t">) => {
+  const w = Number(job.weight_t);
+  if (!job.weight_t || !Number.isFinite(w) || w <= 0) return null;
+  return job.source === "midweigh" ? w / 1000 : w;
+};
+
+const norm = (v: string | null | undefined) => (v ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+
+/** One physical bin position's full history: Skiptrak site name + container type + EWC. */
+export type BinHistory = {
+  key: string; site: string; container: string; ewc: string | null; waste: string | null;
+  onSite: number; jobs: HistoryJob[]; firstDate: string | null; lastDate: string | null; lastMoved: LastMovement | null;
+};
+
+/**
+ * Groups every retained job into its bin position so each bin shows its complete chain of
+ * orders and tickets. On-site counts come from the Live Jobs estimate (currentSiteContainers),
+ * never recomputed here, so this view always agrees with Live Jobs.
+ */
+export function siteBinHistories(jobs: HistoryJob[], current: ReturnType<typeof currentSiteContainers>): BinHistory[] {
+  const bins = new Map<string, BinHistory>();
+  for (const j of jobs) {
+    if (isStandingBinJob(j)) continue;
+    const container = j.container_type?.trim() || "Container not recorded";
+    const ewc = j.ewc?.trim() || null;
+    const key = `${norm(j.site)}|||${norm(container)}|||${norm(ewc)}`;
+    const b = bins.get(key) ?? { key, site: (j.site ?? "").trim(), container, ewc, waste: null, onSite: 0, jobs: [], firstDate: null, lastDate: null, lastMoved: null };
+    b.jobs.push(j);
+    if (j.job_date && (!b.firstDate || j.job_date < b.firstDate)) b.firstDate = j.job_date;
+    if (j.job_date && (!b.lastDate || j.job_date > b.lastDate)) { b.lastDate = j.job_date; if (j.waste_description) b.waste = j.waste_description; }
+    if (!b.waste && j.waste_description) b.waste = j.waste_description;
+    bins.set(key, b);
+  }
+  for (const t of current) for (const live of t.bins) {
+    const key = `${norm(live.site)}|||${norm(t.container)}|||${norm(live.ewc)}`;
+    const b = bins.get(key);
+    if (b) { b.onSite += live.count; b.lastMoved = live.lastMoved; }
+  }
+  for (const b of bins.values()) b.jobs.sort((a, c) => (c.job_date ?? "").localeCompare(a.job_date ?? "") || c.job_number.localeCompare(a.job_number, undefined, { numeric: true }));
+  return [...bins.values()].sort((a, b) => (b.onSite > 0 ? 1 : 0) - (a.onSite > 0 ? 1 : 0) || (b.lastDate ?? "").localeCompare(a.lastDate ?? ""));
+}
+
+/** Site search result before display. */
+export type SiteSearchResult = { key: string; site: string; customers: string[]; names: string[]; address: string; postcode: string; source: HistorySource; jobCount?: number };
+export type SiteMapping = { site_name: string; data_hub_customer: string | null; data_hub_site: string | null; data_hub_site_2: string | null; data_hub_site_3: string | null; data_hub_site_4: string | null; data_hub_site_5: string | null; address_1: string | null; address_2: string | null; postcode: string | null };
+
+/**
+ * Folds Customer Setup site mappings into search results: every Skiptrak name a mapping lists
+ * collapses into one result, so a site saved under several names shows all its bins together.
+ */
+export function mergeMappedSites(results: Map<string, SiteSearchResult>, mappings: SiteMapping[], source: HistorySource) {
+  const sites = new Map(results);
+  for (const m of mappings) {
+    const names = [m.site_name, m.data_hub_site, m.data_hub_site_2, m.data_hub_site_3, m.data_hub_site_4, m.data_hub_site_5].filter((n): n is string => Boolean(n?.trim()));
+    const aliasKeys = new Set(names.map(norm));
+    const matched = [...sites.values()].filter(r => r.names.some(n => aliasKeys.has(norm(n))) || aliasKeys.has(r.key));
+    const base = matched[0] ?? { source, key: norm(m.site_name), site: m.site_name, customers: [], names: [], address: "", postcode: "", jobCount: 0 };
+    const merged: SiteSearchResult = { ...base, site: matched.length > 1 ? m.site_name : base.site, customers: [...base.customers], names: [...base.names] };
+    for (const r of matched.slice(1)) {
+      merged.names.push(...r.names);
+      for (const c of r.customers) if (!merged.customers.includes(c)) merged.customers.push(c);
+      merged.jobCount = (merged.jobCount ?? 0) + (r.jobCount ?? 0);
+      merged.address ||= r.address; merged.postcode ||= r.postcode;
+    }
+    merged.names = [...new Set([...merged.names, ...names])];
+    if (m.data_hub_customer && !merged.customers.includes(m.data_hub_customer)) merged.customers.push(m.data_hub_customer);
+    merged.address = [m.address_1, m.address_2].filter(Boolean).join(", ") || merged.address;
+    merged.postcode = m.postcode || merged.postcode;
+    for (const r of matched) sites.delete(r.key);
+    sites.set(merged.key, merged);
+  }
+  return sites;
+}
