@@ -29,7 +29,10 @@ export const nextScheduleDate = (rule: ScheduleRule, today: string) => scheduleO
  */
 export function detectCadenceWeeks(dates: (string | null | undefined)[]): number | null {
   const sorted = [...new Set(dates.filter((d): d is string => Boolean(d)))].sort();
-  const gaps = sorted.slice(1).map((d, i) => Math.round(dayGap(sorted[i], d) / 7)).filter(w => w >= 1 && w <= 26).slice(-4);
+  const days = sorted.slice(1).map((d, i) => dayGap(sorted[i], d)).slice(-4);
+  // Several runs a week (e.g. daily trailers) are not a weekly repeat.
+  if (days.length < 2 || days.some(g => g < 5)) return null;
+  const gaps = days.map(g => Math.round(g / 7)).filter(w => w >= 1 && w <= 26);
   if (gaps.length < 2) return null;
   const counts = new Map<number, number>();
   for (const g of gaps) counts.set(g, (counts.get(g) ?? 0) + 1);

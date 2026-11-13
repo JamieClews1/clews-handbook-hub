@@ -146,7 +146,7 @@ export function SiteContainersDialog({ site, onOpenChange, onUseSite, onBookExch
   };
   const planLines = (plan: ReturnType<typeof planFor>) => <>
     {plan.future.length > 0 && <p className="text-sm"><CalendarCheck className="mr-1 inline h-3.5 w-3.5 align-[-2px] text-primary" />Booked next <span className="font-medium">{plan.future.slice(0, 3).map(f => `${shortDate(f.date)} (#${f.key})`).join(" · ")}</span>{plan.future.length > 3 && <span className="text-muted-foreground"> +{plan.future.length - 3} more</span>}</p>}
-    {plan.schedule ? <p className="text-xs"><Badge variant="secondary" className="mr-1.5 gap-1"><Repeat className="h-3 w-3" />{plan.schedule.active ? "Scheduled" : "Schedule paused"}</Badge>{scheduleFrequencyLabel(plan.schedule.interval_weeks)}{plan.schedule.booked_until && <span className="text-muted-foreground"> · booked to {shortDate(plan.schedule.booked_until)}</span>}</p>
+    {plan.schedule ? <div className="text-xs"><Badge variant="secondary" className="mr-1.5 gap-1"><Repeat className="h-3 w-3" />{plan.schedule.active ? "Scheduled" : "Schedule paused"}</Badge>{scheduleFrequencyLabel(plan.schedule.interval_weeks)}{plan.schedule.booked_until && <span className="text-muted-foreground"> · booked to {shortDate(plan.schedule.booked_until)}</span>}</div>
       : plan.cadence && <p className="text-xs text-muted-foreground"><Repeat className="mr-1 inline h-3 w-3 align-[-1px]" />Runs {scheduleFrequencyLabel(plan.cadence).toLowerCase()}</p>}
   </>;
   const usePrevious = async (jobId: string, mode: PreviousJobMode, key: string) => {
