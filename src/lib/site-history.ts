@@ -36,35 +36,64 @@ export function historyStatus(job: HistoryJob, today: string) {
 
 /** Most recent completed physical movement for one container type on a site. */
 export type LastMovement = { date: string; movement: string; jobId: string; jobNumber: string; waste: string | null; ewc: string | null };
+/** One estimated bin position: a Skiptrak site name + container type + EWC. */
+export type SiteBin = { site: string; ewc: string | null; waste: string | null; count: number; lastMoved: LastMovement | null };
 
-/** Same window, completed movements, per-waste estimate and type clamp as Live Jobs. */
+type GroupPos = ClampPos & { ewc: string | null; waste: string | null; lastMoved: LastMovement | null };
+
+/**
+ * Same window, completed movements, per-waste estimate and type clamp as Live Jobs.
+ * Live Jobs clamps each Skiptrak site name separately, so a customer site mapped to
+ * several Skiptrak names keeps one clamp per name instead of collapsing to one bin.
+ */
 export function currentSiteContainers(jobs: HistoryJob[], rules: StandingBinRule[], settings: LiveJobsSettings, since: string, today: string) {
   const recent = jobs.filter(j => j.job_date && j.job_date >= since && ["Deliver", "Exchange", "Collect", "Tip/Return"].includes(j.movement_type ?? "") && isCompletedRentalMovement(j, today));
-  const types = new Map<string, { container: string; category: string; wastes: Set<string>; positions: Map<string, ClampPos>; lastMoved: LastMovement | null }>();
+  const groups = new Map<string, { site: string; container: string; category: string; positions: Map<string, GroupPos> }>();
   for (const j of withStandingBins(recent, rules, today)) {
     const category = categoriseContainer(j.container_type, j.vehicle_registration, settings);
     if (!j.container_type || !category || category === "artic") continue;
-    const t = types.get(j.container_type) ?? { container: j.container_type, category, wastes: new Set<string>(), positions: new Map<string, ClampPos>(), lastMoved: null as LastMovement | null };
-    // Virtual standing-bin deliveries only restore counts; they are never a real movement date.
-    if (!isStandingBinJob(j) && j.job_date && (!t.lastMoved || j.job_date > t.lastMoved.date)) t.lastMoved = { date: j.job_date, movement: j.movement_type ?? "", jobId: j.id, jobNumber: j.job_number, waste: j.waste_description ?? null, ewc: j.ewc ?? null };
+    const site = (j.site ?? "").trim();
+    const groupKey = `${site.toLowerCase()}|||${j.container_type}`;
+    const g = groups.get(groupKey) ?? { site, container: j.container_type, category, positions: new Map<string, GroupPos>() };
     const key = j.ewc?.trim() || "__none__";
-    const p = t.positions.get(key) ?? { delivered: 0, collected: 0, exchanged: 0, tipReturn: 0, lastKeepDate: null, lastCollectionDate: null };
+    const p = g.positions.get(key) ?? { delivered: 0, collected: 0, exchanged: 0, tipReturn: 0, lastKeepDate: null, lastCollectionDate: null, ewc: j.ewc?.trim() || null, waste: null, lastMoved: null };
     if (j.movement_type === "Deliver") p.delivered++;
     if (j.movement_type === "Collect") p.collected++;
     if (j.movement_type === "Exchange") p.exchanged++;
     if (j.movement_type === "Tip/Return") p.tipReturn++;
     if (["Deliver", "Exchange", "Tip/Return"].includes(j.movement_type ?? "") && j.job_date && (!p.lastKeepDate || j.job_date > p.lastKeepDate)) p.lastKeepDate = j.job_date;
     if (j.movement_type === "Collect" && j.job_date && (!p.lastCollectionDate || j.job_date > p.lastCollectionDate)) p.lastCollectionDate = j.job_date;
-    if (j.waste_description) t.wastes.add(j.waste_description);
-    t.positions.set(key, p); types.set(j.container_type, t);
+    // Virtual standing-bin deliveries only restore counts; they are never a real movement date.
+    if (!isStandingBinJob(j) && j.job_date && (!p.lastMoved || j.job_date > p.lastMoved.date)) {
+      p.lastMoved = { date: j.job_date, movement: j.movement_type ?? "", jobId: j.id, jobNumber: j.job_number, waste: j.waste_description ?? null, ewc: j.ewc ?? null };
+      if (j.waste_description) p.waste = j.waste_description;
+    }
+    if (!p.waste && j.waste_description) p.waste = j.waste_description;
+    g.positions.set(key, p); groups.set(groupKey, g);
   }
-  return [...types.values()].map(t => {
-    const positions = [...t.positions.values()];
-    const estimate = positions.reduce((n, p) => {
+  const types = new Map<string, { container: string; category: string; count: number; bins: SiteBin[] }>();
+  for (const g of groups.values()) {
+    const positions = [...g.positions.values()];
+    const each = positions.map(p => {
       const net = p.delivered - p.collected;
       const cleared = p.lastCollectionDate && p.lastKeepDate && p.lastCollectionDate >= p.lastKeepDate;
-      return n + (cleared && net <= 0 ? 0 : Math.max(net, net >= 0 && (p.exchanged > 0 || p.tipReturn > 0) ? Math.max(1, net) : 0));
-    }, 0);
-    return { container: t.container, category: t.category, wastes: [...t.wastes], count: Math.min(estimate, containerTypeCap(positions)), lastMoved: t.lastMoved };
-  }).filter(t => t.count > 0);
+      return cleared && net <= 0 ? 0 : Math.max(net, net >= 0 && (p.exchanged > 0 || p.tipReturn > 0) ? Math.max(1, net) : 0);
+    });
+    let remaining = Math.min(each.reduce((n, c) => n + c, 0), containerTypeCap(positions));
+    const t = types.get(g.container) ?? { container: g.container, category: g.category, count: 0, bins: [] };
+    t.count += remaining;
+    // When the clamp trims positions (e.g. a waste code changed), the most recently kept code is the bin still there.
+    const order = positions.map((p, i) => ({ p, c: each[i] })).sort((a, b) => (b.p.lastKeepDate ?? "").localeCompare(a.p.lastKeepDate ?? ""));
+    for (const { p, c } of order) {
+      const count = Math.min(c, remaining);
+      if (count <= 0) continue;
+      remaining -= count;
+      t.bins.push({ site: g.site, ewc: p.ewc, waste: p.waste, count, lastMoved: p.lastMoved });
+    }
+    types.set(g.container, t);
+  }
+  return [...types.values()].filter(t => t.count > 0).map(t => {
+    const bins = t.bins.sort((a, b) => (b.lastMoved?.date ?? "").localeCompare(a.lastMoved?.date ?? ""));
+    return { container: t.container, category: t.category, count: t.count, wastes: [...new Set(bins.map(b => b.waste).filter((w): w is string => Boolean(w)))], lastMoved: bins[0]?.lastMoved ?? null, bins };
+  });
 }

@@ -42,3 +42,17 @@ describe("site history", () => {
     assert.equal(c.lastMoved?.date,"2026-09-15");
   });
 });
+describe("site history across mapped Skiptrak site names", () => {
+  const settings = { skip_container_keywords: ["yard"], roro_container_keywords: ["ro ro"], artic_container_keywords: [], artic_vehicle_regs: [] } as unknown as LiveJobsSettings;
+  const ex = (site: string, ewc: string, date: string, waste = "Waste"): HistoryJob => ({id:site+ewc+date,source:"skiptrak",job_number:date,job_date:date,customer:"Biffa Waste",site,postcode:"CV21 1HA",container_type:"40 yd Ro Ro",movement_type:"Exchange",waste_description:waste,vehicle_registration:null,ewc,rental_status:"Y"});
+  it("counts one exchanged Ro Ro per Skiptrak site name, as Live Jobs does", () => {
+    const [c] = currentSiteContainers([ex("New  Waste Yard (Rugby 1)","15 01 02","2026-11-06"),ex("Britvic - Waste Yard Rugby 1 (New)","15 01 03","2026-11-06"),ex("Rugby 3","20 03 01","2026-11-07")],[],settings,"2025-12-01","2026-11-13");
+    assert.equal(c.count,3);
+    assert.equal(c.bins.length,3);
+  });
+  it("a changed waste code on one site name is still one bin, shown under the newest code", () => {
+    const [c] = currentSiteContainers([ex("Rugby 3","15 01 02","2026-06-01","Plastic"),ex("Rugby 3","20 03 01","2026-11-07","General")],[],settings,"2025-12-01","2026-11-13");
+    assert.equal(c.count,1);
+    assert.equal(c.bins[0].ewc,"20 03 01");
+  });
+});

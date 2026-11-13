@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useLiveJobsSettings } from "@/hooks/useLiveJobsSettings";
-import { currentSiteContainers, HISTORY_FIELDS, type HistoryJob, type LastMovement } from "@/lib/site-history";
+import { currentSiteContainers, HISTORY_FIELDS, type HistoryJob, type LastMovement, type SiteBin } from "@/lib/site-history";
 import { isCompletedRentalMovement } from "@/lib/rental-open-movements";
 import type { StandingBinRule } from "@/lib/standing-bins";
 import { londonCalendarKey } from "@/lib/ui-calendar";
@@ -15,7 +15,7 @@ import { formatEwc, standardWasteName } from "@/lib/waste-streams";
 import { bookingContainerLabel } from "@/lib/container-taxonomy";
 
 export type ContainersSite = { customer: string; site: string; address: string; postcode: string };
-export type OnSiteContainer = { container: string; count: number; lastMoved: LastMovement | null };
+export type OnSiteContainer = { container: string; count: number; lastMoved: LastMovement | null; bin?: SiteBin };
 type Booked = { key: string; date: string; type: string; container: string; source: string };
 
 const dateLabel = (value: string | null | undefined) => {
@@ -102,8 +102,8 @@ export function SiteContainersDialog({ site, onOpenChange, onUseSite, onBookExch
     return [...rows.values()].sort((a, b) => a.date.localeCompare(b.date));
   }, [jobs, native, today]);
 
-  const book = async (c: OnSiteContainer) => {
-    setBooking(c.container);
+  const book = async (c: OnSiteContainer, key: string) => {
+    setBooking(key);
     try { await onBookExchange(c); } finally { setBooking(null); }
   };
 
@@ -135,16 +135,28 @@ export function SiteContainersDialog({ site, onOpenChange, onUseSite, onBookExch
         </div> : <ul className="space-y-2" aria-label="Containers on site">
           {current.map(c => {
             const own = names.some(n => ownKeys.has(`${n.toLowerCase().trim()}|||${c.container.toLowerCase().trim()}`));
-            return <li key={c.container} className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-card p-3">
-              <div className="rounded-md bg-muted p-2"><Package className="h-4 w-4 text-primary" /></div>
-              <div className="min-w-0 flex-1 space-y-0.5">
-                <div className="flex flex-wrap items-center gap-2"><span className="font-semibold tabular-nums">{c.count} × {c.container}</span><Badge variant="outline">{own ? "Own" : "Clews"}</Badge></div>
-                <p className="text-sm text-muted-foreground">{c.wastes.length ? [...new Set(c.wastes.map(w => wasteLabel(w, null)))].join(" / ") : "Waste type not recorded"}</p>
-                {c.lastMoved ? <p className="text-sm"><CalendarClock className="mr-1 inline h-3.5 w-3.5 align-[-2px] text-muted-foreground" />Last moved <span className="font-medium whitespace-nowrap">{dateLabel(c.lastMoved.date)}</span> <span className="text-muted-foreground">({daysAgo(c.lastMoved.date, today)}) · {c.lastMoved.movement} · job #{c.lastMoved.jobNumber}</span></p> : <p className="text-sm text-muted-foreground">Last movement not recorded</p>}
+            const severalSites = new Set(c.bins.map(b => b.site.toLowerCase())).size > 1;
+            return <li key={c.container} className="rounded-md border border-border bg-card">
+              <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
+                <Package className="h-4 w-4 text-primary" />
+                <span className="font-semibold tabular-nums">{c.count} × {c.container}</span>
+                <Badge variant="outline">{own ? "Own" : "Clews"}</Badge>
               </div>
-              <Button type="button" size="sm" disabled={!c.lastMoved || booking !== null} onClick={() => void book(c)}>
-                {booking === c.container ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}Book exchange
-              </Button>
+              <ul className="divide-y divide-border">
+                {c.bins.map(b => {
+                  const key = `${c.container}|${b.site}|${b.ewc ?? ""}`;
+                  return <li key={key} className="flex flex-wrap items-center gap-3 px-3 py-2.5">
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <p className="text-sm font-medium">{b.count > 1 ? `${b.count} × ` : ""}{wasteLabel(b.waste, b.ewc)}{b.ewc && <span className="ml-1.5 font-normal text-muted-foreground tabular-nums">{formatEwc(b.ewc)}</span>}</p>
+                      {severalSites && <p className="text-xs text-muted-foreground">Skiptrak site: {b.site}</p>}
+                      {b.lastMoved ? <p className="text-sm"><CalendarClock className="mr-1 inline h-3.5 w-3.5 align-[-2px] text-muted-foreground" />Last moved <span className="font-medium whitespace-nowrap">{dateLabel(b.lastMoved.date)}</span> <span className="text-muted-foreground">({daysAgo(b.lastMoved.date, today)}) · {b.lastMoved.movement} · job #{b.lastMoved.jobNumber}</span></p> : <p className="text-sm text-muted-foreground">Last movement not recorded</p>}
+                    </div>
+                    <Button type="button" size="sm" disabled={!b.lastMoved || booking !== null} onClick={() => void book({ container: c.container, count: b.count, lastMoved: b.lastMoved, bin: b }, key)}>
+                      {booking === key ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}Book exchange
+                    </Button>
+                  </li>;
+                })}
+              </ul>
             </li>;
           })}
         </ul>}
