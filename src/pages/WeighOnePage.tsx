@@ -49,7 +49,7 @@ import { wtnHtmlToPdf, downloadBlob } from "@/lib/wtn-ticket-pdf";
 import { wasteOutProducerSignature } from "@/lib/waste-out-signatures";
 import { signaturePrintMarkup, signoffAt } from "@/lib/weighone-signature-times";
 import { routeOneSkipDetails, importedSkipWaste, routeOneSkipProducer } from "@/lib/routeone-skip-ticket";
-import { hasWeighbridgePricing } from "@/lib/weighone-pricing-policy";
+import { hasWeighbridgePricing, minimumChargeFor, weightChargeFor } from "@/lib/weighone-pricing-policy";
 import { format, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { SignatureField } from "@/components/SignatureField";
@@ -156,6 +156,7 @@ interface WasteType {
   ewc_code: string | null;
   price_per_tonne: number;
   min_charge: number | null;
+  min_weight_exempt?: boolean | null;
   is_active: boolean;
   display_order: number;
 }
@@ -351,7 +352,7 @@ const WeighOnePage = () => {
   const [newWasteType, setNewWasteType] = useState({ waste_type: "", ewc_code: "", price_per_tonne: "" });
 
   // Rate groups, per-group prices and additional-item templates
-  const { rateGroups, ratePrices, itemTemplates } = useWeighbridgeRates();
+  const { rateGroups, ratePrices, itemTemplates, minChargeWeightKg } = useWeighbridgeRates();
   const defaultRateGroup = rateGroups.find((g) => g.is_default) ?? rateGroups[0];
 
 
@@ -753,7 +754,13 @@ const WeighOnePage = () => {
     );
     // Free-of-charge types are legitimately £0; anything else unpriced shows a warning instead of £0.00.
     const foc = /\bfoc\b/i.test(wt?.waste_type ?? "");
-    return r.isSet || foc ? { price_per_tonne: r.price_per_tonne, min_charge: r.min_charge } : null;
+    if (!(r.isSet || foc)) return null;
+    const exempt = !!wt?.min_weight_exempt;
+    return {
+      price_per_tonne: r.price_per_tonne,
+      min_charge: minimumChargeFor({ pricePerTonne: r.price_per_tonne, exempt, ownMinCharge: r.min_charge, minWeightKg: minChargeWeightKg }),
+      min_weight_exempt: exempt,
+    };
   };
 
   /** Waste types that have a price in the chosen rate group, so the picker keeps priced duplicates. */
@@ -763,8 +770,7 @@ const WeighOnePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ratePrices, formData.rate_group_id, defaultRateGroup?.id]);
 
-  const chargeFor = (netKg: number, price: number, minCharge: number) =>
-    Math.max((netKg / 1000) * price, price > 0 ? minCharge : 0);
+  const chargeFor = weightChargeFor;
 
   const selectedRate = hasPricing && formData.waste_type_id
     ? rateFor(formData.waste_type_id, formData.rate_group_id)
@@ -877,7 +883,16 @@ const WeighOnePage = () => {
       const tableRate = hasPricing && formData.waste_type_id ? rateFor(formData.waste_type_id, formData.rate_group_id) : null;
       // A RouteOne job's booked £/t wins over the weighbridge rate table. Waste Out carries no rates.
       const rate = !hasPricing ? null : arrivingJob?.charge_per_tonne != null
-        ? { price_per_tonne: Number(arrivingJob.charge_per_tonne), min_charge: tableRate?.min_charge ?? 0 }
+        ? {
+            price_per_tonne: Number(arrivingJob.charge_per_tonne),
+            // The booked £/t also sets the minimum, unless this waste keeps its own £ minimum (soil/hardcore).
+            min_charge: minimumChargeFor({
+              pricePerTonne: Number(arrivingJob.charge_per_tonne),
+              exempt: !!tableRate?.min_weight_exempt,
+              ownMinCharge: tableRate?.min_charge ?? 0,
+              minWeightKg: minChargeWeightKg,
+            }),
+          }
         : tableRate;
 
       // Optional second (tare) weight captured at the same time
@@ -2041,7 +2056,7 @@ const WeighOnePage = () => {
                             ) : (
                               <>
                                 <div className="flex justify-between"><span className="text-muted-foreground">Per tonne</span><span className="font-bold tabular-nums">£{selectedRate.price_per_tonne.toFixed(2)}</span></div>
-                                {selectedRate.min_charge > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Minimum charge</span><span className="tabular-nums">£{selectedRate.min_charge.toFixed(2)}</span></div>}
+                                {selectedRate.min_charge > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Minimum charge{!selectedRate.min_weight_exempt && ` (${minChargeWeightKg} kg)`}</span><span className="tabular-nums">£{selectedRate.min_charge.toFixed(2)}</span></div>}
                                 <div className="flex justify-between"><span className="text-muted-foreground">Weight charge</span><span className="tabular-nums">{weightCharge !== null ? `£${weightCharge.toFixed(2)}` : "Worked out on weigh out"}</span></div>
                               </>
                             )}

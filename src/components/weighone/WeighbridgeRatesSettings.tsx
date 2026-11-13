@@ -12,7 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2, PoundSterling, Package, Building2, RotateCcw } from "lucide-react";
+import { Plus, Trash2, PoundSterling, Package, Building2, RotateCcw, Scale } from "lucide-react";
+import { DEFAULT_MIN_CHARGE_WEIGHT_KG } from "@/lib/weighone-pricing-policy";
 
 export interface RateGroup {
   id: string;
@@ -37,6 +38,7 @@ export interface WasteTypeRow {
   ewc_code: string | null;
   price_per_tonne: number;
   min_charge: number;
+  min_weight_exempt: boolean;
   is_active: boolean;
   display_order: number;
 }
@@ -84,7 +86,20 @@ export function useWeighbridgeRates() {
     },
   });
 
-  return { rateGroups, ratePrices, itemTemplates };
+  const { data: pricingSettings } = useQuery({
+    queryKey: ["weighbridge-pricing-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("weighbridge_pricing_settings")
+        .select("min_charge_weight_kg")
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const minChargeWeightKg = Number(pricingSettings?.min_charge_weight_kg ?? DEFAULT_MIN_CHARGE_WEIGHT_KG);
+
+  return { rateGroups, ratePrices, itemTemplates, minChargeWeightKg };
 }
 
 /** Resolves the effective price/min charge for a waste type under a rate group. */
@@ -109,7 +124,7 @@ export function resolveRate(
 
 export const WeighbridgeRatesSettings = () => {
   const queryClient = useQueryClient();
-  const { rateGroups, ratePrices, itemTemplates } = useWeighbridgeRates();
+  const { rateGroups, ratePrices, itemTemplates, minChargeWeightKg } = useWeighbridgeRates();
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
   const [newGroupName, setNewGroupName] = useState("");
   const [newItem, setNewItem] = useState({ name: "", ewc_code: "", cost: "" });
@@ -160,6 +175,22 @@ export const WeighbridgeRatesSettings = () => {
     queryClient.invalidateQueries({ queryKey: ["weighbridge-rate-group-prices"] });
     queryClient.invalidateQueries({ queryKey: ["weighbridge-waste-types"] });
   };
+
+  const saveMinWeight = useMutation({
+    mutationFn: async (kg: number) => {
+      const { data: auth } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("weighbridge_pricing_settings")
+        .upsert({ id: true, min_charge_weight_kg: kg, updated_at: new Date().toISOString(), updated_by: auth.user?.id ?? null });
+      if (error) throw error;
+    },
+    onSuccess: (_d, kg) => {
+      queryClient.invalidateQueries({ queryKey: ["weighbridge-pricing-settings"] });
+      invalidate();
+      toast.success(`Minimum charge weight set to ${kg} kg`);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const saveBase = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<WasteTypeRow> }) => {
@@ -323,6 +354,36 @@ export const WeighbridgeRatesSettings = () => {
           </div>
         </div>
 
+        <div className="rounded-lg border border-border/60 bg-muted/40 p-3 flex flex-wrap items-end gap-3">
+          <div className="flex items-start gap-2 flex-1 min-w-[240px]">
+            <Scale className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+            <div>
+              <p className="text-sm font-semibold">Minimum charge weight</p>
+              <p className="text-xs text-muted-foreground">
+                Loads lighter than this are charged as this weight at the waste type's £/tonne. Waste types switched off in the
+                "Min weight" column (soil and hardcore) keep their own £ minimum instead.
+              </p>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="min-charge-weight" className="text-xs">Minimum weight (kg)</Label>
+            <Input
+              id="min-charge-weight"
+              type="number"
+              min={0}
+              step={10}
+              className="h-9 w-32 text-right tabular-nums"
+              defaultValue={minChargeWeightKg}
+              key={`mw-${minChargeWeightKg}`}
+              onBlur={(e) => {
+                const kg = parseFloat(e.target.value);
+                if (isNaN(kg) || kg < 0) { e.target.value = String(minChargeWeightKg); return; }
+                if (kg !== minChargeWeightKg) saveMinWeight.mutate(kg);
+              }}
+            />
+          </div>
+        </div>
+
         <p className="text-xs text-muted-foreground">
           {isDefaultGroup
             ? "Trade rates apply to every customer unless they are assigned to another group."
@@ -338,6 +399,7 @@ export const WeighbridgeRatesSettings = () => {
                   <TableHead>Waste type</TableHead>
                   <TableHead className="w-24">EWC</TableHead>
                   <TableHead className="w-32 text-right">£ / tonne</TableHead>
+                  <TableHead className="w-24 text-center" title={`Charge at least ${minChargeWeightKg} kg`}>Min weight</TableHead>
                   <TableHead className="w-32 text-right">Min charge £</TableHead>
                   {!isDefaultGroup && <TableHead className="w-24 text-right">Trade</TableHead>}
                 </TableRow>
@@ -378,7 +440,22 @@ export const WeighbridgeRatesSettings = () => {
                           }}
                         />
                       </TableCell>
+                      <TableCell className="text-center">
+                        <Switch
+                          aria-label={`Apply ${minChargeWeightKg} kg minimum to ${wt.waste_type}`}
+                          checked={!wt.min_weight_exempt}
+                          disabled={!isDefaultGroup}
+                          title={isDefaultGroup ? undefined : "Change this on the default (trade) rate group"}
+                          onCheckedChange={(v) => saveBase.mutate({ id: wt.id, patch: { min_weight_exempt: !v } })}
+                        />
+                      </TableCell>
                       <TableCell className="text-right">
+                        {!wt.min_weight_exempt ? (
+                          <div className="text-sm tabular-nums" title={`${minChargeWeightKg} kg at the £/tonne rate`}>
+                            £{Number(isDefaultGroup ? wt.min_charge : override?.min_charge ?? wt.min_charge ?? 0).toFixed(2)}
+                            <div className="text-[11px] text-muted-foreground">{minChargeWeightKg} kg</div>
+                          </div>
+                        ) : (
                         <Input
                           type="number"
                           step="0.01"
@@ -399,6 +476,7 @@ export const WeighbridgeRatesSettings = () => {
                             }
                           }}
                         />
+                        )}
                       </TableCell>
                       {!isDefaultGroup && (
                         <TableCell className="text-right">

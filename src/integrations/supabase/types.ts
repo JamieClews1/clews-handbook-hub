@@ -10965,6 +10965,27 @@ export type Database = {
         }
         Relationships: []
       }
+      weighbridge_pricing_settings: {
+        Row: {
+          id: boolean
+          min_charge_weight_kg: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: boolean
+          min_charge_weight_kg?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: boolean
+          min_charge_weight_kg?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       weighbridge_rate_group_prices: {
         Row: {
           created_at: string
@@ -11271,6 +11292,7 @@ export type Database = {
           id: string
           is_active: boolean
           min_charge: number
+          min_weight_exempt: boolean
           price_per_tonne: number
           updated_at: string
           waste_type: string
@@ -11282,6 +11304,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           min_charge?: number
+          min_weight_exempt?: boolean
           price_per_tonne?: number
           updated_at?: string
           waste_type: string
@@ -11293,6 +11316,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           min_charge?: number
+          min_weight_exempt?: boolean
           price_per_tonne?: number
           updated_at?: string
           waste_type?: string
@@ -11729,6 +11753,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      weighbridge_min_charge_for: { Args: { _price: number }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "user" | "finance"
