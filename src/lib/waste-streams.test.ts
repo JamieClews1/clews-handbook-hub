@@ -56,8 +56,9 @@ test("copied booking waste takes the standard name and EWC", async () => {
 
 test("rate card per-tonne lines price their standard stream", async () => {
   const { rateCardTonnageStream } = await import("./waste-streams");
-  assert.equal(rateCardTonnageStream("Grade A Wood Waste")?.name, "Wood – Packaging / Pallets");
-  assert.equal(rateCardTonnageStream("Grade C Wood Waste")?.name, "Wood – Construction");
+  // Each grade covers packaging and construction wood, so the line is not one stream.
+  assert.equal(rateCardTonnageStream("Grade A Wood Waste"), null);
+  assert.equal(rateCardTonnageStream("Grade C Wood Waste"), null);
   assert.equal(rateCardTonnageStream("LANDFILL: Non Recyclable")?.name, "General Waste – Non-Recoverable (Landfill)");
   assert.equal(rateCardTonnageStream("Dry Mixed Recyclables")?.ewc, "15 01 06");
   assert.equal(rateCardTonnageStream("Mixed Inert  (soils & hardcore)"), null);
@@ -76,4 +77,28 @@ test("Haulage Only is a job type: it clears the waste and EWC, and switching awa
   assert.deepEqual(haulageWasteFor("delivery", "Haulage Only"), { waste_type: "", ewc_code: "" });
   assert.deepEqual(haulageWasteFor("delivery", "General Waste"), {});
   assert.ok(!pickableWasteStreams("incoming", false).some((s) => s.name === "Haulage Only"));
+});
+
+test("wood has four agreed codes: packaging or construction, each in A or C grade", async () => {
+  const { wasteStreamByRef } = await import("./waste-streams");
+  const four = ["WOOD-PAA", "WOOD-PAC", "WOOD-CA", "WOOD-CC"].map((r) => wasteStreamByRef(r));
+  assert.deepEqual(four.map((s) => [s?.name, s?.ewc]), [
+    ["Wood – Packaging / Pallets A GRADE", "15 01 03"],
+    ["Wood – Packaging / Pallets C GRADE", "15 01 03"],
+    ["Wood – Construction / A GRADE", "17 02 01"],
+    ["Wood – Construction / C GRADE", "17 02 01"],
+  ]);
+  assert.equal(wasteStreamByRef("WOODA"), null);
+  assert.equal(wasteStreamByRef("WOODC"), null);
+});
+
+test("recorded wood wording resolves to its agreed wood code", async () => {
+  const { wasteStreamRef } = await import("./waste-streams");
+  assert.equal(wasteStreamRef("Clean Wood (Grade A - pallets only)", "17 02 01", { source: "weighone" }), "WOOD-PAA");
+  assert.equal(wasteStreamRef("Low Grade Wood (Grade C)", "17 02 01", { source: "weighone" }), "WOOD-CC");
+  assert.equal(wasteStreamRef("Wooden packaging (Pallets)", "15 01 03", { source: "skiptrak" }), "WOOD-PAA");
+  assert.equal(wasteStreamRef("Wood", "17 02 01", { source: "skiptrak" }), "WOOD-CC");
+  assert.equal(wasteStreamRef("Wood – Construction / A GRADE", "17 02 01"), "WOOD-CA");
+  assert.equal(wasteStreamRef("Wood – Packaging / Pallets C GRADE", "15 01 03"), "WOOD-PAC");
+  assert.equal(wasteStreamRef("Wood (household)", "20 01 38"), "WOODM");
 });

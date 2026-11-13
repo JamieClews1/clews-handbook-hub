@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { WasteRefFor } from "@/components/waste/WasteRefChip";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +58,7 @@ export function WasteOutProductPicker({ products, value, onChange, placeholder =
           <span className="truncate">
             {selected ? (
               <>
+                <WasteRefFor name={selected.display_name} ewc={selected.ewc_code} source="midweigh" direction="outgoing" className="mr-2" />
                 <span className="font-mono text-xs mr-2">{selected.ewc_code}</span>
                 {selected.display_name}
               </>
@@ -102,6 +104,7 @@ export function WasteOutProductPicker({ products, value, onChange, placeholder =
                   >
                     <Check className={cn("mt-0.5 h-4 w-4 shrink-0", p.id === value ? "opacity-100" : "opacity-0")} />
                     <span className="min-w-0 flex-1">
+                      <WasteRefFor name={p.display_name} ewc={p.ewc_code} source="midweigh" direction="outgoing" className="mr-2" />
                       <span className="font-mono text-xs mr-2">{p.ewc_code}</span>
                       <span className="text-sm">{p.display_name}</span>
                     </span>

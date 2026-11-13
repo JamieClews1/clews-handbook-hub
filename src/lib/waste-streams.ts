@@ -118,6 +118,15 @@ export function resolveWasteStream(input: ResolveInput): WasteStream | null {
   return null;
 }
 
+/** Agreed reference code (e.g. "GEN", "WOOD-CA") for a recorded waste, or null when it cannot be told apart safely. */
+export function wasteStreamRef(
+  name: string | null | undefined,
+  ewc?: string | null,
+  opts: Omit<ResolveInput, "name" | "ewc"> = {},
+): string | null {
+  return resolveWasteStream({ ...opts, name, ewc })?.ref ?? null;
+}
+
 /** Standard name to show for a recorded waste; falls back to the recorded wording. */
 export function standardWasteName(
   name: string | null | undefined,
@@ -207,15 +216,14 @@ export function standardBookingWaste(
 /**
  * Per-tonne material lines on the Trade and Broker rate cards, matched to their
  * standard stream. Lines covering more than one stream ("Mixed Inert (soils &
- * hardcore)", "RECOVERY: Non Recyclable") and non-waste lines ("Rental") are left out.
+ * hardcore)", "RECOVERY: Non Recyclable", "Grade A/C Wood Waste" — each grade
+ * covers packaging and construction wood) and non-waste lines ("Rental") are left out.
  */
 const RATE_CARD_TONNAGE_REFS: Record<string, string> = {
   generalwaste: "GEN",
   cleanhardcore: "HARD",
   landfillnonrecyclable: "GEN-NR",
   plasterboard: "PB",
-  gradeawoodwaste: "WOODA",
-  gradecwoodwaste: "WOODC",
   weee: "WEEE",
   drymixedrecyclables: "DMR",
   green: "GREEN",

@@ -17,6 +17,7 @@ import {
 import { matchMatrixPostcode, type MatrixPostcode } from "@/lib/matrix-postcode-zone";
 import { rateContainerLabel, rateContainerSection } from "@/lib/container-taxonomy";
 import { rateCardTonnageStream } from "@/lib/waste-streams";
+import { WasteRefChip } from "@/components/waste/WasteRefChip";
 
 /** Rate-card zone codes keyed by the zone label held on pricing_zone_postcodes. */
 const POSTCODE_ZONE_TO_CODE: Record<string, string> = {
@@ -327,7 +328,7 @@ export function JobPricingPicker({ form, setForm }: { form: any; setForm: (f: an
                 >
                   <span className="min-w-0">
                     <span className="block truncate">{it.label}</span>
-                    {(() => { const s = rateCardTonnageStream(it.label); return s && s.name !== it.label ? <span className="block truncate text-[11px] text-muted-foreground">{s.name}</span> : null; })()}
+                    {(() => { const s = rateCardTonnageStream(it.label); return s ? <span className="flex items-center gap-1 truncate text-[11px] text-muted-foreground"><WasteRefChip refCode={s.ref} />{s.name !== it.label && <span className="truncate">{s.name}</span>}</span> : null; })()}
                   </span>
                   <span className="font-medium shrink-0">{money(it.price)}/t</span>
                 </button>

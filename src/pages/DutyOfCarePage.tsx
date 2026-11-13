@@ -14,6 +14,7 @@ import { PublicRegisterSection } from "@/components/duty-of-care/PublicRegisterS
 import { EwcRegisterSection } from "@/components/duty-of-care/EwcRegisterSection";
 import { CommonWasteTypesSection } from "@/components/duty-of-care/CommonWasteTypesSection";
 import { WasteProductsSection } from "@/components/duty-of-care/WasteProductsSection";
+import { AgreedWasteListSection } from "@/components/duty-of-care/AgreedWasteListSection";
 import { CompanyDocument, Partner, PartnerDocument, PartnerDocumentRequirement, DocumentType } from "@/components/duty-of-care/types";
 
 const DutyOfCarePage = () => {
@@ -126,10 +127,12 @@ const DutyOfCarePage = () => {
           <TabsContent value="ewc">
             <Tabs defaultValue="types" className="space-y-6">
               <TabsList>
+                <TabsTrigger value="agreed">Agreed List</TabsTrigger>
                 <TabsTrigger value="types">Waste Types</TabsTrigger>
                 <TabsTrigger value="products">Waste Out Products</TabsTrigger>
                 <TabsTrigger value="register">EWC Code Register</TabsTrigger>
               </TabsList>
+              <TabsContent value="agreed"><AgreedWasteListSection /></TabsContent>
               <TabsContent value="types"><CommonWasteTypesSection /></TabsContent>
               <TabsContent value="products"><WasteProductsSection isAdmin={isAdmin} /></TabsContent>
               <TabsContent value="register"><EwcRegisterSection isAdmin={isAdmin} /></TabsContent>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { WasteRefChip } from "@/components/waste/WasteRefChip";
 import {
   formatEwc,
   pickableWasteStreams,
@@ -44,7 +45,7 @@ export function WasteStreamPicker({ value, ewc, outgoing = false, only, onChange
       <Popover open={open} onOpenChange={(next) => { setOpen(next); if (!next) setQuery(""); }}>
         <PopoverTrigger asChild>
           <Button type="button" variant="outline" role="combobox" aria-expanded={open} aria-label="Waste type" className={cn("h-9 w-full justify-between px-3 font-normal", !value && "text-muted-foreground")}>
-            <span className="truncate">{value || "Select waste type..."}</span>
+            <span className="flex min-w-0 items-center gap-2">{isStandard && <WasteRefChip refCode={current?.ref} />}<span className="truncate">{value || "Select waste type..."}</span></span>
             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
@@ -65,6 +66,7 @@ export function WasteStreamPicker({ value, ewc, outgoing = false, only, onChange
                     className={cn("flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent", current?.ref === s.ref && "bg-accent")}
                   >
                     <Check className={cn("h-4 w-4 shrink-0", current?.ref === s.ref ? "opacity-100" : "opacity-0")} />
+                    <WasteRefChip refCode={s.ref} className="w-[4.75rem] justify-center" />
                     <span className="w-20 shrink-0 font-mono text-xs text-muted-foreground tabular-nums">{s.ewc ? formatEwc(s.ewc) : "—"}</span>
                     <span className="truncate">{s.name}</span>
                   </button>
@@ -76,7 +78,7 @@ export function WasteStreamPicker({ value, ewc, outgoing = false, only, onChange
       </Popover>
       {value && !isStandard && (
         <p className="text-xs text-muted-foreground">
-          {current ? <>Standard name: <span className="font-medium text-foreground">{current.name}</span> — pick it to update.</> : "Not on the standard list — pick a standard waste type."}
+          {current ? <>Standard name: <WasteRefChip refCode={current.ref} className="mx-1" /><span className="font-medium text-foreground">{current.name}</span> — pick it to update.</> : "Not on the standard list — pick a standard waste type."}
         </p>
       )}
     </div>

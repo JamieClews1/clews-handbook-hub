@@ -1,5 +1,5 @@
 {
- "version": "v5 (13 Nov 2026)",
+ "version": "v5 (13 Nov 2026, wood split into four codes)",
  "streams": [
   {
    "ref": "GEN",
@@ -80,14 +80,26 @@
    "direction": "incoming"
   },
   {
-   "ref": "WOODA",
-   "name": "Wood – Packaging / Pallets",
+   "ref": "WOOD-PAA",
+   "name": "Wood – Packaging / Pallets A GRADE",
    "ewc": "15 01 03",
    "direction": "incoming"
   },
   {
-   "ref": "WOODC",
-   "name": "Wood – Construction",
+   "ref": "WOOD-PAC",
+   "name": "Wood – Packaging / Pallets C GRADE",
+   "ewc": "15 01 03",
+   "direction": "incoming"
+  },
+  {
+   "ref": "WOOD-CA",
+   "name": "Wood – Construction / A GRADE",
+   "ewc": "17 02 01",
+   "direction": "incoming"
+  },
+  {
+   "ref": "WOOD-CC",
+   "name": "Wood – Construction / C GRADE",
    "ewc": "17 02 01",
    "direction": "incoming"
   },
@@ -397,7 +409,7 @@
    "system": "skiptrak",
    "name": "Wood",
    "ewc": "17 02 01",
-   "ref": "WOODC"
+   "ref": "WOOD-CC"
   },
   {
    "system": "skiptrak",
@@ -421,7 +433,7 @@
    "system": "skiptrak",
    "name": "Wooden packaging",
    "ewc": "15 01 03",
-   "ref": "WOODA"
+   "ref": "WOOD-PAA"
   },
   {
    "system": "skiptrak",
@@ -433,7 +445,7 @@
    "system": "skiptrak",
    "name": "Wooden packaging (Pallets)",
    "ewc": "15 01 03",
-   "ref": "WOODA"
+   "ref": "WOOD-PAA"
   },
   {
    "system": "skiptrak",
@@ -559,7 +571,7 @@
    "system": "skiptrak",
    "name": "Wooden packaging (Pallets)",
    "ewc": "17 02 01",
-   "ref": "WOODA"
+   "ref": "WOOD-PAA"
   },
   {
    "system": "skiptrak",
@@ -727,7 +739,7 @@
    "system": "skiptrak",
    "name": "Wooden packaging (Pallets)",
    "ewc": "16 01 17",
-   "ref": "WOODA"
+   "ref": "WOOD-PAA"
   },
   {
    "system": "skiptrak",
@@ -775,7 +787,7 @@
    "system": "route_one",
    "name": "Wood",
    "ewc": "17 02 01",
-   "ref": "WOODC"
+   "ref": "WOOD-CC"
   },
   {
    "system": "route_one",
@@ -805,13 +817,13 @@
    "system": "route_one",
    "name": "Wooden packaging",
    "ewc": "15 01 03",
-   "ref": "WOODA"
+   "ref": "WOOD-PAA"
   },
   {
    "system": "route_one",
    "name": "Wooden packaging (Pallets)",
    "ewc": "15 01 03",
-   "ref": "WOODA"
+   "ref": "WOOD-PAA"
   },
   {
    "system": "route_one",
@@ -931,7 +943,7 @@
    "system": "route_one",
    "name": "Wooden packaging (Pallets)",
    "ewc": "17 02 01",
-   "ref": "WOODA"
+   "ref": "WOOD-PAA"
   },
   {
    "system": "route_one",
@@ -1009,7 +1021,7 @@
    "system": "midweigh",
    "name": "wood",
    "ewc": "17 02 01",
-   "ref": "WOODC"
+   "ref": "WOOD-CC"
   },
   {
    "system": "midweigh",
@@ -1039,7 +1051,7 @@
    "system": "midweigh",
    "name": "wooden packaging",
    "ewc": "15 01 03",
-   "ref": "WOODA"
+   "ref": "WOOD-PAA"
   },
   {
    "system": "midweigh",
@@ -1069,7 +1081,7 @@
    "system": "midweigh",
    "name": "Wooden packaging (Pallets)",
    "ewc": "15 01 03",
-   "ref": "WOODA"
+   "ref": "WOOD-PAA"
   },
   {
    "system": "midweigh",
@@ -1207,7 +1219,7 @@
    "system": "midweigh",
    "name": "Wooden packaging (Pallets)",
    "ewc": "17 02 01",
-   "ref": "WOODA"
+   "ref": "WOOD-PAA"
   },
   {
    "system": "midweigh",
@@ -1453,7 +1465,7 @@
    "system": "midweigh_code",
    "name": "WOOD-C",
    "ewc": "17 02 01",
-   "ref": "WOODC"
+   "ref": "WOOD-CC"
   },
   {
    "system": "midweigh_code",
@@ -1465,7 +1477,7 @@
    "system": "midweigh_code",
    "name": "WOOD A",
    "ewc": "15 01 03",
-   "ref": "WOODA"
+   "ref": "WOOD-PAA"
   },
   {
    "system": "midweigh_code",
@@ -1771,7 +1783,7 @@
    "system": "rate_card",
    "name": "Clean Wood (Grade A - pallets only)",
    "ewc": "17 02 01",
-   "ref": "WOODA"
+   "ref": "WOOD-PAA"
   },
   {
    "system": "rate_card",
@@ -1879,7 +1891,7 @@
    "system": "rate_card",
    "name": "Low Grade Wood (Grade C)",
    "ewc": "17 02 01",
-   "ref": "WOODC"
+   "ref": "WOOD-CC"
   },
   {
    "system": "rate_card",
@@ -2065,7 +2077,7 @@
    "system": "rate_card",
    "name": "Wooden Packaging (Pallets)",
    "ewc": "15 01 03",
-   "ref": "WOODA"
+   "ref": "WOOD-PAA"
   },
   {
    "system": "duty_of_care",
@@ -2263,7 +2275,7 @@
    "system": "duty_of_care",
    "name": "Wood grade A",
    "ewc": "15 01 03",
-   "ref": "WOODA"
+   "ref": "WOOD-PAA"
   },
   {
    "system": "duty_of_care",
@@ -2275,7 +2287,7 @@
    "system": "duty_of_care",
    "name": "Wood grade C",
    "ewc": "17 02 01",
-   "ref": "WOODC"
+   "ref": "WOOD-CC"
   },
   {
    "system": "website",
@@ -2294,12 +2306,6 @@
    "name": "Soil / Hardcore Waste",
    "ewc": null,
    "ref": "HARD"
-  },
-  {
-   "system": "website",
-   "name": "Wood Waste",
-   "ewc": null,
-   "ref": "WOODC"
   },
   {
    "system": "website",
@@ -2373,7 +2379,7 @@
    "system": "midweigh",
    "name": "Clean Wood (Grade A)",
    "ewc": "15 01 03",
-   "ref": "WOODA",
+   "ref": "WOOD-PAA",
    "strict": true
   },
   {
@@ -2459,6 +2465,54 @@
    "ewc": "17 09 04",
    "ref": "CD",
    "strict": true
+  },
+  {
+   "system": "skiptrak",
+   "name": "Wood – Packaging / Pallets",
+   "ewc": "15 01 03",
+   "ref": "WOOD-PAA"
+  },
+  {
+   "system": "skiptrak",
+   "name": "Wood – Construction",
+   "ewc": "17 02 01",
+   "ref": "WOOD-CC"
+  },
+  {
+   "system": "route_one",
+   "name": "Wood – Packaging / Pallets",
+   "ewc": "15 01 03",
+   "ref": "WOOD-PAA"
+  },
+  {
+   "system": "route_one",
+   "name": "Wood – Construction",
+   "ewc": "17 02 01",
+   "ref": "WOOD-CC"
+  },
+  {
+   "system": "rate_card",
+   "name": "Wood – Packaging / Pallets",
+   "ewc": "15 01 03",
+   "ref": "WOOD-PAA"
+  },
+  {
+   "system": "rate_card",
+   "name": "Wood – Construction",
+   "ewc": "17 02 01",
+   "ref": "WOOD-CC"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Wood – Packaging / Pallets",
+   "ewc": "15 01 03",
+   "ref": "WOOD-PAA"
+  },
+  {
+   "system": "duty_of_care",
+   "name": "Wood – Construction",
+   "ewc": "17 02 01",
+   "ref": "WOOD-CC"
   }
  ],
  "hazardous_codes": [

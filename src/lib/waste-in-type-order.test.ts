@@ -12,9 +12,9 @@ const T = (waste_type: string, ewc_code: string) => ({ id: waste_type, waste_typ
 /** Standard names now on the weighbridge rate card; loads come from the Midweigh inbound analysis. */
 const types = [
   T("General Waste", "20 03 01"),
-  T("Wood – Construction", "17 02 01"),
+  T("Wood – Construction / C GRADE", "17 02 01"),
   T("Cardboard & Paper Packaging", "15 01 01"),
-  T("Wood – Packaging / Pallets", "15 01 03"),
+  T("Wood – Packaging / Pallets A GRADE", "15 01 03"),
   T("POPs Waste (Upholstered Seating)", "20 03 07*"),
   T("Green Waste", "20 02 01"),
   T("WEEE (excl. fridges, TVs & tubes)", "20 01 36"),
@@ -43,9 +43,9 @@ describe("waste in picker order", () => {
   it("puts the ten busiest inbound types first, busiest first", () => {
     assert.deepEqual(names(rankWasteInTypes(types)).slice(0, 10), [
       "General Waste",
-      "Wood – Construction",
+      "Wood – Construction / C GRADE",
       "Cardboard & Paper Packaging",
-      "Wood – Packaging / Pallets",
+      "Wood – Packaging / Pallets A GRADE",
       "POPs Waste (Upholstered Seating)",
       "Green Waste",
       "WEEE (excl. fridges, TVs & tubes)",
@@ -68,10 +68,11 @@ describe("waste in picker order", () => {
   it("searches by name or code without reordering", () => {
     const ranked = rankWasteInTypes(types);
     assert.deepEqual(names(searchWasteInTypes(ranked, "wood")), [
-      "Wood – Construction",
-      "Wood – Packaging / Pallets",
+      "Wood – Construction / C GRADE",
+      "Wood – Packaging / Pallets A GRADE",
     ]);
     assert.deepEqual(names(searchWasteInTypes(ranked, "20 02 01")), ["Green Waste"]);
+    assert.deepEqual(names(searchWasteInTypes(ranked, "WOOD-CC")), ["Wood – Construction / C GRADE"]);
     assert.deepEqual(names(searchWasteInTypes(ranked, "")), names(ranked));
     assert.deepEqual(names(searchWasteInTypes(ranked, "zzz")), []);
   });

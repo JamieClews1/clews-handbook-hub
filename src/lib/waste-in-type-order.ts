@@ -64,11 +64,14 @@ export function rankWasteInTypes<T extends WasteInPickable>(types: T[], topN = W
   return [...top, ...rest];
 }
 
-/** Filter a ranked list without disturbing its order. */
+/** Filter a ranked list by name, EWC or agreed reference code without disturbing its order. */
 export function searchWasteInTypes<T extends WasteInPickable>(ranked: T[], q: string): T[] {
   const needle = compact(q);
   if (!needle) return ranked;
-  return ranked.filter(t => compact(`${t.waste_type ?? ""} ${t.ewc_code ?? ""}`).includes(needle));
+  return ranked.filter(t => {
+    const ref = resolveWasteStream({ name: t.waste_type, ewc: t.ewc_code, source: "weighone", direction: "incoming" })?.ref ?? "";
+    return compact(`${t.waste_type ?? ""} ${t.ewc_code ?? ""} ${ref}`).includes(needle);
+  });
 }
 
 /**

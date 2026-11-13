@@ -11,6 +11,7 @@ import { Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { WasteStreamPicker } from "@/components/route-one/WasteStreamPicker";
 import { formatEwc } from "@/lib/waste-streams";
+import { WasteRefFor } from "@/components/waste/WasteRefChip";
 import { filterProducts, PRODUCT_STATUS, type WasteProduct, type WasteProductStatus } from "@/lib/waste-products";
 
 export function useWasteProducts() {
@@ -50,11 +51,12 @@ export function WasteProductsSection({ isAdmin }: { isAdmin: boolean }) {
     </div>
     {error ? <p className="text-sm text-destructive">Products could not be loaded.</p> : <div className="overflow-x-auto border-y border-border">
       <table className="w-full text-sm">
-        <thead className="bg-muted/50 text-left"><tr><th className="p-3 font-semibold">Product name</th><th className="p-3 font-semibold">Recorded on tickets as</th><th className="p-3 font-semibold">Waste code</th><th className="p-3 font-semibold">Status</th><th className="p-3 font-semibold">Notes</th>{isAdmin && <th className="p-3" />}</tr></thead>
+        <thead className="bg-muted/50 text-left"><tr><th className="p-3 font-semibold">Ref</th><th className="p-3 font-semibold">Product name</th><th className="p-3 font-semibold">Recorded on tickets as</th><th className="p-3 font-semibold">Waste code</th><th className="p-3 font-semibold">Status</th><th className="p-3 font-semibold">Notes</th>{isAdmin && <th className="p-3" />}</tr></thead>
         <tbody className="divide-y divide-border">
-          {isLoading && <tr><td className="p-3 text-muted-foreground" colSpan={6}>Loading…</td></tr>}
-          {!isLoading && rows.length === 0 && <tr><td className="p-3 text-muted-foreground" colSpan={6}>No matching products.</td></tr>}
+          {isLoading && <tr><td className="p-3 text-muted-foreground" colSpan={7}>Loading…</td></tr>}
+          {!isLoading && rows.length === 0 && <tr><td className="p-3 text-muted-foreground" colSpan={7}>No matching products.</td></tr>}
           {rows.map(p => <tr key={p.id} className="align-top">
+            <td className="p-3"><WasteRefFor name={p.display_name} ewc={p.ewc_code} source="midweigh" direction="outgoing" /></td>
             <td className="p-3 font-medium">{p.display_name}</td>
             <td className="p-3 text-muted-foreground">{p.recorded_name}</td>
             <td className="p-3 font-mono whitespace-nowrap">{formatEwc(p.ewc_code)}</td>

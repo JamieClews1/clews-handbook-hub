@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { WasteRefFor } from "@/components/waste/WasteRefChip";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +40,7 @@ export function WasteInTypePicker({ types, value, onChange, bookedWaste, placeho
   const selected = types.find(t => t.id === value) ?? null;
   const topIds = useMemo(() => new Set(ranked.slice(0, WASTE_IN_TOP_N).map(t => t.id)), [ranked]);
   const label = selected
-    ? <><span className="font-mono text-xs mr-2">{selected.ewc_code}</span>{selected.waste_type}</>
+    ? <><WasteRefFor name={selected.waste_type} ewc={selected.ewc_code} source="weighone" direction="incoming" className="mr-2" /><span className="font-mono text-xs mr-2">{selected.ewc_code}</span>{selected.waste_type}</>
     : bookedWaste ? <span className="italic">{bookedWaste}</span> : placeholder;
 
   return (
@@ -111,6 +112,7 @@ export function WasteInTypePicker({ types, value, onChange, bookedWaste, placeho
                   >
                     <Check className={cn("mt-0.5 h-4 w-4 shrink-0", t.id === value ? "opacity-100" : "opacity-0")} />
                     <span className="min-w-0 flex-1">
+                      <WasteRefFor name={t.waste_type} ewc={t.ewc_code} source="weighone" direction="incoming" className="mr-2" />
                       <span className="font-mono text-xs mr-2">{t.ewc_code}</span>
                       <span className="text-sm">{t.waste_type}</span>
                     </span>

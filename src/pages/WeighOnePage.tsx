@@ -14,6 +14,7 @@ import { WasteOutProductPicker, type WasteOutProductOption } from "@/components/
 import { WasteInTypePicker } from "@/components/weighone/WasteInTypePicker";
 import { findSameWasteStream, formatEwc } from "@/lib/waste-streams";
 import { WasteStreamPicker } from "@/components/route-one/WasteStreamPicker";
+import { WasteRefFor } from "@/components/waste/WasteRefChip";
 import { BanksmanAlertsPanel } from "@/components/banksman/BanksmanAlertsPanel";
 import { BanksmanSettings } from "@/components/banksman/BanksmanSettings";
 import { CombinedTicketList } from "@/components/weighone/CombinedTicketList";
@@ -2711,7 +2712,7 @@ const WeighOnePage = () => {
                 {wasteTypes.map((wt) => (
                   <div key={wt.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{wt.waste_type}</p>
+                      <p className="flex items-center gap-2 font-medium text-sm"><WasteRefFor name={wt.waste_type} ewc={wt.ewc_code} source="weighone" direction="incoming" /><span className="truncate">{wt.waste_type}</span></p>
                       {wt.ewc_code && <p className="text-xs text-muted-foreground">EWC: {formatEwc(wt.ewc_code)}</p>}
                     </div>
                     <div className="flex items-center gap-1">

@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { WasteRefFor } from "@/components/waste/WasteRefChip";
+import { formatEwc } from "@/lib/waste-streams";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -332,6 +334,7 @@ export const WeighbridgeRatesSettings = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-24">Ref</TableHead>
                   <TableHead>Waste type</TableHead>
                   <TableHead className="w-24">EWC</TableHead>
                   <TableHead className="w-32 text-right">£ / tonne</TableHead>
@@ -348,8 +351,9 @@ export const WeighbridgeRatesSettings = () => {
                   const minValue = isDefaultGroup ? wt.min_charge : override?.min_charge ?? "";
                   return (
                     <TableRow key={wt.id}>
+                      <TableCell><WasteRefFor name={wt.waste_type} ewc={wt.ewc_code} source="weighone" direction="incoming" /></TableCell>
                       <TableCell className="font-medium text-sm">{wt.waste_type}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{wt.ewc_code ?? "-"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{wt.ewc_code ? formatEwc(wt.ewc_code) : "-"}</TableCell>
                       <TableCell className="text-right">
                         <Input
                           type="number"
