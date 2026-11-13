@@ -15,8 +15,8 @@ describe("Office App tiles", () => {
     for (const tile of OFFICE_APP_TILES) assert.ok(officeTileNavItem(tile) || tile.icon, tile.label);
   });
 
-  it("Stock Check opens straight on the New Stock Take tally", () => {
-    assert.equal(OFFICE_APP_TILES.find((t) => t.label === "Stock Check")?.path, "/performance-hub/stock-check?tab=tally");
+  it("Stock Check opens the standalone New Stock Take tally", () => {
+    assert.equal(OFFICE_APP_TILES.find((t) => t.label === "Stock Check")?.path, "/performance-hub/stock-check/tally");
   });
 
   it("the Banksman App opens the full Banksman app", () => {

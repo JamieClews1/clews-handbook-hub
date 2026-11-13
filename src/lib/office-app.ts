@@ -13,7 +13,7 @@ export type OfficeTile = { label: string; description: string; path: string; nav
 export const OFFICE_APP_TILES: OfficeTile[] = [
   { label: "Diary", description: "Office diary and week notes", path: "/diary", navPath: "/diary" },
   { label: "Load Reports Input", description: "Tally and submit load reports", path: "/load-reports", navPath: "/load-reports" },
-  { label: "Stock Check", description: "Start a new stock take", path: "/performance-hub/stock-check?tab=tally", navPath: "/performance-hub/stock-check" },
+  { label: "Stock Check", description: "Start a new stock take", path: "/performance-hub/stock-check/tally", navPath: "/performance-hub/stock-check" },
   { label: "Banksman App", description: "Yard jobs, tickets and contamination", path: "/banksman", navPath: "/banksman", icon: HardHat },
   { label: "Near Misses", description: "Report a near miss", path: "/nearmissreport", navPath: "/near-miss" },
   { label: "Toolbox Talks", description: "Read and sign toolbox talks", path: "/toolbox-talks", navPath: "/toolbox-talks" },
