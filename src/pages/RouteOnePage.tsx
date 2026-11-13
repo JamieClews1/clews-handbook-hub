@@ -83,7 +83,8 @@ import { newExchangeForm } from "@/lib/route-job-exchange";
 import { importedBookingPrices } from "@/lib/route-booking-pricing";
 import { loadExchangeBookingDate } from "@/lib/load-exchange-booking-date";
 import { importedSiteDetails } from "@/lib/route-booking-sites";
-import { Save, Repeat2, X } from "lucide-react";
+import { Save, Repeat2, X, GanttChart } from "lucide-react";
+import { SiteContainersDialog } from "@/components/route-one/SiteContainersDialog";
 import { TintedJobCard } from "@/components/route-one/TintedJobCard";
 import { boardRegistration, boardUnconfirmed } from "@/lib/route-board-presentation";
 import { estimateDriverDay, dayTime } from "@/lib/driver-day-estimate";
@@ -243,6 +244,7 @@ const RouteOnePage = () => {
   const [viewMode, setViewMode] = useState<"day" | "week" | "list" | "map" | "bookings">("day");
   const [newJobOpen, setNewJobOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<any | null>(null);
+  const [timelineOpen, setTimelineOpen] = useState(false);
   const [draggedJobId, setDraggedJobId] = useState<string | null>(null);
   const [draggedSkiptrakId, setDraggedSkiptrakId] = useState<string | null>(null);
   const [dragOverDriverId, setDragOverDriverId] = useState<string | null>(null);
@@ -1124,11 +1126,27 @@ const RouteOnePage = () => {
           </Tabs>
           <DialogFooter className="flex-row flex-wrap sm:justify-between items-center gap-2 p-4 border-t border-border shrink-0 bg-background">
             <div className="w-full"><JobPriceSummary form={editForm} /></div>
-            <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={printSavedJob}><Printer className="h-4 w-4 mr-2" />Print ticket</Button><Button variant="outline" onClick={() => editingJob && startExchange(editingJob)} disabled={updateJob.isPending || exchangeLoading}><Repeat2 className="h-4 w-4 mr-2" />{exchangeLoading ? "Loading…" : "New exchange"}</Button></div>
+            <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={printSavedJob}><Printer className="h-4 w-4 mr-2" />Print ticket</Button><Button variant="outline" onClick={() => editingJob && startExchange(editingJob)} disabled={updateJob.isPending || exchangeLoading}><Repeat2 className="h-4 w-4 mr-2" />{exchangeLoading ? "Loading…" : "New exchange"}</Button>{editingJob?.site_name && <Button variant="outline" onClick={() => setTimelineOpen(true)}><GanttChart className="h-4 w-4 mr-2" />Containers on site</Button>}</div>
             <div className="flex gap-2"><Button variant="ghost" onClick={closeEditor} disabled={updateJob.isPending}><X className="h-4 w-4 mr-2" />Cancel</Button><Button onClick={saveEditedJob} disabled={!editForm.customer_name || updateJob.isPending}><Save className="h-4 w-4 mr-2" />{updateJob.isPending ? "Saving…" : "Save"}</Button></div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Site timeline opened from a job: read-only; Open job / Move date reopen the editor on that job. */}
+      <SiteContainersDialog
+        site={timelineOpen && editingJob?.site_name ? { customer: editingJob.customer_name || "", site: editingJob.site_name, address: editingJob.site_address || "", postcode: editingJob.site_postcode || "" } : null}
+        onOpenChange={open => { if (!open) setTimelineOpen(false); }}
+        focusJob={editingJob?.job_number || null}
+        onExchangeFocusJob={() => { setTimelineOpen(false); if (editingJob) void startExchange(editingJob); }}
+        onOpenJob={async id => {
+          if (id === editingJob?.id) { setTimelineOpen(false); setWorkspaceTab("booking"); return; }
+          if (JSON.stringify(editForm) !== editBaseline.current && !window.confirm("Discard unsaved changes and open the other job?")) return;
+          const { data, error } = await supabase.from("route_one_jobs").select("*").eq("id", id).maybeSingle();
+          if (error || !data) { toast({ title: "Job could not be opened", variant: "destructive" }); return; }
+          setTimelineOpen(false);
+          openEditDialog(data);
+        }}
+      />
 
       <TicketSendDialog job={ticketJob} open={!!ticketJob} onOpenChange={(o) => { if (!o) setTicketJob(null); }} />
 

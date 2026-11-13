@@ -50,22 +50,30 @@ export type FutureBooking = { key: string; date: string; type: string; source: "
 type SkipJob = { job_number: string; job_date: string | null; site: string | null; container_type: string | null; ewc: string | null; movement_type: string | null };
 type NativeJob = { job_number: string | null; id: string; scheduled_date: string; site_name: string | null; container_type: string | null; container_size: string | null; ewc_code: string | null; job_type: string; schedule_id?: string | null };
 
+/** Whether a Route One job belongs to a bin position (site + container size + EWC). */
+export function nativeMatchesBin(j: Pick<NativeJob, "site_name" | "container_type" | "container_size" | "ewc_code">, bin: BinPosition, booking = recordedContainerBooking(bin.container)) {
+  if (norm(j.site_name) !== norm(bin.site) || ewcKey(j.ewc_code) !== ewcKey(bin.ewc)) return false;
+  // Jobs copied from Skiptrak keep its wording (e.g. "40 yd Ro Ro") with no size code.
+  const jobSize = j.container_size || recordedContainerBooking(j.container_type).container_size;
+  return booking.container_size ? jobSize === booking.container_size : norm(j.container_type) === norm(bin.container);
+}
+
+/** Skiptrak job in a bin position (site + container wording + EWC). */
+export const skipMatchesBin = (j: Pick<SkipJob, "site" | "container_type" | "ewc">, bin: BinPosition) =>
+  norm(j.site) === norm(bin.site) && norm(j.container_type) === norm(bin.container) && ewcKey(j.ewc) === ewcKey(bin.ewc);
+
 /** Future bookings already made for one bin position (e.g. 51520 booked after exchange 51518). */
 export function binFutureBookings(bin: BinPosition, skip: SkipJob[], native: NativeJob[], isOpenFuture: (j: SkipJob) => boolean): FutureBooking[] {
   const booking = recordedContainerBooking(bin.container);
   const rows = new Map<string, FutureBooking>();
   for (const j of skip) {
     if (!j.job_date || !isOpenFuture(j)) continue;
-    if (norm(j.site) !== norm(bin.site) || norm(j.container_type) !== norm(bin.container) || ewcKey(j.ewc) !== ewcKey(bin.ewc)) continue;
+    if (!skipMatchesBin(j, bin)) continue;
     rows.set(j.job_number, { key: j.job_number, date: j.job_date, type: j.movement_type ?? "Job", source: "Skip" });
   }
   for (const j of native) {
     const key = j.job_number || j.id;
-    if (rows.has(key) || norm(j.site_name) !== norm(bin.site) || ewcKey(j.ewc_code) !== ewcKey(bin.ewc)) continue;
-    const sameContainer = booking.container_size
-      ? j.container_size === booking.container_size
-      : norm(j.container_type) === norm(bin.container);
-    if (!sameContainer) continue;
+    if (rows.has(key) || !nativeMatchesBin(j, bin, booking)) continue;
     rows.set(key, { key, date: j.scheduled_date, type: j.job_type, source: "Route One", scheduleId: j.schedule_id ?? null });
   }
   return [...rows.values()].sort((a, b) => a.date.localeCompare(b.date));

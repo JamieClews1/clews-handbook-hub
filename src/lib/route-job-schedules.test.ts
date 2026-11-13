@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { binFutureBookings, detectCadenceWeeks, nextExchangeAfterBookings, scheduleOccurrences, scheduleCoversBin } from "./route-job-schedules";
+import { nativeMatchesBin, binFutureBookings, detectCadenceWeeks, nextExchangeAfterBookings, scheduleOccurrences, scheduleCoversBin } from "./route-job-schedules";
 
 describe("route job schedules", () => {
   it("books fortnightly occurrences on the start weekday within the window", () => {
@@ -54,5 +54,11 @@ describe("route job schedules", () => {
     const s = { match_site: "Rugby 3", match_container: "40 yd Ro Ro", ewc_code: "20 03 01" };
     assert.equal(scheduleCoversBin(s, { site: "rugby 3", container: "40 yd Ro Ro", ewc: "200301" }), true);
     assert.equal(scheduleCoversBin(s, { site: "Rugby 3", container: "40 yd Ro Ro", ewc: "15 01 03" }), false);
+  });
+
+  it("matches Route One copies of Skiptrak jobs that kept the Skiptrak container wording", () => {
+    const bin = { site: "Britvic - Waste Yard Rugby 1 (New)", container: "40 yd Ro Ro", ewc: "15 01 03" };
+    assert.equal(nativeMatchesBin({ site_name: "Britvic - Waste Yard Rugby 1 (New)", container_type: "40 yd Ro Ro", container_size: null, ewc_code: "15 01 03" }, bin), true);
+    assert.equal(nativeMatchesBin({ site_name: "Britvic - Waste Yard Rugby 1 (New)", container_type: "20 yd Ro Ro", container_size: null, ewc_code: "15 01 03" }, bin), false);
   });
 });
