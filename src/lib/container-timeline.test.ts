@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { labelSides, mergeDots, mondayOf, nativeDot, onSiteSince, skipDot, timelineAxis, timelineFlags, type TimelineDot } from "./container-timeline";
+import { labelSides, mergeDots, monthStarts, mondayOf, nativeDot, onSiteSince, skipDot, timelineAxis, timelineFlags, type TimelineDot } from "./container-timeline";
 
 const today = "2026-11-13";
 const dot = (date: string, over: Partial<TimelineDot> = {}): TimelineDot => ({ key: date, jobNumber: date, date, kind: date <= today ? "completed" : "booked", movement: "Exchange", status: date <= today ? "Completed" : "Booked in Skiptrak", source: "Skip", nativeId: null, ...over });
@@ -69,5 +69,9 @@ describe("container timeline", () => {
     assert.ok(axis.end >= "2026-12-25");
     assert.ok(axis.mondays.every(m => new Date(`${m}T00:00:00Z`).getUTCDay() === 1));
     assert.equal(timelineAxis(today, null, 6, 6, 26, "2026-02-27").start, "2026-02-09");
+  });
+
+  it("lists month starts for the zoomed-out scale", () => {
+    assert.deepEqual(monthStarts("2026-10-12", "2027-01-05"), ["2026-11-01", "2026-12-01", "2027-01-01"]);
   });
 });

@@ -5,11 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { addDaysKey } from "@/lib/route-job-schedules";
-import { dayGap, dotDate, dotDateYear, dotDay, fullDate, labelSides, timelineAxis, type TimelineDot, type TimelineFlag } from "@/lib/container-timeline";
+import { dayGap, dotDate, dotDateYear, dotDay, fullDate, labelSides, monthLabel, monthStarts, timelineAxis, type TimelineDot, type TimelineFlag } from "@/lib/container-timeline";
 
 /** One container (or trailer stream) row; only displays jobs, actions are the existing pop-up buttons. */
 export type TimelineRowModel = {
-  key: string; group: "onsite" | "trailer";
+  key: string; group: "onsite" | "cleared" | "trailer";
+  /** Greyed out (e.g. a bin no longer on site). */
+  muted?: boolean;
   title: string; ewc: string | null; container: string; site: string | null;
   badges?: ReactNode;
   since: { date: string; jobNumber: string; known: boolean } | null;
@@ -19,7 +21,9 @@ export type TimelineRowModel = {
   bookNext?: { label: string; busy: boolean; disabled: boolean; run: () => void };
 };
 
-const PX = 14; // per day, about 6 weeks either side visible
+/** Week scale: about 6 weeks either side visible. Month scale: about a year visible. */
+export type TimelineScale = "week" | "month";
+const PX_PER_DAY: Record<TimelineScale, number> = { week: 14, month: 4 };
 const LEFT = 240;
 const H = 140, DOT_Y = 82;
 const DOT_STYLE: Record<TimelineDot["kind"], string> = {
@@ -57,16 +61,20 @@ export function TimelineLegend() {
 
 type Placed = { dot: TimelineDot; x: number; side: "above" | "below" | "none" };
 
-function Strip({ row, start, width, today, focusJob, selectedKey, onSelect, showAxis, mondays }: {
+type Tick = { key: string; label: string };
+
+function Strip({ row, start, width, today, focusJob, selectedKey, onSelect, showAxis, ticks, px }: {
   row: TimelineRowModel; start: string; width: number; today: string; focusJob: string | null; selectedKey: string | null;
-  onSelect: (key: string) => void; showAxis: boolean; mondays: string[];
+  onSelect: (key: string) => void; showAxis: boolean; ticks: Tick[]; px: number;
 }) {
-  const xOf = (date: string) => (dayGap(start, date) + 0.5) * PX;
+  const xOf = (date: string) => (dayGap(start, date) + 0.5) * px;
   const placed = useMemo<Placed[]>(() => {
     const visible = row.dots.filter(d => d.date >= start);
-    const sides = labelSides(visible);
+    // Month scale keeps roughly one label a month per side; the tooltip and footer give every date.
+    const minDays = px >= 10 ? Math.ceil(52 / px) : 28;
+    const sides = labelSides(visible, minDays, Math.max(6, minDays));
     return visible.map((dot, i) => ({ dot, x: xOf(dot.date), side: sides[i] }));
-  }, [row.dots, start]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [row.dots, start, px]); // eslint-disable-line react-hooks/exhaustive-deps
   const earlier = row.dots.some(d => d.date < start);
   const todayX = xOf(today);
   // Chain segments: solid grey in the past, dashed yellow in the future.
@@ -90,10 +98,10 @@ function Strip({ row, start, width, today, focusJob, selectedKey, onSelect, show
   });
   const top = showAxis ? 22 : 0;
 
-  return <div className="relative" style={{ width, height: H + top }}>
-    {showAxis && <AxisLabels mondays={mondays} start={start} today={today} />}
+  return <div className={cn("relative", row.muted && "opacity-60")} style={{ width, height: H + top }}>
+    {showAxis && <AxisLabels ticks={ticks} start={start} today={today} px={px} />}
     <div className="absolute inset-x-0 bottom-0" style={{ top }}>
-      {mondays.map(m => <div key={m} aria-hidden className="absolute inset-y-0 w-px bg-border/70" style={{ left: dayGap(start, m) * PX }} />)}
+      {ticks.map(m => <div key={m.key} aria-hidden className="absolute inset-y-0 w-px bg-border/70" style={{ left: dayGap(start, m.key) * px }} />)}
       <div aria-hidden className="absolute inset-y-0 z-[1] w-0.5 -translate-x-1/2 bg-foreground/70" style={{ left: todayX }} />
       {segments.map((s, i) => <div key={i} aria-hidden className={cn("absolute z-[2]", s.future ? "border-t-2 border-dashed border-warning" : "h-0.5 bg-muted-foreground/40")} style={{ left: s.x1, width: Math.max(0, s.x2 - s.x1), top: DOT_Y - 1 }} />)}
       {flags.map((f, i) => <span key={`${f.date}-${i}`} className={cn("absolute z-[3] inline-flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none",
@@ -130,12 +138,12 @@ function Strip({ row, start, width, today, focusJob, selectedKey, onSelect, show
   </div>;
 }
 
-function AxisLabels({ mondays, start, today }: { mondays: string[]; start: string; today: string }) {
-  const todayX = (dayGap(start, today) + 0.5) * PX;
-  const end = dayGap(start, mondays[mondays.length - 1] ?? start) * PX;
+function AxisLabels({ ticks, start, today, px }: { ticks: Tick[]; start: string; today: string; px: number }) {
+  const todayX = (dayGap(start, today) + 0.5) * px;
+  const end = dayGap(start, ticks[ticks.length - 1]?.key ?? start) * px;
   return <div className="absolute inset-x-0 top-0 h-[22px] overflow-hidden border-b border-border text-[10px] text-muted-foreground">
-    {mondays.filter(m => { const x = dayGap(start, m) * PX; return Math.abs(x + 25 - todayX) > 45 && x < end; }).map(m => <span key={m} className="absolute top-1 whitespace-nowrap pl-1 tabular-nums" style={{ left: dayGap(start, m) * PX }}>Mon {dotDate(m)}</span>)}
-    <span className="absolute top-0.5 z-[2] -translate-x-1/2 rounded bg-foreground px-1 font-semibold text-background" style={{ left: (dayGap(start, today) + 0.5) * PX }}>Today</span>
+    {ticks.filter(m => { const x = dayGap(start, m.key) * px; return Math.abs(x + 25 - todayX) > 45 && x < end; }).map(m => <span key={m.key} className="absolute top-1 whitespace-nowrap pl-1 tabular-nums" style={{ left: dayGap(start, m.key) * px }}>{m.label}</span>)}
+    <span className="absolute top-0.5 z-[2] -translate-x-1/2 rounded bg-foreground px-1 font-semibold text-background" style={{ left: todayX }}>Today</span>
   </div>;
 }
 
@@ -147,7 +155,7 @@ function LeftCell({ row, today }: { row: TimelineRowModel; today: string }) {
       {row.site && <p className="truncate text-xs text-muted-foreground" title={row.site}>Skiptrak: {row.site}</p>}
     </div>
     <div className="flex flex-wrap gap-1">
-      {row.since && <Badge variant="outline" className="font-normal">{row.since.known ? "On site since" : "On site before"} {dotDateYear(row.since.date, today)}</Badge>}
+      {row.since && <Badge variant="outline" className="font-normal">{row.since.known ? (row.muted ? "Arrived" : "On site since") : (row.muted ? "Here before" : "On site before")} {dotDateYear(row.since.date, today)}</Badge>}
       {row.frequency && <Badge variant="secondary" className="font-normal">{row.frequency}</Badge>}
       {row.badges}
     </div>
@@ -156,33 +164,48 @@ function LeftCell({ row, today }: { row: TimelineRowModel; today: string }) {
 }
 
 /** Week-by-week timeline of every container on a site. Clicking a dot only selects it. */
-export function ContainerTimeline({ rows, today, focusJob, selectedKey, onSelect }: {
+export function ContainerTimeline({ rows, today, focusJob, selectedKey, onSelect, scale = "week", className }: {
   rows: TimelineRowModel[]; today: string; focusJob: string | null; selectedKey: string | null; onSelect: (key: string) => void;
+  scale?: TimelineScale;
+  /** Extra classes for the wide-screen scroll box (e.g. a max height on a full page). */
+  className?: string;
 }) {
   const narrow = useNarrow();
-  const last = rows.flatMap(r => r.dots.map(d => d.date)).sort().pop() ?? null;
+  const px = PX_PER_DAY[scale];
+  const allDates = rows.flatMap(r => r.dots.map(d => d.date)).sort();
+  const last = allDates[allDates.length - 1] ?? null;
   const focusDate = focusJob ? rows.flatMap(r => r.dots).find(d => d.jobNumber === focusJob)?.date ?? null : null;
-  const axis = useMemo(() => timelineAxis(today, last, 12, 6, 26, focusDate), [today, last, focusDate]);
-  const width = Math.max(720, axis.days * PX);
+  // The month scale shows the whole history; the week scale six weeks either side (plus the opened job).
+  const include = scale === "month" ? allDates[0] ?? null : focusDate;
+  const axis = useMemo(() => timelineAxis(today, last, 12, scale === "month" ? 8 : 6, 26, include), [today, last, include, scale]);
+  const ticks = useMemo<Tick[]>(() => scale === "month"
+    ? monthStarts(axis.start, axis.end).map(m => ({ key: m, label: monthLabel(m) }))
+    : axis.mondays.map(m => ({ key: m, label: `Mon ${dotDate(m)}` })), [axis, scale]);
+  const width = Math.max(720, axis.days * px);
   const scroller = useRef<HTMLDivElement>(null);
-  const initial = Math.max(0, dayGap(axis.start, addDaysKey(today, -42)) * PX);
+  const initial = Math.max(0, dayGap(axis.start, addDaysKey(today, -42)) * px);
   const focusRow = focusJob ? rows.find(r => r.dots.some(d => d.jobNumber === focusJob)) : undefined;
   const focusDot = focusRow?.dots.find(d => d.jobNumber === focusJob);
 
   // Open at six weeks back, or centred on the job it was opened from.
   useLayoutEffect(() => {
-    const target = focusDot ? (dayGap(axis.start, focusDot.date) + 0.5) * PX : null;
-    const todayX = (dayGap(axis.start, today) + 0.5) * PX;
-    // Wide screens open six weeks back; phones open just before today so upcoming jobs show.
-    const scrollEl = (el: HTMLElement, visibleWidth: number) => { el.scrollLeft = target !== null ? Math.max(0, target - visibleWidth / 2) : narrow ? Math.max(0, todayX - visibleWidth * 0.3) : initial; };
+    const target = focusDot ? (dayGap(axis.start, focusDot.date) + 0.5) * px : null;
+    const todayX = (dayGap(axis.start, today) + 0.5) * px;
+    // Wide screens open six weeks back (month scale: today near the right); phones open just before today.
+    const scrollEl = (el: HTMLElement, visibleWidth: number) => {
+      el.scrollLeft = target !== null ? Math.max(0, target - visibleWidth / 2)
+        : scale === "month" ? Math.max(0, todayX - visibleWidth * 0.8)
+        : narrow ? Math.max(0, todayX - visibleWidth * 0.3) : initial;
+    };
     if (!narrow && scroller.current) scrollEl(scroller.current, scroller.current.clientWidth - LEFT);
     if (narrow) scroller.current?.querySelectorAll<HTMLElement>("[data-strip-scroll]").forEach(el => scrollEl(el, el.clientWidth));
     if (focusRow) scroller.current?.querySelector(`[data-row="${CSS.escape(focusRow.key)}"]`)?.scrollIntoView({ block: "nearest" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [narrow, axis.start, rows.length, focusDot?.key]);
+  }, [narrow, axis.start, rows.length, focusDot?.key, scale]);
 
   const groups: { id: TimelineRowModel["group"]; title: string; icon?: ReactNode }[] = [
     { id: "onsite", title: "Containers on site" },
+    { id: "cleared", title: "Previous bins (no longer on site)" },
     { id: "trailer", title: "Trailer jobs (no container left on site)", icon: <Truck className="h-4 w-4" /> },
   ];
   const tint = (row: TimelineRowModel) => row === focusRow;
@@ -196,7 +219,7 @@ export function ContainerTimeline({ rows, today, focusJob, selectedKey, onSelect
         {list.map(row => <div key={row.key} data-row={row.key} className={cn("overflow-hidden rounded-md border border-border bg-card", tint(row) && "border-info/50")}>
           <div className={cn(tint(row) && "bg-info/5")}><LeftCell row={row} today={today} /></div>
           <div data-strip-scroll className={cn("overflow-x-auto border-t border-border", tint(row) && "bg-info/5")}>
-            <Strip row={row} start={axis.start} width={width} today={today} focusJob={focusJob} selectedKey={selectedKey} onSelect={onSelect} showAxis mondays={axis.mondays} />
+            <Strip row={row} start={axis.start} width={width} today={today} focusJob={focusJob} selectedKey={selectedKey} onSelect={onSelect} showAxis ticks={ticks} px={px} />
           </div>
         </div>)}
       </section>;
@@ -204,11 +227,11 @@ export function ContainerTimeline({ rows, today, focusJob, selectedKey, onSelect
   </div>;
 
   // Scrolls both ways inside its own box so the sideways scrollbar and the date row stay in view while scrolling down.
-  return <div ref={scroller} className="min-h-[260px] flex-1 overflow-auto overscroll-contain rounded-md border border-border bg-card">
+  return <div ref={scroller} className={cn("min-h-[260px] flex-1 overflow-auto overscroll-contain rounded-md border border-border bg-card", className)}>
     <div style={{ width: LEFT + width }}>
       <div className="sticky top-0 z-[7] flex border-b border-border bg-card">
-        <div className="sticky left-0 z-[6] shrink-0 border-r border-border bg-card px-3 py-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground" style={{ width: LEFT }}>Week beginning</div>
-        <div className="relative h-[22px]" style={{ width }}><AxisLabels mondays={axis.mondays} start={axis.start} today={today} /></div>
+        <div className="sticky left-0 z-[6] shrink-0 border-r border-border bg-card px-3 py-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground" style={{ width: LEFT }}>{scale === "month" ? "Month" : "Week beginning"}</div>
+        <div className="relative h-[22px]" style={{ width }}><AxisLabels ticks={ticks} start={axis.start} today={today} px={px} /></div>
       </div>
       {groups.map(g => {
         const list = rows.filter(r => r.group === g.id);
@@ -222,7 +245,7 @@ export function ContainerTimeline({ rows, today, focusJob, selectedKey, onSelect
               <div className={cn("h-full", tint(row) && "bg-info/5")}><LeftCell row={row} today={today} /></div>
             </div>
             <div className={cn("flex items-center", tint(row) && "bg-info/5")}>
-              <Strip row={row} start={axis.start} width={width} today={today} focusJob={focusJob} selectedKey={selectedKey} onSelect={onSelect} showAxis={false} mondays={axis.mondays} />
+              <Strip row={row} start={axis.start} width={width} today={today} focusJob={focusJob} selectedKey={selectedKey} onSelect={onSelect} showAxis={false} ticks={ticks} px={px} />
             </div>
           </div>)}
         </div>;
@@ -232,8 +255,10 @@ export function ContainerTimeline({ rows, today, focusJob, selectedKey, onSelect
 }
 
 /** Footer bar for the selected dot: details, neighbouring jobs and the existing actions. */
-export function TimelineSelectionBar({ rows, selectedKey, onSelect, today, onOpenJob, focusExchange }: {
+export function TimelineSelectionBar({ rows, selectedKey, onSelect, today, onOpenJob, focusExchange, actions }: {
   rows: TimelineRowModel[]; selectedKey: string | null; onSelect: (key: string) => void; today: string;
+  /** Replaces the booking buttons (e.g. Site History's read-only "View job"). */
+  actions?: (dot: TimelineDot) => ReactNode;
   onOpenJob?: (nativeId: string, intent: "open" | "move") => void;
   /** Exchange from the job the pop-up was opened from (existing editor flow). */
   focusExchange?: { jobNumber: string; run: () => void };
@@ -254,14 +279,14 @@ export function TimelineSelectionBar({ rows, selectedKey, onSelect, today, onOpe
       <div className="min-w-0 space-y-0.5 text-sm">
         <p className="font-semibold">#{dot.jobNumber} · {dot.movement} · {row.container} · {row.title}{row.ewc ? ` ${row.ewc}` : ""}</p>
         <p>{fullDate(dot.date)} · <span className={cn(dot.kind === "completed" ? "text-success" : dot.kind === "collection" ? "text-destructive" : "text-warning-text", "font-medium")}>{dot.status}</span>{dot.date < today && dot.kind !== "completed" && dot.kind !== "collection" ? " (date passed)" : ""}</p>
-        {row.since && <p className="text-muted-foreground">{row.since.known ? `Container arrived ${dotDay(row.since.date)} ${dotDateYear(row.since.date, today)} with job #${row.since.jobNumber}` : `On site before ${dotDay(row.since.date)} ${dotDateYear(row.since.date, today)} (job #${row.since.jobNumber} is the first record in the last 12 months)`}</p>}
-        <p className="text-muted-foreground">{row.chained ? `Job ${i + 1} of ${row.dots.length} in this container's chain` : `Trailer job ${i + 1} of ${row.dots.length} here`}</p>
+        {row.since && <p className="text-muted-foreground">{row.since.known ? `Container arrived ${dotDay(row.since.date)} ${dotDateYear(row.since.date, today)} with job #${row.since.jobNumber}` : `On site before ${dotDay(row.since.date)} ${dotDateYear(row.since.date, today)} (job #${row.since.jobNumber} is the earliest record held)`}</p>}
+        <p className="text-muted-foreground">{row.chained ? `Job ${i + 1} of ${row.dots.length} in this ${row.muted ? "bin's" : "container's"} chain` : `Trailer job ${i + 1} of ${row.dots.length} here`}</p>
       </div>
-      <div className="flex flex-wrap gap-2">
+      {actions ? <div className="flex flex-wrap gap-2">{actions(dot)}</div> : <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" variant="outline" disabled={!canOpen} title={canOpen ? undefined : dot.source === "Skip" ? "Skiptrak jobs are changed in Skiptrak" : "Open this job from the Route One board"} onClick={() => dot.nativeId && onOpenJob?.(dot.nativeId, "move")}><CalendarClock className="h-4 w-4" />Move date</Button>
         <Button type="button" size="sm" variant="outline" disabled={!canOpen} title={canOpen ? undefined : dot.source === "Skip" ? "Skiptrak jobs open in Skiptrak" : "Open this job from the Route One board"} onClick={() => dot.nativeId && onOpenJob?.(dot.nativeId, "open")}><ExternalLink className="h-4 w-4" />Open job</Button>
         {exchange && <Button type="button" size="sm" disabled={exchange.disabled || exchange.busy} onClick={exchange.run}>{exchange.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}{exchange.label}</Button>}
-      </div>
+      </div>}
     </div>
     <div className="flex flex-wrap gap-1.5">{prev && chip(prev, "prev")}{chip(dot, "current")}{next && chip(next, "next")}</div>
   </div>;

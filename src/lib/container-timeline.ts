@@ -62,13 +62,13 @@ export function mergeDots(skip: TimelineDot[], native: TimelineDot[]): TimelineD
  * When both sides already hold a label within `minDays` (busy trailer runs) the label is hidden
  * ("none") and the dot's tooltip carries the date instead.
  */
-export function labelSides(dots: Pick<TimelineDot, "date">[], minDays = 4): ("above" | "below" | "none")[] {
+export function labelSides(dots: Pick<TimelineDot, "date">[], minDays = 4, closeDays = 6): ("above" | "below" | "none")[] {
   const sides: ("above" | "below" | "none")[] = [];
   const last: Record<"above" | "below", string | null> = { above: null, below: null };
   const free = (side: "above" | "below", date: string) => !last[side] || dayGap(last[side]!, date) >= minDays;
   let prevShown: "above" | "below" = "above";
   dots.forEach((d, i) => {
-    const close = i > 0 && dayGap(dots[i - 1].date, d.date) < 6;
+    const close = i > 0 && dayGap(dots[i - 1].date, d.date) < closeDays;
     const want: "above" | "below" = close ? (prevShown === "below" ? "above" : "below") : "below";
     const other = want === "below" ? "above" : "below";
     const side = free(want, d.date) ? want : close && free(other, d.date) ? other : "none";
@@ -149,3 +149,17 @@ export function timelineAxis(today: string, lastDot: string | null, back = 12, a
   for (let d = start; d <= end; d = addDaysKey(d, 7)) mondays.push(d);
   return { start, end, mondays, days: dayGap(start, end) };
 }
+
+/** First day of each month from `start` to `end`, for the zoomed-out (month) scale. */
+export function monthStarts(start: string, end: string): string[] {
+  const out: string[] = [];
+  let y = Number(start.slice(0, 4)), m = Number(start.slice(5, 7));
+  if (start.slice(8) !== "01") { m++; if (m > 12) { m = 1; y++; } }
+  for (;;) {
+    const key = `${y}-${String(m).padStart(2, "0")}-01`;
+    if (key > end) return out;
+    out.push(key);
+    m++; if (m > 12) { m = 1; y++; }
+  }
+}
+export const monthLabel = (key: string) => new Date(`${key}T00:00:00Z`).toLocaleDateString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" });
