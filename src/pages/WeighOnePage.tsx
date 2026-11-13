@@ -53,7 +53,8 @@ import { hasWeighbridgePricing, minimumChargeFor, weightChargeFor } from "@/lib/
 import { format, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { SignatureField } from "@/components/SignatureField";
-import { WeighOnePaymentPanel } from "@/components/weighone/WeighOnePaymentPanel";
+import { WeighOnePaymentPanel, PaymentFields } from "@/components/weighone/WeighOnePaymentPanel";
+import { paymentFromStored, paymentPatch, paymentProblem, ticketPaymentLabel, type PaymentInput } from "@/lib/weighone-payment";
 import { invoiceFromSource } from "@/components/finance/ReadyToInvoiceTab";
 import { WasteClassificationFields, asClassification, type WasteClassification } from "@/components/dwt/WasteClassificationFields";
 import {
@@ -264,6 +265,7 @@ const WeighOnePage = () => {
   const [driverSignature, setDriverSignature] = useState<string | null>(null);
   const [disposerSignature, setDisposerSignature] = useState<string | null>(null);
   const [disposerName, setDisposerName] = useState("");
+  const [formPayment, setFormPayment] = useState<PaymentInput>(paymentFromStored(null));
   /** Waste OUT on a Clews vehicle → also raise the matching Route One job */
   const [createRouteOneJob, setCreateRouteOneJob] = useState(true);
 
@@ -908,6 +910,11 @@ const WeighOnePage = () => {
         ? chargeFor(netKg as number, rate?.price_per_tonne ?? 0, rate?.min_charge ?? 0)
         : null;
 
+      if (hasPricing) {
+        const payProblem = paymentProblem(formPayment);
+        if (payProblem) throw new Error(payProblem);
+      }
+
       const nextStatus: WeighbridgeStatus = editing?.status === "voided"
         ? "voided"
         : (hasTare ? "completed" : "first_weigh");
@@ -955,6 +962,7 @@ const WeighOnePage = () => {
         total_price: hasPricing && hasTare ? (weightCharge ?? 0) + itemsTotal : null,
         second_weigh_at: hasTare ? editing?.second_weigh_at ?? new Date().toISOString() : null,
         status: nextStatus,
+        ...(hasPricing ? paymentPatch(formPayment, editing as any) : {}),
       };
 
       let txData: { id: string } | null = null;
@@ -1274,6 +1282,7 @@ const WeighOnePage = () => {
     setDriverSignature(t.driver_signature ?? null);
     setDisposerSignature(t.disposer_signature ?? null);
     setDisposerName(t.disposer_name ?? "");
+    setFormPayment(paymentFromStored(t as any));
     setShowTareNow(t.tare_weight_kg != null);
     setEditingTicket(t);
     setNewDialogOpen(true);
@@ -1298,8 +1307,18 @@ const WeighOnePage = () => {
     setDriverSignature(null);
     setDisposerSignature(null);
     setDisposerName("");
+    setFormPayment(paymentFromStored(null));
     setShowTareNow(false);
     toast.success(`New ticket copied from ${t.ticket_number} — enter the weights and save`);
+  };
+
+  /** Save the form, then return the saved ticket, so a PDF/print always matches what is on screen. */
+  const saveFormForPrint = async (): Promise<WeighbridgeTransaction> => {
+    const savedId = await createMutation.mutateAsync({ keepOpen: true });
+    if (!savedId) throw new Error("Save the ticket before printing");
+    const { data, error } = await supabase.from("weighbridge_transactions").select("*").eq("id", savedId).single();
+    if (error || !data) throw new Error("Could not read the saved ticket");
+    return data as WeighbridgeTransaction;
   };
 
   /** Chargeable items currently in the form, shaped for the ticket template */
@@ -1360,6 +1379,7 @@ const WeighOnePage = () => {
     setDriverSignature(null);
     setDisposerSignature(null);
     setDisposerName("");
+    setFormPayment(paymentFromStored(null));
     setStagedAttachments([]);
     setSkipDriver("");
     setOutProductId("");
@@ -1493,9 +1513,7 @@ const WeighOnePage = () => {
       total_price: fmtPrice(t.total_price),
       vat_amount: t.total_price != null ? fmtPrice(Math.round(t.total_price * 20) / 100) : "",
       total_inc_vat: t.total_price != null ? fmtPrice(Math.round(t.total_price * 120) / 100) : "",
-      payment: (t as any).payment_paid
-        ? `PAID${(t as any).payment_method ? ` – ${String((t as any).payment_method).toUpperCase()}` : ""}${(t as any).payment_reference ? ` ${(t as any).payment_reference}` : ""}`
-        : (t as any).payment_method === "account" ? "ON ACCOUNT – invoice to follow" : "NOT PAID",
+      payment: ticketPaymentLabel(t as any),
       additional_items: additionalItems.map((i) => `${i.description} £${i.cost.toFixed(2)}`).join(" · "),
       operator_name: t.operator_name ?? "",
       vehicle_type: t.vehicle_type ?? "",
@@ -1512,10 +1530,16 @@ const WeighOnePage = () => {
     return renderWtnSheet(wtnTemplate?.html || DEFAULT_WTN_TEMPLATE, vars, `WTN ${t.ticket_number}`, { includePrices: includePrices && hasWeighbridgePricing(t.job_type), testMode: t.is_test === true });
   };
 
-  const printTicket = async (t: WeighbridgeTransaction, additionalItems: AdditionalItem[] = [], includePrices = false) => {
+  const printTicket = async (
+    ticket: WeighbridgeTransaction | (() => Promise<WeighbridgeTransaction>),
+    additionalItems: AdditionalItem[] = [],
+    includePrices = false,
+  ) => {
+    // Open the window straight away (before any saving) so browsers don't block it.
     const win = window.open("", "_blank", "width=900,height=1100");
     if (!win) return;
     try {
+      const t = typeof ticket === "function" ? await ticket() : ticket;
       win.document.write(await buildTicketHtml(t, additionalItems, includePrices));
       win.document.close();
       win.focus();
@@ -2075,6 +2099,21 @@ const WeighOnePage = () => {
                           </div>
                         );
                       })()}
+                      {hasPricing && (
+                        <div className="rounded-md border p-3 text-sm">
+                          <PaymentFields
+                            id={editingTicket?.id ?? "new"}
+                            value={formPayment}
+                            onChange={setFormPayment}
+                            amountDue={(() => {
+                              const extras = newAdditionalItems.reduce((s, i) => s + (parseFloat(i.cost) || 0) * Math.max(1, parseInt(i.qty || "1", 10) || 1), 0);
+                              const wc = selectedRate && netPreviewKg !== null ? chargeFor(netPreviewKg, selectedRate.price_per_tonne, selectedRate.min_charge) : null;
+                              return wc === null && extras === 0 ? null : Math.round(((wc ?? 0) + extras) * 120) / 100;
+                            })()}
+                          />
+                          <p className="mt-2 text-xs text-muted-foreground">Saved with the ticket and printed on it.</p>
+                        </div>
+                      )}
                       </div>
                     </div>
 
@@ -2269,7 +2308,7 @@ const WeighOnePage = () => {
                           )}
                           {isWasteOut && <><Input aria-label="Disposal site signatory name" placeholder="Disposal site signatory" value={disposerName} onChange={(e) => setDisposerName(e.target.value)} className="w-44" /><SignatureField compact label="Disposal site signature" value={disposerSignature} onChange={setDisposerSignature} /></>}
 
-                <div className="ml-auto flex items-center gap-3">{editingTicket && (<><Button variant="outline" size="sm" className="gap-1.5" title="Download the saved ticket as PDF" onClick={() => downloadTicket(editingTicket, formItemsForPrint(), hasWeighbridgePricing(editingTicket.job_type))}><Download className="h-4 w-4" /> PDF</Button><Button variant="outline" size="sm" className="gap-1.5" title="Print the saved ticket" onClick={() => printTicket(editingTicket, formItemsForPrint(), hasWeighbridgePricing(editingTicket.job_type))}><Printer className="h-4 w-4" /> Print</Button><Button variant="outline" size="sm" className="gap-1.5" title="Start a new ticket with these details" onClick={() => duplicateTicket(editingTicket)}><Copy className="h-4 w-4" /> Duplicate</Button></>)}<Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>{editingTicket ? "Close" : "Cancel"}</Button><Button variant="outline" onClick={() => createMutation.mutate({ keepOpen: true })} disabled={!formData.vehicle_reg || createMutation.isPending}>Save</Button><Button onClick={() => createMutation.mutate(undefined)} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? (editingTicket ? "Saving…" : "Recording…") : editingTicket ? "Save & close" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
+                <div className="ml-auto flex items-center gap-3">{editingTicket && (<><Button variant="outline" size="sm" className="gap-1.5" title="Save and download the ticket as PDF" disabled={createMutation.isPending} onClick={async () => { const items = formItemsForPrint(); try { const t = await saveFormForPrint(); await downloadTicket(t, items, hasWeighbridgePricing(t.job_type)); } catch { /* save errors are already shown */ } }}><Download className="h-4 w-4" /> PDF</Button><Button variant="outline" size="sm" className="gap-1.5" title="Save and print the ticket" disabled={createMutation.isPending} onClick={() => printTicket(saveFormForPrint, formItemsForPrint(), hasWeighbridgePricing(editingTicket.job_type))}><Printer className="h-4 w-4" /> Print</Button><Button variant="outline" size="sm" className="gap-1.5" title="Start a new ticket with these details" onClick={() => duplicateTicket(editingTicket)}><Copy className="h-4 w-4" /> Duplicate</Button></>)}<Button variant="outline" onClick={() => { setNewDialogOpen(false); resetForm(); }}>{editingTicket ? "Close" : "Cancel"}</Button><Button variant="outline" onClick={() => createMutation.mutate({ keepOpen: true })} disabled={!formData.vehicle_reg || createMutation.isPending}>Save</Button><Button onClick={() => createMutation.mutate(undefined)} disabled={!formData.vehicle_reg || createMutation.isPending}>{createMutation.isPending ? (editingTicket ? "Saving…" : "Recording…") : editingTicket ? "Save & close" : netPreviewKg !== null ? "Record & complete" : "Record first weigh"}</Button></div>
               </div>
             </DialogContent>
           </Dialog>
