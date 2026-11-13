@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CONTAINER_GROUPS, containerGroup } from "@/lib/container-taxonomy";
+import { containerStandardForCode } from "@/lib/container-standard";
 import { importedBookingPrices } from "@/lib/route-booking-pricing";
 import { importedSiteDetails } from "@/lib/route-booking-sites";
 import { recordedContainerBooking } from "@/lib/recorded-container-booking";
@@ -159,7 +160,7 @@ export function ScheduleEditorDialog({ draft, onOpenChange, onSaved }: { draft: 
               <div className="space-y-1.5"><Label className="text-xs">Size</Label>
                 <Select value={form.container_size || ""} onValueChange={v => set({ container_size: v })} disabled={!group}>
                   <SelectTrigger><SelectValue placeholder={form.container_size || "Choose"} /></SelectTrigger>
-                  <SelectContent>{(group?.sizes ?? []).map(s => <SelectItem key={s.code} value={s.code}>{s.label}</SelectItem>)}</SelectContent>
+                  <SelectContent>{(group?.sizes ?? []).map(s => <SelectItem key={s.code} value={s.code}>{s.label} · {containerStandardForCode(s.code)?.ref ?? s.code}{s.bespoke ? " (no price line)" : ""}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>

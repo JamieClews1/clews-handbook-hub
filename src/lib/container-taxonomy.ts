@@ -1,9 +1,17 @@
-/** Presentation taxonomy. Codes stay stable so saved pricing and jobs retain their identity. */
-export const CONTAINER_GROUPS = [
+/**
+ * Presentation taxonomy. Codes stay stable so saved pricing and jobs retain their identity.
+ * `bespoke` sizes are booking choices with no price-list line (agreed container standard v2):
+ * staff price them on the job, and they never appear in the pricing matrices.
+ */
+export type ContainerSizeOption = { code: string; label: string; bespoke?: boolean };
+export type ContainerGroupOption = { label: string; value: string; sizes: ContainerSizeOption[] };
+export const CONTAINER_GROUPS: ContainerGroupOption[] = [
   { label: "SKIP", value: "Skip", sizes: [
     { code: "6yd", label: "6 yd" }, { code: "8yd", label: "8 yd" },
     { code: "12yd", label: "12 yd" }, { code: "14_16yd", label: "14 / 16 yd" },
     { code: "12yd_enclosed", label: "12 yd enclosed" },
+    { code: "12yd_asbestos", label: "12 yd ENC Asbestos", bespoke: true },
+    { code: "14yd_walkin", label: "14 yd Walk-in", bespoke: true },
   ] },
   { label: "RORO", value: "Ro Ro", sizes: [
     { code: "20yd_roro", label: "20 yd" }, { code: "25yd_roro", label: "25 yd" },
@@ -13,10 +21,11 @@ export const CONTAINER_GROUPS = [
   { label: "ARTIC", value: "Artic", sizes: [
     { code: "curtain", label: "Curtain" }, { code: "walking_floor", label: "Walking Floor" },
     { code: "ejector", label: "Ejector" },
+    { code: "curtain_bale", label: "Curtain Side Bale Collection", bespoke: true },
   ] },
   { label: "PICKUP", value: "Pickup", sizes: [{ code: "pickup", label: "Pickup" }] },
   { label: "7.5 TONNE", value: "7.5 Tonne", sizes: [{ code: "7_5_tonne", label: "7.5 TONNE" }] },
-] as const;
+];
 
 export function containerGroup(value: string) {
   const key = value.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -24,7 +33,7 @@ export function containerGroup(value: string) {
     ?? (/enclosedskip|chainlift/.test(key) ? CONTAINER_GROUPS[0] : undefined);
 }
 export function containerSize(code: string) {
-  return CONTAINER_GROUPS.flatMap(g => [...g.sizes]).find(s => s.code === code);
+  return CONTAINER_GROUPS.flatMap(g => g.sizes).find(s => s.code === code);
 }
 export function pricingSizeLabel(code: string, fallback: string) {
   const group = CONTAINER_GROUPS.find(g => g.sizes.some(s => s.code === code));

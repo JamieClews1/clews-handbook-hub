@@ -13,13 +13,19 @@ export function recordedContainerBooking(recorded: string | null | undefined): {
     const size = yards === 20 ? "20yd_roro" : yards === 25 ? "25yd_roro" : yards === 35 || yards === 40 ? "40yd" : "";
     return { container_type: "Ro Ro", container_size: size };
   }
+  // Agreed standard v2: bale collections are a curtain-side service; palletised / loose collections are curtain-side loads.
+  if (/\bbale\s*collection/.test(text)) return { container_type: "Artic", container_size: "curtain_bale" };
+  if (/palleti[sz]ed|loose\s*material/.test(text)) return { container_type: "Artic", container_size: "curtain" };
+  if (/asbestos/.test(text)) return { container_type: "Skip", container_size: "12yd_asbestos" };
+  if (/\bwalk\s*-?\s*in\b/.test(text)) return { container_type: "Skip", container_size: "14yd_walkin" };
   if (/curtain/.test(text)) return { container_type: "Artic", container_size: "curtain" };
   if (/walking\s*floor/.test(text)) return { container_type: "Artic", container_size: "walking_floor" };
   if (/ejector/.test(text)) return { container_type: "Artic", container_size: "ejector" };
   if (/pick\s*-?\s*up|flat\s*bed/.test(text)) return { container_type: "Pickup", container_size: "pickup" };
-  if (/compactor|wheelie|litre|dolav|ibc|bale|pallet|loose/.test(text)) return { container_type: raw, container_size: "" };
+  if (/compactor|wheelie|litre|dolav|ibc|baler/.test(text)) return { container_type: raw, container_size: "" };
   if (/skip|yard|yd|chain\s*lift/.test(text) && Number.isFinite(yards)) {
     if (yards === 12 && /enc/.test(text)) return { container_type: "Skip", container_size: "12yd_enclosed" };
+    if (yards === 14 && /enc/.test(text)) return { container_type: "Skip", container_size: "12yd_asbestos" };
     const size = yards === 6 ? "6yd" : yards === 8 ? "8yd" : yards === 12 ? "12yd" : yards === 14 || yards === 16 ? "14_16yd" : "";
     return { container_type: "Skip", container_size: size };
   }

@@ -589,6 +589,13 @@
       "when": 1794588403243,
       "tag": "0083_schedule_skip_match_whitespace",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1794592620865,
+      "tag": "0084_container_standard_v2_stock_and_banksman",
+      "breakpoints": true
     }
   ]
 }

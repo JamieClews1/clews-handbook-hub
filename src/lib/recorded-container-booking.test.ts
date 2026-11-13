@@ -16,6 +16,14 @@ describe("recorded container to booking choice", () => {
     assert.deepEqual(recordedContainerBooking("16 Yard"), { container_type: "Skip", container_size: "14_16yd" });
     assert.deepEqual(recordedContainerBooking("12 yard"), { container_type: "Skip", container_size: "12yd" });
   });
+  it("maps merged and bespoke wordings from the agreed standard", () => {
+    assert.deepEqual(recordedContainerBooking("Bale Collection"), { container_type: "Artic", container_size: "curtain_bale" });
+    assert.deepEqual(recordedContainerBooking("Palletised Material Service"), { container_type: "Artic", container_size: "curtain" });
+    assert.deepEqual(recordedContainerBooking("Loose Material Service"), { container_type: "Artic", container_size: "curtain" });
+    assert.deepEqual(recordedContainerBooking("14 Enclosed Skip"), { container_type: "Skip", container_size: "12yd_asbestos" });
+    assert.deepEqual(recordedContainerBooking("14 Yard Walk In"), { container_type: "Skip", container_size: "14yd_walkin" });
+    assert.deepEqual(recordedContainerBooking("Artic Walking Floor"), { container_type: "Artic", container_size: "walking_floor" });
+  });
   it("never guesses a size it cannot price", () => {
     assert.deepEqual(recordedContainerBooking("30 yd Ro Ro"), { container_type: "Ro Ro", container_size: "" });
     assert.deepEqual(recordedContainerBooking("10 Yard"), { container_type: "Skip", container_size: "" });

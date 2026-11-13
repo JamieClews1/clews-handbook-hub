@@ -1,13 +1,22 @@
-import { containerGroup } from "./container-taxonomy";
+import { containerGroup, containerSize } from "./container-taxonomy";
 export type PricingSize = { size_code: string; display_name: string; is_active: boolean };
-export function pricingContainerOptions(sizes: PricingSize[], type: string) {
+export type BookingSizeOption = PricingSize & { bespoke?: boolean };
+/** Priced sizes need an active price-list size; bespoke sizes (no price line) are always offered. */
+export function pricingContainerOptions(sizes: PricingSize[], type: string): BookingSizeOption[] {
   const group = containerGroup(type);
   if (!group) return [];
-  return group.sizes.flatMap(option => {
+  return group.sizes.flatMap((option): BookingSizeOption[] => {
+    if (type === "Enclosed Skip" && option.code !== "12yd_enclosed") return [];
+    if (option.bespoke) return [{ size_code: option.code, display_name: option.label, is_active: true, bespoke: true }];
     const size = sizes.find(s => s.is_active && s.size_code === option.code);
-    if (!size || (type === "Enclosed Skip" && option.code !== "12yd_enclosed")) return [];
+    if (!size) return [];
     return [{ ...size, display_name: option.label }];
   });
+}
+/** True when the saved size code is one the booking form can show (priced or bespoke). */
+export function isKnownBookingSize(sizes: PricingSize[], code: string | null | undefined) {
+  if (!code) return false;
+  return sizes.some(s => s.size_code === code) || Boolean(containerSize(code)?.bespoke);
 }
 export function bookingRentalFields(form: Record<string, any>) {
   const own = Boolean(form.own_container);

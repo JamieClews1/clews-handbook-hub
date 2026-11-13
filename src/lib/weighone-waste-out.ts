@@ -9,6 +9,9 @@ export const WASTE_OUT_CONTAINERS = CONTAINER_GROUPS
 export function taxonomyContainer(raw: string | null | undefined): string | null {
   const k = (raw ?? "").toLowerCase();
   if (!k.trim()) return null;
+  if (/bale\s*collection/.test(k)) return "ARTIC · Curtain Side Bale Collection";
+  if (/asbestos/.test(k)) return "SKIP · 12 yd ENC Asbestos";
+  if (/\bwalk\s*-?\s*in\b/.test(k)) return "SKIP · 14 yd Walk-in";
   if (/walking|moving floor/.test(k)) return "ARTIC · Walking Floor";
   if (/ejector/.test(k)) return "ARTIC · Ejector";
   if (/curtain|artic|trailer/.test(k)) return "ARTIC · Curtain";

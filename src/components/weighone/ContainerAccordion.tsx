@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { containerChipLabel, type ContainerGroup } from "@/lib/weighone-container-groups";
+import { containerRef } from "@/lib/container-standard";
 
 type Props = {
   groups: ContainerGroup[];
@@ -93,7 +94,7 @@ export function ContainerAccordion({ groups, value, openGroup, onOpenGroup, onSe
               <span className="flex items-baseline gap-2">
                 <span className="text-xs font-semibold text-foreground">{g.vehicle}</span>
                 {selected ? (
-                  <span className="text-[11px] font-medium text-primary">{containerChipLabel(selected)}</span>
+                  <span className="text-[11px] font-medium text-primary">{containerChipLabel(selected)}{containerRef(selected) ? ` · ${containerRef(selected)}` : ""}</span>
                 ) : (
                   <span className="text-[11px] text-muted-foreground">{g.options.length} types</span>
                 )}
@@ -112,6 +113,7 @@ export function ContainerAccordion({ groups, value, openGroup, onOpenGroup, onSe
                     onClick={() => onSelect(o, g.vehicle)}
                   >
                     {containerChipLabel(o)}
+                    {containerRef(o) && <span className="ml-1.5 font-mono text-[10px] font-semibold opacity-70">{containerRef(o)}</span>}
                   </Button>
                 ))}
               </div>

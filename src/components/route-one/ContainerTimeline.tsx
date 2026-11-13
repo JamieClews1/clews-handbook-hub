@@ -1,4 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { StandardContainer } from "@/components/containers/ContainerRef";
+import { standardContainerName } from "@/lib/container-standard";
 import { AlertTriangle, ArrowLeft, ArrowRight, ArrowRightLeft, CalendarClock, ExternalLink, Info, Loader2, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -151,7 +153,7 @@ function LeftCell({ row, today }: { row: TimelineRowModel; today: string }) {
   return <div className="space-y-1.5 p-3">
     <div>
       <p className="text-sm font-semibold leading-snug">{row.title}</p>
-      <p className="text-xs text-muted-foreground">{[row.ewc, row.container].filter(Boolean).join(" · ")}</p>
+      <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">{row.ewc && <span>{row.ewc} ·</span>}<StandardContainer recorded={row.container} fallback="" /></p>
       {row.site && <p className="truncate text-xs text-muted-foreground" title={row.site}>Skiptrak: {row.site}</p>}
     </div>
     <div className="flex flex-wrap gap-1">
@@ -277,7 +279,7 @@ export function TimelineSelectionBar({ rows, selectedKey, onSelect, today, onOpe
   return <div className="space-y-2 border-t-2 border-info/60 pt-3" aria-live="polite">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0 space-y-0.5 text-sm">
-        <p className="font-semibold">#{dot.jobNumber} · {dot.movement} · {row.container} · {row.title}{row.ewc ? ` ${row.ewc}` : ""}</p>
+        <p className="font-semibold">#{dot.jobNumber} · {dot.movement} · {standardContainerName(row.container)} · {row.title}{row.ewc ? ` ${row.ewc}` : ""}</p>
         <p>{fullDate(dot.date)} · <span className={cn(dot.kind === "completed" ? "text-success" : dot.kind === "collection" ? "text-destructive" : "text-warning-text", "font-medium")}>{dot.status}</span>{dot.date < today && dot.kind !== "completed" && dot.kind !== "collection" ? " (date passed)" : ""}</p>
         {row.since && <p className="text-muted-foreground">{row.since.known ? `Container arrived ${dotDay(row.since.date)} ${dotDateYear(row.since.date, today)} with job #${row.since.jobNumber}` : `On site before ${dotDay(row.since.date)} ${dotDateYear(row.since.date, today)} (job #${row.since.jobNumber} is the earliest record held)`}</p>}
         <p className="text-muted-foreground">{row.chained ? `Job ${i + 1} of ${row.dots.length} in this ${row.muted ? "bin's" : "container's"} chain` : `Trailer job ${i + 1} of ${row.dots.length} here`}</p>

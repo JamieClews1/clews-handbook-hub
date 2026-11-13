@@ -21,7 +21,8 @@ import { EwcCodePicker, SicCodePicker } from "@/components/codes/CodePicker";
 import { WasteStreamPicker } from "./WasteStreamPicker";
 import { standardBookingWaste, HAULAGE_ONLY_JOB, haulageWasteFor } from "@/lib/waste-streams";
 import { EstablishedSitePicker } from "./EstablishedSitePicker";
-import { pricingContainerOptions, type PricingSize } from "@/lib/booking-container-options";
+import { isKnownBookingSize, pricingContainerOptions, type PricingSize } from "@/lib/booking-container-options";
+import { ContainerRefForCode, StandardContainer } from "@/components/containers/ContainerRef";
 import { CONTAINER_GROUPS, containerGroup } from "@/lib/container-taxonomy";
 import { BookingRentalSection } from "./BookingRentalSection";
 import { Switch } from "@/components/ui/switch";
@@ -626,7 +627,7 @@ export function JobFormFields({
         </div></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2"><Label className="text-xs">Vehicle Type</Label><div className="flex flex-wrap gap-1.5">{CONTAINER_GROUPS.map(group => <Button type="button" key={group.value} size="sm" variant="outline" aria-pressed={containerGroup(form.container_type || "")?.value === group.value} className="booking-container-choice" onClick={() => setForm({ ...form, container_type: group.value, container_size: group.value === "7.5 Tonne" ? "7_5_tonne" : "" })}>{group.label}</Button>)}</div><div className="flex items-center gap-2"><Switch id="own-container" checked={!!form.own_container} onCheckedChange={own => setForm({ ...form, own_container: own, rental_enabled: own ? false : form.rental_enabled })} /><Label htmlFor="own-container">Own Container</Label></div>{form.container_type && !containerGroup(form.container_type) && <p className="text-xs text-muted-foreground">Current: {form.container_type}</p>}</div>
-          {!["Pickup", "7.5 Tonne"].includes(form.container_type) && <div className="space-y-2"><Label className="text-xs">Size</Label><div className="flex flex-wrap gap-1.5">{pricingContainerOptions(pricingSizes, form.container_type).map(size => <Button type="button" key={size.size_code} size="sm" variant="outline" aria-pressed={form.container_size === size.size_code} className="booking-container-choice" onClick={() => setForm({ ...form, container_size: size.size_code })}>{size.display_name}</Button>)}</div>{form.container_size && !pricingSizes.some(s => s.size_code === form.container_size) && <p className="text-xs text-muted-foreground">Current: {form.container_size}</p>}</div>}
+          {!["Pickup", "7.5 Tonne"].includes(form.container_type) && <div className="space-y-2"><Label className="text-xs">Size</Label><div className="flex flex-wrap gap-1.5">{pricingContainerOptions(pricingSizes, form.container_type).map(size => <Button type="button" key={size.size_code} size="sm" variant="outline" aria-pressed={form.container_size === size.size_code} className="booking-container-choice gap-1.5" title={size.bespoke ? "Bespoke job: no price-list line, price it on the job" : undefined} onClick={() => setForm({ ...form, container_size: size.size_code })}>{size.display_name}<ContainerRefForCode code={size.size_code} />{size.bespoke && <span className="text-[10px] font-normal text-muted-foreground">No price line</span>}</Button>)}</div>{form.container_size && !isKnownBookingSize(pricingSizes, form.container_size) && <p className="text-xs text-muted-foreground">Current: {form.container_size}</p>}</div>}
         </div>
       </section>
       <section className="booking-section space-y-3">
@@ -901,7 +902,7 @@ export function JobFormFields({
                   <span className="font-medium shrink-0">{j.job_number}</span>
                   <span className="text-muted-foreground shrink-0">{j.scheduled_date || j.job_date}</span>
                   <span className="truncate flex-1">{j.site_name || j.site}</span>
-                  <span className="truncate text-muted-foreground">{j.movement_type || j.job_type} · {j.container_type} {j.container_size} · {j.waste_type || j.waste_description}</span>
+                  <span className="truncate text-muted-foreground">{j.movement_type || j.job_type} · <StandardContainer recorded={[j.container_type, j.container_size].filter(Boolean).join(" ")} fallback="" /> · {j.waste_type || j.waste_description}</span>
                   <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => applyPrevious(j, form, false, "duplicate")}><Copy className="h-3.5 w-3.5" />Duplicate</Button>
                   <Button type="button" size="sm" className="h-7 text-xs" onClick={() => applyPrevious(j)}><ArrowRightLeft className="h-3.5 w-3.5" />Exchange</Button>
                 </div>
@@ -916,7 +917,7 @@ export function JobFormFields({
                   <span className="font-medium shrink-0">{j.job_number}</span>
                   <span className="text-muted-foreground shrink-0">{j.scheduled_date || j.job_date}</span>
                   <span className="truncate flex-1">{j.site_name || j.site}</span>
-                  <span className="truncate text-muted-foreground">{j.container_type} {j.container_size} · {j.waste_type || j.waste_description}</span>
+                  <span className="truncate text-muted-foreground"><StandardContainer recorded={[j.container_type, j.container_size].filter(Boolean).join(" ")} fallback="" /> · {j.waste_type || j.waste_description}</span>
                 </button>
               ))}
             </div>

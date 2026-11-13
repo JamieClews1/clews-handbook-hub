@@ -19,7 +19,8 @@ test("Van, FEL and Pickup store their own name as the container", () => {
 
 test("Skip, Ro Ro and Artic keep the shared sizes", () => {
   const skip = INBOUND_CONTAINER_GROUPS.find(g => g.vehicle === "Skip")!;
-  assert.equal(skip.options.length, 5);
+  assert.equal(skip.options.length, 7);
+  assert.ok(skip.options.includes("SKIP · 12 yd ENC Asbestos"));
   assert.ok(skip.options.includes("SKIP · 8 yd"));
   assert.ok(INBOUND_CONTAINER_GROUPS.find(g => g.vehicle === "Ro Ro")!.options.includes("RORO · 35 yd Enclosed"));
   assert.ok(INBOUND_CONTAINER_GROUPS.find(g => g.vehicle === "Artic")!.options.includes("ARTIC · Walking Floor"));
