@@ -4,61 +4,38 @@ import { normaliseEwcCode } from "@/lib/code-registers";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import wasteOut from "@/data/midweigh-waste-out-types.json";
-import { formatEwc, standardWasteName } from "@/lib/waste-streams";
-import { WasteRefFor } from "@/components/waste/WasteRefChip";
+import { formatEwc } from "@/lib/waste-streams";
+import { WasteRefChip } from "@/components/waste/WasteRefChip";
+import { sortWasteTypeRows, wasteTypeReferenceRows, type WasteTypeEwcRow, type WasteTypeSort } from "@/lib/waste-type-references";
 
-type Part = { name: string; loads: number; tonnes: number };
-type Row = { ewc: string; description: string; loads: number; tonnes: number; products: Part[]; destinations: Part[] };
-type SortKey = "code" | "loads" | "tonnes" | "share";
-
-const SORT_OPTIONS: { value: SortKey; label: string }[] = [
-  { value: "code", label: "Waste code (number)" },
-  { value: "tonnes", label: "Tonnes" },
+const SORT_OPTIONS: { value: WasteTypeSort; label: string }[] = [
+  { value: "tonnes", label: "Volume (tonnes)" },
   { value: "loads", label: "Loads" },
-  { value: "share", label: "Share of total" },
+  { value: "ref", label: "Reference (A–Z)" },
+  { value: "code", label: "Waste code (number)" },
 ];
 
 const fmtT = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 1 });
 const fmtDate = (d: string) => new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
-/** Recorded Midweigh products shown under their agreed standard name, merged when several share one. */
-function standardProducts(products: Part[], ewc: string): Part[] {
-  const merged = new Map<string, Part>();
-  for (const p of products) {
-    const name = standardWasteName(p.name, ewc, { source: "midweigh", direction: "outgoing" });
-    const cur = merged.get(name);
-    merged.set(name, cur ? { name, loads: cur.loads + p.loads, tonnes: cur.tonnes + p.tonnes } : { ...p, name });
-  }
-  return [...merged.values()].sort((a, b) => b.loads - a.loads);
-}
-
-const ewcNumber = (ewc: string) => Number(ewc.replace(/[^0-9]/g, ""));
+const REFERENCE_ROWS = wasteTypeReferenceRows(wasteOut.rows as WasteTypeEwcRow[]);
 
 export function CommonWasteTypesSection() {
   const { data: codes = [] } = useEwcCodes(true);
-  const [sortBy, setSortBy] = useState<SortKey>("code");
+  const [sortBy, setSortBy] = useState<WasteTypeSort>("tonnes");
   const register = useMemo(() => new Map(codes.map(c => [c.code.replace(/[^0-9]/g, ""), c])), [codes]);
-  const sorted = useMemo(() => {
-    const rows = [...(wasteOut.rows as Row[])];
-    rows.sort((a, b) => {
-      if (sortBy === "code") return ewcNumber(a.ewc) - ewcNumber(b.ewc);
-      if (sortBy === "loads") return b.loads - a.loads;
-      if (sortBy === "tonnes") return b.tonnes - a.tonnes;
-      return b.tonnes / wasteOut.tonnes - a.tonnes / wasteOut.tonnes;
-    });
-    return rows;
-  }, [sortBy]);
+  const sorted = useMemo(() => sortWasteTypeRows(REFERENCE_ROWS, sortBy), [sortBy]);
 
   return <section className="space-y-3">
     <div>
       <h2 className="text-xl font-semibold">Waste Types</h2>
       <p className="text-sm text-muted-foreground">
-        Waste Out loads from {fmtDate(wasteOut.from)} – {fmtDate(wasteOut.to)}: {wasteOut.loads.toLocaleString()} loads, {fmtT(wasteOut.tonnes)} tonnes, grouped by EWC code — one method for every weighbridge source.
+        Waste Out loads from {fmtDate(wasteOut.from)} – {fmtDate(wasteOut.to)}: {wasteOut.loads.toLocaleString()} loads, {fmtT(wasteOut.tonnes)} tonnes, grouped by agreed product reference and ranked by volume.
       </p>
     </div>
     <div className="flex items-center justify-end gap-2">
       <span className="text-sm text-muted-foreground">Sorted by</span>
-      <Select value={sortBy} onValueChange={v => setSortBy(v as SortKey)}>
+      <Select value={sortBy} onValueChange={v => setSortBy(v as WasteTypeSort)}>
         <SelectTrigger className="w-[220px]" aria-label="Sort waste types by">
           <SelectValue />
         </SelectTrigger>
@@ -70,22 +47,36 @@ export function CommonWasteTypesSection() {
     <div className="overflow-x-auto border-y border-border">
       <table className="w-full text-sm">
         <thead className="bg-muted/50 text-left"><tr>
-          <th className="p-3 font-semibold">Waste code</th><th className="p-3 font-semibold">Register description</th>
-          <th className="p-3 font-semibold">Products</th><th className="p-3 font-semibold">Main destinations</th>
+          <th className="p-3 font-semibold whitespace-nowrap">Product reference</th>
+          <th className="p-3 font-semibold">Waste type</th>
+          <th className="p-3 font-semibold">Waste code</th>
+          <th className="p-3 font-semibold">Main destinations</th>
           <th className="p-3 font-semibold text-right">Loads</th><th className="p-3 font-semibold text-right">Tonnes</th><th className="p-3 font-semibold text-right">Share</th>
         </tr></thead>
-        <tbody className="divide-y divide-border">{sorted.map(r => {
-          const reg = register.get(r.ewc.replace(/[^0-9]/g, ""));
-          return <tr key={r.ewc} className="align-top hover:bg-muted/30">
-            <td className="p-3 font-mono font-medium whitespace-nowrap">{formatEwc(normaliseEwcCode(r.ewc))}</td>
-            <td className="p-3 min-w-[200px]">{reg ? <span>{reg.description} {reg.hazardous && <Badge variant="destructive" className="ml-1">Hazardous</Badge>}</span> : <span className="text-muted-foreground">{r.description}</span>}</td>
-            <td className="p-3 text-muted-foreground min-w-[180px]">{standardProducts(r.products, r.ewc).map(p => <div key={p.name} className="flex flex-wrap items-center gap-1.5"><WasteRefFor name={p.name} ewc={r.ewc} source="midweigh" direction="outgoing" />{p.name} <span className="tabular-nums">({p.loads})</span></div>)}</td>
-            <td className="p-3 text-muted-foreground min-w-[200px]">{r.destinations.map(p => <div key={p.name}>{p.name} <span className="tabular-nums">· {fmtT(p.tonnes)}t</span></div>)}</td>
-            <td className="p-3 text-right tabular-nums font-semibold">{r.loads.toLocaleString()}</td>
-            <td className="p-3 text-right tabular-nums">{fmtT(r.tonnes)}</td>
-            <td className="p-3 text-right tabular-nums">{((r.tonnes / wasteOut.tonnes) * 100).toFixed(1)}%</td>
-          </tr>;
-        })}</tbody>
+        <tbody className="divide-y divide-border">{sorted.map(r => <tr key={r.key} className="align-top hover:bg-muted/30">
+          <td className="p-3 whitespace-nowrap">{r.ref ? <WasteRefChip refCode={r.ref} className="text-xs px-2 py-0.5" /> : <span className="text-muted-foreground">No agreed code</span>}</td>
+          <td className="p-3 min-w-[200px]">
+            <div className="font-medium">{r.name}</div>
+            {r.products.length > 0 && <div className="mt-0.5 text-xs text-muted-foreground">
+              Recorded as: {r.products.map(p => `${p.name} (${p.loads})`).join(", ")}
+            </div>}
+          </td>
+          <td className="p-3 min-w-[200px]">{r.ewcs.map(e => {
+            const reg = register.get(e.ewc.replace(/[^0-9]/g, ""));
+            return <div key={e.ewc}>
+              <span className="font-mono font-medium whitespace-nowrap">{formatEwc(normaliseEwcCode(e.ewc))}</span>
+              {reg?.hazardous && <Badge variant="destructive" className="ml-1">Hazardous</Badge>}
+              <div className="text-xs text-muted-foreground">{reg?.description ?? e.description}</div>
+            </div>;
+          })}</td>
+          <td className="p-3 text-muted-foreground min-w-[200px]">{r.ewcs.map(e => <div key={e.ewc}>
+            {e.shared && <div className="text-xs italic">All {formatEwc(normaliseEwcCode(e.ewc))} loads (shared code)</div>}
+            {e.destinations.map(p => <div key={p.name}>{p.name} <span className="tabular-nums">· {fmtT(p.tonnes)}t</span></div>)}
+          </div>)}</td>
+          <td className="p-3 text-right tabular-nums font-semibold">{r.loads.toLocaleString()}</td>
+          <td className="p-3 text-right tabular-nums">{fmtT(r.tonnes)}</td>
+          <td className="p-3 text-right tabular-nums">{((r.tonnes / wasteOut.tonnes) * 100).toFixed(1)}%</td>
+        </tr>)}</tbody>
       </table>
     </div>
   </section>;
