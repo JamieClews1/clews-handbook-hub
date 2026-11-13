@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { afterSignInPath, detectInstallBrowser, launchScope, loadReportsAppAllows } from "./load-reports-app";
+import { afterSignInPath, chromeIntentUrl, detectInstallBrowser, isInAppBrowser, launchScope, loadReportsAppAllows } from "./load-reports-app";
 
 describe("Load Reports app lock", () => {
   it("a window opened on Load Reports is the Load Reports app", () => {
@@ -41,5 +41,18 @@ describe("Load Reports phone install", () => {
     const chrome = "Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36";
     assert.equal(detectInstallBrowser(samsung), "samsung");
     assert.equal(detectInstallBrowser(chrome), "chrome");
+  });
+});
+
+describe("In-app viewers can't install", () => {
+  it("spots Android in-app viewers such as Outlook or WhatsApp", () => {
+    assert.equal(isInAppBrowser("Mozilla/5.0 (Linux; Android 14; SM-S911B; wv) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36"), true);
+    assert.equal(isInAppBrowser("Mozilla/5.0 (Linux; Android 14; SM-S911B) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36"), false);
+  });
+  it("sends Chrome to the requested app page", () => {
+    assert.equal(
+      chromeIntentUrl("portal.clewsrecycling.co.uk", "/office"),
+      "intent://portal.clewsrecycling.co.uk/office#Intent;scheme=https;package=com.android.chrome;end",
+    );
   });
 });

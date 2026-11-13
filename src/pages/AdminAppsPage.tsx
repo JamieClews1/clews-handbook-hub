@@ -299,7 +299,8 @@ const officeSteps: Step[] = [
       <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
         <li><strong>PC (Chrome or Edge):</strong> click <strong>Install Office App</strong> at the top of the app, or the install icon in the address bar</li>
         <li><strong>iPhone / iPad:</strong> in Safari tap <strong>Share</strong> → <strong>Add to Home Screen</strong></li>
-        <li><strong>Android:</strong> in Chrome tap <strong>⋮</strong> → <strong>Add to Home screen</strong></li>
+        <li><strong>Android:</strong> tap <strong>Add to home screen</strong> in the Office App for step-by-step help. Samsung Internet: <strong>☰</strong> (bottom right) → <strong>Add page to</strong> → <strong>Home screen</strong>. Chrome: <strong>⋮</strong> (top right) → <strong>Add to Home screen</strong></li>
+        <li>No menu at all? The link has opened inside Outlook, Gmail or WhatsApp — open it in Chrome first</li>
       </ol>
     ),
   },

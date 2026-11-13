@@ -87,7 +87,15 @@ export function detectInstallBrowser(ua: string, maxTouchPoints = 0, platform = 
   return "desktop";
 }
 
-/** Opens the Load Reports app link in Chrome from another Android browser. */
-export function chromeIntentUrl(host: string): string {
-  return `intent://${host}${LOAD_REPORTS_APP_URL}#Intent;scheme=https;package=com.android.chrome;end`;
+/** Opens an app link (Load Reports by default) in Chrome from another Android browser. */
+export function chromeIntentUrl(host: string, path: string = LOAD_REPORTS_APP_URL): string {
+  return `intent://${host}${path}#Intent;scheme=https;package=com.android.chrome;end`;
+}
+
+/**
+ * Links opened from Outlook, Gmail, WhatsApp, Teams etc. load inside that app's built-in viewer,
+ * which has no menu and cannot add anything to the home screen.
+ */
+export function isInAppBrowser(ua: string): boolean {
+  return /; wv\)|FBAN|FBAV|Instagram|WhatsApp|Line\/|GSA\/|Teams|Outlook|LinkedInApp|Snapchat/i.test(ua);
 }

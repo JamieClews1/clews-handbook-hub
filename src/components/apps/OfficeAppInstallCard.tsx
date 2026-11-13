@@ -3,7 +3,7 @@ import packageJson from "../../../package.json";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, CheckCircle2, Copy, Download, Share } from "lucide-react";
+import { CheckCircle2, Copy, Download, Share } from "lucide-react";
 import { detectInstallBrowser, type InstallBrowser } from "@/lib/load-reports-app";
 import { OFFICE_APP_PATH, OFFICE_APP_TILES } from "@/lib/office-app";
 
@@ -22,9 +22,7 @@ export function OfficeAppInstallCard() {
     <Card className="border-2 border-primary/40">
       <CardContent className="space-y-4 p-6">
         <div className="flex flex-wrap items-start gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15">
-            <Building2 className="h-8 w-8 text-primary" />
-          </div>
+          <img src="/w1-icon-192.png" alt="W1 app icon" className="h-14 w-14 rounded-2xl" />
           <div className="min-w-0 flex-1">
             <h2 className="text-xl font-bold">Office App</h2>
             <p className="text-muted-foreground">
@@ -80,8 +78,10 @@ export function OfficeAppInstallCard() {
             </p>
           ) : (
             <p className="text-muted-foreground">
-              PC (Chrome or Edge): click <b>Install Office App</b> at the top of the Office App, or the install icon in
-              the address bar. iPhone: Safari → Share → Add to Home Screen. Android: ⋮ → Add to Home screen.
+              Easiest: open the Office App and tap <b>Add to home screen</b> — it shows the right steps for that
+              device. Samsung Internet: ☰ menu (bottom right) → Add page to → Home screen. Chrome: ⋮ (top right) → Add
+              to Home screen. If the link opened inside Outlook, Gmail or WhatsApp there is no menu — open it in Chrome
+              first.
             </p>
           )}
         </div>

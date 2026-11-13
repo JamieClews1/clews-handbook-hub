@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import packageJson from "../../../package.json";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Download, Share, MoreVertical, Menu, Copy, Truck, X, ExternalLink } from "lucide-react";
+import { CheckCircle2, Download, Share, MoreVertical, Menu, Copy, X, ExternalLink } from "lucide-react";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { chromeIntentUrl, detectInstallBrowser, type InstallBrowser } from "@/lib/load-reports-app";
 
@@ -37,9 +37,7 @@ export function LoadReportsInstallCard({
     <Card className="border-2 border-primary/40">
       <CardContent className="space-y-4 p-6">
         <div className="flex flex-wrap items-start gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15">
-            <Truck className="h-8 w-8 text-primary" />
-          </div>
+          <img src="/w1-icon-192.png" alt="W1 app icon" className="h-14 w-14 rounded-2xl" />
           <div className="min-w-0 flex-1">
             <h2 className="text-xl font-bold">Load Reports App</h2>
             <p className="text-muted-foreground">
