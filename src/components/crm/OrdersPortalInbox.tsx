@@ -189,9 +189,28 @@ export function OrdersPortalInbox() {
   };
 
   const openFile = async (a: OrderAttachment) => {
+    // Open the tab synchronously inside the click so browsers don't treat it as a blocked pop-up.
+    const tab = window.open("about:blank", "_blank");
     const { data, error } = await supabase.storage.from(ORDERS_PORTAL_BUCKET).createSignedUrl(a.path, 600);
-    if (error || !data) return toast.error("Could not open file");
-    window.open(data.signedUrl, "_blank", "noopener");
+    if (error || !data) {
+      tab?.close();
+      return toast.error("Could not open file");
+    }
+    if (tab && !tab.closed) {
+      tab.opener = null;
+      tab.location.href = data.signedUrl;
+      return;
+    }
+    // Pop-ups blocked: fall back to a direct download.
+    const { data: dl } = await supabase.storage.from(ORDERS_PORTAL_BUCKET).createSignedUrl(a.path, 600, { download: a.name });
+    const link = document.createElement("a");
+    link.href = dl?.signedUrl ?? data.signedUrl;
+    link.download = a.name;
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    toast.info("Your browser blocked the new tab, so the file is downloading instead");
   };
 
   const sendReply = async () => {
