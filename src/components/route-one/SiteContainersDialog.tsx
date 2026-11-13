@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format, startOfMonth, subMonths } from "date-fns";
-import { ArrowRightLeft, CalendarClock, Loader2, MapPin, Package, Truck } from "lucide-react";
+import { ArrowRightLeft, CalendarClock, Copy, Loader2, MapPin, Package, Truck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,9 @@ import { londonCalendarKey } from "@/lib/ui-calendar";
 import { parseLoadReportDate } from "@/lib/load-report-dates";
 import { formatEwc, standardWasteName } from "@/lib/waste-streams";
 import { bookingContainerLabel } from "@/lib/container-taxonomy";
+import { previousArticJobs } from "@/lib/artic-site-jobs";
+
+export type PreviousJobMode = "exchange" | "duplicate";
 
 export type ContainersSite = { customer: string; site: string; address: string; postcode: string };
 export type OnSiteContainer = { container: string; count: number; lastMoved: LastMovement | null; bin?: SiteBin };
@@ -46,11 +49,13 @@ async function readPages<T>(read: (from: number, to: number) => PromiseLike<{ da
  * Site History) shown before a booking is started. Choosing an action only fills
  * the booking form; nothing is saved here.
  */
-export function SiteContainersDialog({ site, onOpenChange, onUseSite, onBookExchange }: {
+export function SiteContainersDialog({ site, onOpenChange, onUseSite, onBookExchange, onUsePreviousJob }: {
   site: ContainersSite | null;
   onOpenChange: (open: boolean) => void;
   onUseSite: () => void;
   onBookExchange: (container: OnSiteContainer) => Promise<void>;
+  /** Prefill from a previous Skip job (by row id) as an exchange or an identical repeat. */
+  onUsePreviousJob?: (jobId: string, mode: PreviousJobMode) => Promise<void>;
 }) {
   const { settings } = useLiveJobsSettings();
   const [jobs, setJobs] = useState<HistoryJob[]>([]);
@@ -102,6 +107,12 @@ export function SiteContainersDialog({ site, onOpenChange, onUseSite, onBookExch
     return [...rows.values()].sort((a, b) => a.date.localeCompare(b.date));
   }, [jobs, native, today]);
 
+  const artic = useMemo(() => previousArticJobs(jobs, today), [jobs, today]);
+  const usePrevious = async (jobId: string, mode: PreviousJobMode, key: string) => {
+    if (!onUsePreviousJob) return;
+    setBooking(key);
+    try { await onUsePreviousJob(jobId, mode); } finally { setBooking(null); }
+  };
   const book = async (c: OnSiteContainer, key: string) => {
     setBooking(key);
     try { await onBookExchange(c); } finally { setBooking(null); }
@@ -160,6 +171,33 @@ export function SiteContainersDialog({ site, onOpenChange, onUseSite, onBookExch
             </li>;
           })}
         </ul>}
+
+        {artic.length > 0 && onUsePreviousJob && <div className="space-y-2">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold"><Truck className="h-4 w-4" />Trailer jobs here</h3>
+          <p className="text-xs text-muted-foreground">Previous artic work at this site in the last 12 months. Repeat the last job, or book an exchange to swap a standing trailer.</p>
+          <ul className="divide-y divide-border rounded-md border border-border" aria-label="Previous trailer jobs">
+            {artic.map(a => {
+              const dupKey = `dup:${a.key}`, exKey = `ex:${a.key}`;
+              const severalSites = new Set(artic.map(x => x.site.toLowerCase())).size > 1;
+              return <li key={a.key} className="flex flex-wrap items-center gap-3 px-3 py-2.5">
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <p className="flex flex-wrap items-center gap-2 text-sm"><span className="font-semibold">{a.container}</span>{a.standing && <Badge variant="secondary">Standing trailer</Badge>}</p>
+                  <p className="text-sm">{wasteLabel(a.waste, a.ewc)}{a.ewc && <span className="ml-1.5 text-muted-foreground tabular-nums">{formatEwc(a.ewc)}</span>}</p>
+                  {severalSites && <p className="text-xs text-muted-foreground">Skiptrak site: {a.site}</p>}
+                  <p className="text-xs text-muted-foreground"><CalendarClock className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />Last {a.last.movement} {dateLabel(a.last.date)} ({daysAgo(a.last.date, today)}) · job #{a.last.jobNumber} · {Object.entries(a.movements).map(([m, n]) => `${n} ${m}`).join(" · ")}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" size="sm" variant="outline" disabled={booking !== null} onClick={() => void usePrevious(a.last.id, "duplicate", dupKey)} aria-label={`Duplicate job ${a.last.jobNumber}`}>
+                    {booking === dupKey ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}Duplicate
+                  </Button>
+                  <Button type="button" size="sm" disabled={booking !== null} onClick={() => void usePrevious(a.last.id, "exchange", exKey)} aria-label={`Book trailer exchange from job ${a.last.jobNumber}`}>
+                    {booking === exKey ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}Book exchange
+                  </Button>
+                </div>
+              </li>;
+            })}
+          </ul>
+        </div>}
 
         {booked.length > 0 && <div className="space-y-2">
           <h3 className="flex items-center gap-1.5 text-sm font-semibold"><Truck className="h-4 w-4" />Already booked</h3>

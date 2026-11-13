@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchAllRows } from "@/lib/fetch-all";
 import { importedSiteDetails, applyBookingSite, type BookingSite } from "@/lib/route-booking-sites";
-import { History, Plus, Trash2, AlertTriangle, ExternalLink, MapPin, Check, Search } from "lucide-react";
+import { ArrowRightLeft, Copy, History, Plus, Trash2, AlertTriangle, ExternalLink, MapPin, Check, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePostcodeZoneLookup } from "@/hooks/usePostcodeZoneLookup";
 import { useJobTypes } from "./jobTypes";
@@ -32,7 +32,8 @@ import { WasteOutSkipPanel } from "./WasteOutSkipPanel";
 import { WasteOutBookingFields } from "./WasteOutBookingFields";
 import { applyBookingKind, isWasteOutJob } from "@/lib/waste-out-job";
 import { WasteClassificationFields, asClassification } from "@/components/dwt/WasteClassificationFields";
-import { SiteContainersDialog, type OnSiteContainer } from "./SiteContainersDialog";
+import { SiteContainersDialog, type OnSiteContainer, type PreviousJobMode } from "./SiteContainersDialog";
+import { isArticContainer, skiptrakMovementJobType } from "@/lib/artic-site-jobs";
 import { recordedContainerBooking } from "@/lib/recorded-container-booking";
 
 /** Legacy static labels — configured job types come from route_one_job_types. */
@@ -338,6 +339,16 @@ export function JobFormFields({
     setContainersSite(null);
   };
 
+  /** Repeat or exchange a previous job chosen from the on-site pop-up (e.g. a standing trailer). */
+  const usePreviousFromSite = async (m: PostcodeMatch, jobId: string, mode: PreviousJobMode) => {
+    const { data, error } = await supabase.from("data_hub_jobs").select("job_number, job_date, customer, site, movement_type, container_type, waste_description, ewc, weight_t, raw").eq("id", jobId).maybeSingle();
+    if (error || !data) { setSiteLoadError("That previous job could not be loaded. Use previous job / exchange instead."); return; }
+    await applyPrevious({ ...data, _source: "skiptrak", customer: m.customer || data.customer, site: m.site || data.site }, postcodeMatchForm(m), true, mode);
+    setPostcodeMatches([]);
+    setPostcodeSearched(false);
+    setContainersSite(null);
+  };
+
   /** Start a brand new site (and delivery) from scratch at the searched postcode. */
   const startNewSite = () => {
     setForm({
@@ -402,12 +413,18 @@ export function JobFormFields({
   };
 
 
-  /** Prefill the form from a previous job, defaulting to an exchange. */
-  const applyPrevious = async (j: any, base: any = form, keepSiteAddress = false) => {
+  /** Prefill the form from a previous job, defaulting to an exchange; "duplicate" repeats the same job type. */
+  const applyPrevious = async (j: any, base: any = form, keepSiteAddress = false, mode: PreviousJobMode = "exchange") => {
     const form = base;
     const recorded = j._source === "routeone" ? null : recordedContainerBooking(j.container_type);
+    const duplicate = mode === "duplicate";
+    const wanted = duplicate ? (j._source === "routeone" ? j.job_type : skiptrakMovementJobType(j.movement_type)) : "exchange";
+    // A repeat of a job type that is switched off in Setup (e.g. Waste Truck) is booked as an exchange.
+    const jobType = wanted && jobTypes.some(t => t.key === wanted) ? wanted : "exchange";
+    const note = !duplicate ? `Exchange of container from job ${j.job_number || ""}` : jobType === wanted ? `Repeat of job ${j.job_number || ""}` : `Repeat of job ${j.job_number || ""} (${String(j.movement_type || j.job_type || "previous job").replace(/^WasteTruck$/, "Waste Truck")}, booked as an exchange)`;
     let bookingDate = form.scheduled_date;
-    try { bookingDate = await loadExchangeBookingDate({ container_type: recorded?.container_type ?? j.container_type, container_size: recorded?.container_size ?? j.container_size, site_postcode: j.site_postcode || j.postcode || rawText(j.raw, ["Postcode", "Location Postc"]) || form.site_postcode }) || bookingDate; }
+    // Exchange dates follow the booking-window rule; a repeat keeps the date staff are booking for.
+    if (jobType === "exchange") try { bookingDate = await loadExchangeBookingDate({ container_type: recorded?.container_type ?? j.container_type, container_size: recorded?.container_size ?? j.container_size, site_postcode: j.site_postcode || j.postcode || rawText(j.raw, ["Postcode", "Location Postc"]) || form.site_postcode }) || bookingDate; }
     catch { setSiteLoadError("Booking dates unavailable. Check the exchange date before saving."); }
     if (j._source === "routeone") {
       setForm({
@@ -416,7 +433,7 @@ export function JobFormFields({
         site_name: j.site_name || form.site_name,
         site_address: j.site_address || form.site_address,
         site_postcode: j.site_postcode || form.site_postcode,
-        job_type: "exchange",
+        job_type: jobType,
         container_type: j.container_type || "",
         container_size: j.container_size || "",
         scheduled_date: bookingDate,
@@ -428,7 +445,7 @@ export function JobFormFields({
         weight_included_t: j.weight_included_t ?? "",
         cost_items: Array.isArray(j.cost_items) ? j.cost_items : [],
         vat_rate: j.vat_rate ?? 20,
-        notes: `${form.notes ? form.notes + "\n" : ""}Exchange of container from job ${j.job_number || ""}`.trim(),
+        notes: `${form.notes ? form.notes + "\n" : ""}${note}`.trim(),
       });
     } else {
       const previousAddress = importedSiteDetails(j.raw).address;
@@ -439,13 +456,13 @@ export function JobFormFields({
         site_name: j.site || form.site_name,
         site_address: keepSiteAddress ? form.site_address || previousAddress : previousAddress || form.site_address,
         site_postcode: keepSiteAddress ? form.site_postcode || previousPostcode : previousPostcode || form.site_postcode,
-        job_type: "exchange",
+        job_type: jobType,
         container_type: recorded?.container_type || j.container_type || "",
         container_size: recorded?.container_size || "",
         ...standardBookingWaste(j.waste_description, j.ewc, { source: "skiptrak" }),
         scheduled_date: bookingDate,
         ...importedBookingPrices(j.raw || {}),
-        notes: `${form.notes ? form.notes + "\n" : ""}Exchange of container from job ${j.job_number || ""}`.trim(),
+        notes: `${form.notes ? form.notes + "\n" : ""}${note}`.trim(),
       });
     }
     setPrevOpen(false);
@@ -854,6 +871,7 @@ export function JobFormFields({
         onOpenChange={open => { if (!open) setContainersSite(null); }}
         onUseSite={() => containersSite && applyPostcodeMatch(containersSite)}
         onBookExchange={c => containersSite ? bookExchangeFromSite(containersSite, c) : Promise.resolve()}
+        onUsePreviousJob={(id, mode) => containersSite ? usePreviousFromSite(containersSite, id, mode) : Promise.resolve()}
       />
       {/* Previous jobs dialog */}
       <Dialog open={prevOpen} onOpenChange={setPrevOpen}>
@@ -874,7 +892,17 @@ export function JobFormFields({
             </p>
           ) : (
             <div className="space-y-1">
-              {prevJobs.map((j, i) => (
+              {prevJobs.map((j, i) => isArticContainer(j.container_type) ? (
+                <div key={i} className="w-full rounded-md border border-border px-3 py-2 text-xs flex flex-wrap items-center gap-3">
+                  <Badge variant="outline" className="shrink-0">{j._source === "routeone" ? "RouteOne" : "Skiptrak"}</Badge>
+                  <span className="font-medium shrink-0">{j.job_number}</span>
+                  <span className="text-muted-foreground shrink-0">{j.scheduled_date || j.job_date}</span>
+                  <span className="truncate flex-1">{j.site_name || j.site}</span>
+                  <span className="truncate text-muted-foreground">{j.movement_type || j.job_type} · {j.container_type} {j.container_size} · {j.waste_type || j.waste_description}</span>
+                  <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => applyPrevious(j, form, false, "duplicate")}><Copy className="h-3.5 w-3.5" />Duplicate</Button>
+                  <Button type="button" size="sm" className="h-7 text-xs" onClick={() => applyPrevious(j)}><ArrowRightLeft className="h-3.5 w-3.5" />Exchange</Button>
+                </div>
+              ) : (
                 <button
                   key={i}
                   type="button"
