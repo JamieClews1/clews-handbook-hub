@@ -1,3 +1,4 @@
 # Colas Rail
 
 - Colas Rail reporting (/colas-rail) is a separate module: figures are computed by colas-report.ts from completed Skiptrak jobs (linked Midweigh only fills missing weights), colas_* manual/Sage/consignment tables and opening balances; approvals freeze a snapshot, and missing data is flagged, never treated as zero. Colas customer access stays off until a Clews administrator authorises it.
+- The spreadsheet-style "breakdown of waste arisings" (screen, PDF, Excel) comes from buildArisings: recycled / energy recovery / landfill tonnes are each stream's tonnes split by the per-stream treatment saved in colas_report_settings.stream_treatments (defaults in DEFAULT_TREATMENTS), because the source data records no fate per load; approval snapshots store the table so later treatment edits never change an approved month.

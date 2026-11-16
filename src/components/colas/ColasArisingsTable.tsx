@@ -82,7 +82,7 @@ export function ColasArisingsTable({ month, ytd }: { month: ArisingsView; ytd: A
         <table className="w-full min-w-[860px] border-collapse text-base">
           <thead>
             <tr className="border-b bg-muted/60">
-              <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground align-bottom">Waste stream</th>
+              <th className="w-[280px] px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground align-bottom">Waste stream</th>
               <th className={head}>Tonnes removed</th>
               <th className={head}>Recycled (t)</th>
               <th className={head}>RDF / energy recovery (t)</th>
