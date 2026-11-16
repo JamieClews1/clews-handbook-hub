@@ -596,6 +596,20 @@
       "when": 1794592620865,
       "tag": "0084_container_standard_v2_stock_and_banksman",
       "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1794818206144,
+      "tag": "0085_site_history_bank",
+      "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1794818349185,
+      "tag": "0086_customer_sites_fast_access_checks",
+      "breakpoints": true
     }
   ]
 }

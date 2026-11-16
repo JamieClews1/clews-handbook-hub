@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { currentSiteContainers, HISTORY_FIELDS, HISTORY_ORDER_FIELDS, siteHistorySearchFilters, historySiteIdentity, historySourceLabel, historyStatus, historyOrderNumber, jobWeightTonnes, mergeMappedSites, siteBinHistories, type HistorySource, type HistoryJob, type HistoryOrder, type LinkedTicket, type SiteMapping, type SiteSearchResult } from "@/lib/site-history";
+import { currentSiteContainers, HISTORY_FIELDS, HISTORY_ORDER_FIELDS, siteHistorySearchFilters, historySiteIdentity, historySourceLabel, historyStatus, historyOrderNumber, jobWeightTonnes, mergeMappedSites, siteBinHistories, sortSiteResults, type HistorySource, type HistoryJob, type HistoryOrder, type LinkedTicket, type SiteMapping, type SiteSearchResult } from "@/lib/site-history";
 import SiteBinHistoryList from "./SiteBinHistoryList";
 import SiteHistoryTimeline from "./SiteHistoryTimeline";
 import { londonCalendarKey } from "@/lib/ui-calendar";
@@ -103,7 +103,7 @@ export default function SiteHistorySearch({ settings, startSite, onStartSiteHand
         withRetry(async () => {
           const { data, error } = await supabase.rpc("search_site_history_ranked", { p_term: term, p_source: source });
           if (error) throw error;
-          return (data ?? []) as (Pick<HistoryJob,"customer"|"site"|"postcode"|"address"|"address2"|"address3"> & { job_count?: number })[];
+          return (data ?? []) as (Pick<HistoryJob,"customer"|"site"|"postcode"|"address"|"address2"|"address3"> & { job_count?: number; last_date?: string | null })[];
         }),
         // Saved site links only combine names; if they can't load, still show the matching sites.
         source === "skiptrak" ? withRetry(() => readPages<MappedSite>((from,to) => supabase.from("customer_sites").select("site_name,data_hub_customer,data_hub_site,data_hub_site_2,data_hub_site_3,data_hub_site_4,data_hub_site_5,address_1,address_2,postcode").or(filters.mappings).order("id").range(from,to))).catch(() => [] as MappedSite[]) : Promise.resolve([] as MappedSite[]),
@@ -118,10 +118,12 @@ export default function SiteHistorySearch({ settings, startSite, onStartSiteHand
         result.address ||= [j.address,j.address2,j.address3].filter(Boolean).join(", ");
         result.postcode ||= j.postcode ?? "";
         result.jobCount = (result.jobCount ?? 0) + Number(j.job_count ?? 0);
+        if (j.site && !result.names.includes(j.site)) result.names.push(j.site);
+        if ((j.last_date ?? "") > (result.lastDate ?? "")) result.lastDate = j.last_date ?? null;
         found.set(key,result);
       }
       const sites = mergeMappedSites(found, mappings, source);
-      if (id === request.current) setResults([...sites.values()].sort((a,b)=>(b.jobCount??0)-(a.jobCount??0) || a.site.localeCompare(b.site)));
+      if (id === request.current) setResults(sortSiteResults([...sites.values()], today));
     } catch { if (id === request.current) setError("Site search could not be completed. Please try again."); }
     finally { if (id === request.current) setBusy(false); }
   };
@@ -188,7 +190,7 @@ export default function SiteHistorySearch({ settings, startSite, onStartSiteHand
     </form>
     {error && <div role="alert" className="flex items-center gap-3 text-destructive"><span>{error}</span><Button variant="outline" onClick={()=>selected?void openSite(selected):void search()}>Try again</Button></div>}
     {busy && <div role="status" className="flex gap-2 items-center py-10 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin"/>{selected ? "Loading complete site history…" : "Searching sites…"}</div>}
-    {!busy && !selected && searched && !error && <div><h2 className="text-lg font-semibold mb-3">Sites <span className="text-muted-foreground">({results.length})</span></h2>{results.length===0 ? <p className="text-muted-foreground">No sites found.</p> : <Table><TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Company</TableHead><TableHead>Site</TableHead><TableHead>Address</TableHead><TableHead>Postcode</TableHead><TableHead className="text-right">Jobs</TableHead><TableHead/></TableRow></TableHeader><TableBody>{results.map(s=><TableRow key={s.key}><TableCell><Badge variant="outline">{historySourceLabel(s.source)}</Badge></TableCell><TableCell>{s.customers.join(" / ") || "—"}</TableCell><TableCell className="font-medium">{s.site}</TableCell><TableCell>{s.address || "—"}</TableCell><TableCell className="whitespace-nowrap">{s.postcode || "—"}</TableCell><TableCell className="text-right tabular-nums">{s.jobCount ?? 0}</TableCell><TableCell><Button variant="outline" size="sm" onClick={()=>void openSite(s)}><History className="mr-2 h-4 w-4"/>History</Button></TableCell></TableRow>)}</TableBody></Table>}</div>}
+    {!busy && !selected && searched && !error && <div><h2 className="text-lg font-semibold mb-3">Sites <span className="text-muted-foreground">({results.length})</span></h2>{results.length===0 ? <p className="text-muted-foreground">No sites found.</p> : <Table><TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Company</TableHead><TableHead>Site</TableHead><TableHead>Address</TableHead><TableHead>Postcode</TableHead><TableHead className="whitespace-nowrap">Latest job</TableHead><TableHead className="text-right">Jobs</TableHead><TableHead/></TableRow></TableHeader><TableBody>{results.map(s=><TableRow key={s.key}><TableCell><Badge variant="outline">{historySourceLabel(s.source)}</Badge></TableCell><TableCell>{s.customers.join(" / ") || "—"}</TableCell><TableCell className="font-medium">{s.site}</TableCell><TableCell>{s.address || "—"}</TableCell><TableCell className="whitespace-nowrap">{s.postcode || "—"}</TableCell><TableCell className="whitespace-nowrap tabular-nums">{s.lastDate ? <>{format(parseLoadReportDate(s.lastDate) ?? new Date(s.lastDate), "d MMM yyyy")}{s.lastDate > today && <span className="ml-1.5 text-muted-foreground">booked</span>}</> : "—"}</TableCell><TableCell className="text-right tabular-nums">{s.jobCount ?? 0}</TableCell><TableCell><Button variant="outline" size="sm" onClick={()=>void openSite(s)}><History className="mr-2 h-4 w-4"/>History</Button></TableCell></TableRow>)}</TableBody></Table>}</div>}
     {selected && !busy && !error && <>
       <div className="flex flex-wrap gap-4 items-start"><Button variant="ghost" size="icon" aria-label="Back to search results" onClick={()=>setSelected(null)}><ArrowLeft className="h-5 w-5"/></Button><div><h2 className="text-xl font-semibold">{selected.site}</h2><Badge variant="outline">{historySourceLabel(selected.source)}</Badge><p className="text-muted-foreground text-sm">{selected.customers.join(" / ")}</p><p className="text-muted-foreground text-sm">{[selected.address,selected.postcode].filter(Boolean).join(", ")}</p></div></div>
       {selected.source === "skiptrak" && <div className="border-y border-border py-5 space-y-4">

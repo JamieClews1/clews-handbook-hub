@@ -151,7 +151,7 @@ export function siteBinHistories(jobs: HistoryJob[], current: ReturnType<typeof 
 }
 
 /** Site search result before display. */
-export type SiteSearchResult = { key: string; site: string; customers: string[]; names: string[]; address: string; postcode: string; source: HistorySource; jobCount?: number };
+export type SiteSearchResult = { key: string; site: string; customers: string[]; names: string[]; address: string; postcode: string; source: HistorySource; jobCount?: number; lastDate?: string | null };
 export type SiteMapping = { site_name: string; data_hub_customer: string | null; data_hub_site: string | null; data_hub_site_2: string | null; data_hub_site_3: string | null; data_hub_site_4: string | null; data_hub_site_5: string | null; address_1: string | null; address_2: string | null; postcode: string | null };
 
 /**
@@ -170,6 +170,7 @@ export function mergeMappedSites(results: Map<string, SiteSearchResult>, mapping
       merged.names.push(...r.names);
       for (const c of r.customers) if (!merged.customers.includes(c)) merged.customers.push(c);
       merged.jobCount = (merged.jobCount ?? 0) + (r.jobCount ?? 0);
+      if ((r.lastDate ?? "") > (merged.lastDate ?? "")) merged.lastDate = r.lastDate;
       merged.address ||= r.address; merged.postcode ||= r.postcode;
     }
     merged.names = [...new Set([...merged.names, ...names])];
@@ -180,4 +181,17 @@ export function mergeMappedSites(results: Map<string, SiteSearchResult>, mapping
     sites.set(merged.key, merged);
   }
   return sites;
+}
+
+/** Sites worked in the last 60 days come first, then busiest sites, then by name. */
+export function sortSiteResults(results: SiteSearchResult[], today: string): SiteSearchResult[] {
+  const cutoff = new Date(`${today}T00:00:00Z`);
+  cutoff.setUTCDate(cutoff.getUTCDate() - 60);
+  const recentFrom = cutoff.toISOString().slice(0, 10);
+  const recent = (r: SiteSearchResult) => (r.lastDate ?? "") >= recentFrom ? 1 : 0;
+  return [...results].sort((a, b) =>
+    recent(b) - recent(a)
+    || (recent(a) ? (b.lastDate ?? "").localeCompare(a.lastDate ?? "") : 0)
+    || (b.jobCount ?? 0) - (a.jobCount ?? 0)
+    || a.site.localeCompare(b.site));
 }

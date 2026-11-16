@@ -9501,6 +9501,48 @@ export type Database = {
         }
         Relationships: []
       }
+      site_history_bank: {
+        Row: {
+          address: string | null
+          address2: string | null
+          address3: string | null
+          customer: string
+          first_date: string | null
+          job_count: number
+          last_date: string | null
+          postcode: string | null
+          site: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          address2?: string | null
+          address3?: string | null
+          customer?: string
+          first_date?: string | null
+          job_count?: number
+          last_date?: string | null
+          postcode?: string | null
+          site?: string
+          source: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          address2?: string | null
+          address3?: string | null
+          customer?: string
+          first_date?: string | null
+          job_count?: number
+          last_date?: string | null
+          postcode?: string | null
+          site?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       site_inspection_reports: {
         Row: {
           actions_required: string | null
@@ -11802,6 +11844,7 @@ export type Database = {
         }[]
       }
       next_invoice_number: { Args: never; Returns: string }
+      rebuild_site_history_bank: { Args: never; Returns: number }
       record_recent_booking_site: {
         Args: {
           p_address: string
@@ -11860,6 +11903,7 @@ export type Database = {
           address3: string
           customer: string
           job_count: number
+          last_date: string
           postcode: string
           site: string
         }[]

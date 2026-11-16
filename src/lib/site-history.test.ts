@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { currentSiteContainers, historySiteIdentity, historySourceLabel, historySearchText, siteHistorySearchFilters, historyStatus, siteBinHistories, mergeMappedSites, historyOrderNumber, jobWeightTonnes, type HistoryJob, type SiteSearchResult } from "./site-history";
+import { currentSiteContainers, historySiteIdentity, historySourceLabel, historySearchText, siteHistorySearchFilters, historyStatus, siteBinHistories, mergeMappedSites, sortSiteResults, historyOrderNumber, jobWeightTonnes, type HistoryJob, type SiteSearchResult } from "./site-history";
 import type { LiveJobsSettings } from "@/hooks/useLiveJobsSettings";
 const settings = { skip_container_keywords: ["yard"], roro_container_keywords: ["ro ro"], artic_container_keywords: [], artic_vehicle_regs: [] } as unknown as LiveJobsSettings;
 const job = (movement: string, date = "2026-11-05"): HistoryJob => ({id: movement+date,source:"skiptrak",job_number:"123",job_date:date,customer:"IPR Environmental",site:"Ford Motor Company",postcode:"NN11 8NT",address:"Royal Oak Way",container_type:"40 yd Ro Ro",movement_type:movement,waste_description:"Vehicle components",vehicle_registration:null,ewc:"16 01 22",rental_status:"Y"});
@@ -84,5 +84,21 @@ describe("site history per-bin orders and tickets", () => {
   it("Skip weights are tonnes and Weighbridge weights are kilograms", () => {
     assert.equal(jobWeightTonnes({source:"skiptrak",weight_t:0.4}), 0.4);
     assert.equal(jobWeightTonnes({source:"midweigh",weight_t:2100}), 2.1);
+  });
+});
+
+describe("site search ordering", () => {
+  const site = (s: string, lastDate: string | null, jobCount: number): SiteSearchResult => ({ key: s, site: s, customers: [], names: [s], address: "", postcode: "", source: "skiptrak", jobCount, lastDate });
+  it("puts sites worked in the last 60 days first, newest first", () => {
+    const sorted = sortSiteResults([site("Old busy", "2026-01-10", 500), site("Recent", "2026-10-01", 3), site("Newest", "2026-11-12", 1)], "2026-11-16");
+    assert.deepEqual(sorted.map(s => s.site), ["Newest", "Recent", "Old busy"]);
+  });
+  it("orders older sites by number of jobs", () => {
+    const sorted = sortSiteResults([site("Quiet", "2025-05-01", 2), site("Busy", "2025-03-01", 90)], "2026-11-16");
+    assert.deepEqual(sorted.map(s => s.site), ["Busy", "Quiet"]);
+  });
+  it("treats a site last worked exactly 60 days ago as recent", () => {
+    const sorted = sortSiteResults([site("Busy old", "2026-09-16", 99), site("Edge", "2026-09-17", 1)], "2026-11-16");
+    assert.deepEqual(sorted.map(s => s.site), ["Edge", "Busy old"]);
   });
 });
