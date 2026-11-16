@@ -165,9 +165,16 @@ export interface ColasLine {
   weightSource: "skiptrak" | "midweigh" | "manual" | null;
   charge: number | null;
   consignmentRef: string | null;
+  /** Staff could not read the consignment number off the scanned paperwork (only set while no number is saved). */
+  consignmentIssue: ConsignmentIssue | null;
   needsWeight: boolean;
   awaitingPaperwork: boolean;
 }
+export type ConsignmentIssue = "unreadable" | "page_missing";
+export const CONSIGNMENT_ISSUE_LABELS: Record<ConsignmentIssue, string> = {
+  unreadable: "Consignment note can't be read",
+  page_missing: "Consignment page missing from scan",
+};
 export interface ColasStreamTotal { key: ColasStreamKey; label: string; hazardous: boolean; tonnes: number; lines: number; missingWeights: number; charges: number }
 export interface ColasCosts {
   source: "sage" | "skiptrak" | "none";
@@ -215,6 +222,7 @@ export interface BuildMonthInput {
   manual: ColasManualEntryRow[];
   costs: ColasCostRow[];
   consignments: Map<string, string | null>; // skiptrak job_number -> consignment ref
+  consignmentIssues?: Map<string, ConsignmentIssue>; // skiptrak job_number -> why the number could not be read
   hazardousCodes: Set<string>;
   overrides?: Partial<Record<SourceKey, SourceOverride>>;
 }
@@ -258,6 +266,7 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
       weightSource: removal ? weightSource : null,
       charge: j.cost,
       consignmentRef: input.consignments.get(String(j.job_number)) ?? null,
+      consignmentIssue: hazardous && !input.consignments.get(String(j.job_number)) ? input.consignmentIssues?.get(String(j.job_number)) ?? null : null,
       needsWeight: removal && weight == null,
       awaitingPaperwork: false,
     });
@@ -281,6 +290,7 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
       weightSource: w != null ? "midweigh" : null,
       charge: null,
       consignmentRef: null,
+      consignmentIssue: null,
       needsWeight: w == null,
       awaitingPaperwork: false,
     });
@@ -303,6 +313,7 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
       weightSource: w != null ? "manual" : null,
       charge: null,
       consignmentRef: e.consignment_ref ?? null,
+      consignmentIssue: null,
       needsWeight: w == null,
       awaitingPaperwork: e.status !== "confirmed",
     });
@@ -357,9 +368,10 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
   const rh = lines.filter(l => l.provider === "robert_hopkins");
   // Only hazardous loads travel on a consignment note; non-hazardous loads to Robert Hopkins need a weight only.
   const rhMissW = rh.filter(l => l.needsWeight).length, rhMissRef = rh.filter(l => l.hazardous && !l.consignmentRef).length;
+  const rhUnread = rh.filter(l => l.consignmentIssue).length;
   if (rh.length === 0) add("robert_hopkins", inProgress ? "awaiting" : "received", inProgress ? "No hazardous collections recorded yet" : "No Robert Hopkins collections in Skiptrak this month");
   else add("robert_hopkins", rhMissW || rhMissRef ? "requires_verification" : "received",
-    [`${rh.length} collection${rh.length === 1 ? "" : "s"}`, rhMissW ? `${rhMissW} without a weight` : "", rhMissRef ? `${rhMissRef} without a consignment reference` : ""].filter(Boolean).join(" · "));
+    [`${rh.length} collection${rh.length === 1 ? "" : "s"}`, rhMissW ? `${rhMissW} without a weight` : "", rhMissRef ? `${rhMissRef} without a consignment reference` : "", rhUnread ? `${rhUnread} of them unreadable or missing from the scan` : ""].filter(Boolean).join(" · "));
   for (const p of MANUAL_PROVIDERS) {
     const ls = lines.filter(l => l.provider === p);
     if (ls.length === 0) add(p, "awaiting", "No figures entered for this month");
@@ -371,6 +383,11 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
   }
   add("sage", hasSage ? "received" : "awaiting", hasSage ? "Sage figures imported" : hasSkCharges ? "Not imported — Skiptrak job charges shown as provisional" : "Not imported");
   for (const s of sources) if (s.status === "awaiting" || s.status === "requires_verification") outstanding.push(`${s.label}: ${s.detail}`);
+  // A consignment note that could not be read is always an issue until the number is entered, even if the source was approved.
+  for (const issue of Object.keys(CONSIGNMENT_ISSUE_LABELS) as ConsignmentIssue[]) {
+    const jobs = lines.filter(l => l.consignmentIssue === issue).map(l => l.reference);
+    if (jobs.length) outstanding.push(`${CONSIGNMENT_ISSUE_LABELS[issue]}: job${jobs.length === 1 ? "" : "s"} ${jobs.join(", ")} — get the number from QuickConsign${issue === "unreadable" ? " or re-scan at full size" : " or scan the missing page"}`);
+  }
 
   return {
     year, month, label: `${MONTH_NAMES[month - 1]} ${year}`, inProgress, lines, streams,

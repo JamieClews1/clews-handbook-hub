@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { MONTH_NAMES, PROVIDER_LABELS, buildArisings, monthKey, type SourceKey } from "@/lib/colas-report";
+import { CONSIGNMENT_ISSUE_LABELS, MONTH_NAMES, PROVIDER_LABELS, buildArisings, monthKey, type SourceKey } from "@/lib/colas-report";
 import { ColasArisingsTable } from "./ColasArisingsTable";
 import { buildColasExcel, buildColasPdf, colasReportFileName, downloadBlob, type ColasReportPayload } from "@/lib/colas-report-export";
 import { ensurePeriod, fmtGBP, fmtT, useInvalidateColas, type ColasYearData } from "./useColasData";
@@ -187,6 +187,12 @@ function ColasMonthDetail({ data, index, onBack }: { data: ColasYearData; index:
               </li>
             ))}
           </ul>
+          {m.lines.some(l => l.consignmentIssue) && (
+            <div className="mt-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+              <p className="font-semibold text-destructive">Consignment notes that couldn't be read</p>
+              <ul className="mt-1 list-disc pl-5">{m.outstanding.filter(o => Object.values(CONSIGNMENT_ISSUE_LABELS).some(lbl => o.startsWith(lbl))).map(o => <li key={o}>{o}</li>)}</ul>
+            </div>
+          )}
           {approved && period?.outstanding_reason && <p className="mt-3 rounded-md bg-muted p-3 text-sm"><span className="font-semibold">Approved with outstanding information:</span> {period.outstanding_reason}</p>}
         </CardContent>
       </Card>
@@ -215,7 +221,7 @@ function ColasMonthDetail({ data, index, onBack }: { data: ColasYearData; index:
                   <TableCell className="text-right tabular-nums">{l.weight_t == null ? "—" : fmtT(l.weight_t)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{l.weightSource === "midweigh" ? "Weighbridge ticket" : l.weightSource === "skiptrak" ? "Skiptrak" : l.weightSource === "manual" ? "Entered" : "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">{l.charge == null ? "—" : fmtGBP(l.charge)}</TableCell>
-                  <TableCell className="space-x-1 whitespace-nowrap">{l.needsWeight && <Chip tone="bad">No weight</Chip>}{l.awaitingPaperwork && <Chip tone="warn">Awaiting paperwork</Chip>}{l.hazardous && l.provider === "robert_hopkins" && !l.consignmentRef && <Chip tone="warn">No consignment ref</Chip>}</TableCell>
+                  <TableCell className="space-x-1 whitespace-nowrap">{l.needsWeight && <Chip tone="bad">No weight</Chip>}{l.awaitingPaperwork && <Chip tone="warn">Awaiting paperwork</Chip>}{l.consignmentIssue ? <Chip tone="bad">{CONSIGNMENT_ISSUE_LABELS[l.consignmentIssue]}</Chip> : l.hazardous && l.provider === "robert_hopkins" && !l.consignmentRef && <Chip tone="warn">No consignment ref</Chip>}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

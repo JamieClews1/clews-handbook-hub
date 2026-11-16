@@ -95,6 +95,21 @@ it("non-hazardous loads to Robert Hopkins do not need a consignment reference", 
   assert.equal(m.sources.find(s => s.key === "robert_hopkins")?.status, "received");
 });
 
+it("an unreadable consignment note is flagged as an issue, even after the source is approved", () => {
+  const rhJob = job({ job_number: "49134", ewc: "15 02 02", waste_description: "Oil Contaminated Packaging", weight_t: 0.3, tipping_location: "Robert Hopkins Environmental" });
+  const m = buildColasMonth(base({ jobs: [rhJob], consignmentIssues: new Map([["49134", "unreadable" as const]]), overrides: { robert_hopkins: { status: "approved" } } }));
+  assert.equal(m.lines[0].consignmentIssue, "unreadable");
+  assert.ok(m.outstanding.some(o => o.includes("can't be read") && o.includes("49134")));
+  assert.equal(m.complete, false);
+});
+
+it("the unreadable flag clears once the consignment number is entered", () => {
+  const rhJob = job({ job_number: "49134", ewc: "15 02 02", waste_description: "Oil Contaminated Packaging", weight_t: 0.3, tipping_location: "Robert Hopkins Environmental" });
+  const m = buildColasMonth(base({ jobs: [rhJob], consignments: new Map([["49134", "COLASR/00155"]]), consignmentIssues: new Map([["49134", "unreadable" as const]]) }));
+  assert.equal(m.lines[0].consignmentIssue, null);
+  assert.ok(!m.outstanding.some(o => o.includes("49134")));
+});
+
 import { buildArisings, DEFAULT_TREATMENTS, treatmentFor } from "./colas-report";
 const aline = (o: any) => ({ stream: "cardboard_paper", hazardous: false, weight_t: 1, charge: null, needsWeight: false, consignmentRef: null, ...o });
 

@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { OrderFileViewer, type OrderFileToView } from "@/components/orders/OrderFileViewer";
-import { PROVIDER_LABELS } from "@/lib/colas-report";
+import { CONSIGNMENT_ISSUE_LABELS, PROVIDER_LABELS, type ConsignmentIssue } from "@/lib/colas-report";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fmtT, useInvalidateColas, type ColasYearData } from "./useColasData";
 import { Chip, ukDate } from "./ColasShared";
 
@@ -27,10 +28,18 @@ export function ColasHazardous({ data }: { data: ColasYearData }) {
     const value = (drafts[job] ?? "").trim();
     if (value === (data.consignments.get(job) ?? "")) return;
     setSaving(job);
-    const { error } = await supabase.from("colas_consignments").upsert({ job_number: job, source: "skiptrak", consignment_ref: value || null }, { onConflict: "job_number,source" });
+    const { error } = await supabase.from("colas_consignments").upsert({ job_number: job, source: "skiptrak", consignment_ref: value || null, ...(value ? { read_issue: null } : {}) }, { onConflict: "job_number,source" });
     setSaving(null);
     if (error) toast.error(error.message); else { toast.success(`Consignment reference saved for job ${job}`); invalidate(); }
   };
+  // Recording that the number could not be read keeps the job flagged as an issue until a number is entered.
+  const setIssue = async (job: string, issue: ConsignmentIssue | null) => {
+    setSaving(job);
+    const { error } = await supabase.from("colas_consignments").upsert({ job_number: job, source: "skiptrak", consignment_ref: data.consignments.get(job) ?? null, read_issue: issue }, { onConflict: "job_number,source" });
+    setSaving(null);
+    if (error) toast.error(error.message); else { toast.success(issue ? `Job ${job} flagged: ${CONSIGNMENT_ISSUE_LABELS[issue].toLowerCase()}` : `Flag cleared for job ${job}`); invalidate(); }
+  };
+  const unreadable = rows.filter(r => r.consignmentIssue).length;
 
   return (
     <div className="space-y-4">
@@ -43,7 +52,8 @@ export function ColasHazardous({ data }: { data: ColasYearData }) {
           <div className="flex items-center gap-2"><Switch id="haz-missing" checked={missingOnly} onCheckedChange={setMissingOnly} /><Label htmlFor="haz-missing">Needs attention only</Label></div>
         </CardHeader>
         <CardContent>
-          <p className="mb-3 text-sm text-muted-foreground">{rows.length} hazardous collection{rows.length === 1 ? "" : "s"} · scanned paperwork found for {withScan}.</p>
+          <p className="mb-3 text-sm text-muted-foreground">{rows.length} hazardous collection{rows.length === 1 ? "" : "s"} · scanned paperwork found for {withScan}{unreadable ? ` · ${unreadable} consignment note${unreadable === 1 ? "" : "s"} couldn't be read` : ""}.</p>
+          <p className="mb-3 text-sm text-muted-foreground">If the number on the scan can't be read, choose <span className="font-medium text-foreground">Can't read</span> or <span className="font-medium text-foreground">Page missing</span>. The job then shows as an issue on the monthly report until the number is entered.</p>
           <Table>
             <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Job</TableHead><TableHead>Waste</TableHead><TableHead>EWC</TableHead><TableHead>Taken to</TableHead><TableHead className="text-right">Tonnes</TableHead><TableHead>Weighbridge ticket</TableHead><TableHead>Consignment reference</TableHead><TableHead>Paperwork</TableHead></TableRow></TableHeader>
             <TableBody>
@@ -68,6 +78,19 @@ export function ColasHazardous({ data }: { data: ColasYearData }) {
                           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); save(l.reference); } }} />
                         {saving === l.reference && <Loader2 className="h-4 w-4 animate-spin" />}
                       </div>
+                      {!l.consignmentRef && (
+                        <div className="mt-1 flex items-center gap-2">
+                          <Select value={l.consignmentIssue ?? "none"} onValueChange={(v) => setIssue(l.reference, v === "none" ? null : v as ConsignmentIssue)}>
+                            <SelectTrigger className="h-8 w-44 text-sm" aria-label={`Reading problem for job ${l.reference}`}><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">No reading problem</SelectItem>
+                              <SelectItem value="unreadable">Can't read</SelectItem>
+                              <SelectItem value="page_missing">Page missing</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {l.consignmentIssue && <Chip tone="bad">Issue</Chip>}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       {doc ? <Button size="sm" variant="outline" onClick={() => setView({ name: doc.file_name, load: async () => { const { data: b, error } = await supabase.storage.from("wtn-documents").download(doc.storage_path); if (error || !b) throw error ?? new Error("File not found"); return b; } })}><FileSearch className="mr-1 h-4 w-4" />View scan</Button>

@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { londonCalendarKey } from "@/lib/ui-calendar";
 import {
   buildColasMonth, cumulative, reportingPeriods, normaliseEwc, monthKey,
-  type ColasSkiptrakJob, type ColasMidweighTicket, type ColasManualEntryRow, type ColasCostRow, type ColasMonth, type ColasYtd, type ColasOpening, type SourceKey, type SourceOverride, type ColasTreatments,
+  type ColasSkiptrakJob, type ColasMidweighTicket, type ColasManualEntryRow, type ColasCostRow, type ColasMonth, type ColasYtd, type ColasOpening, type SourceKey, type SourceOverride, type ColasTreatments, type ConsignmentIssue,
 } from "@/lib/colas-report";
 
 export const COLAS_CUSTOMER_PATTERN = "colas rail%";
@@ -55,6 +55,7 @@ export interface ColasYearData {
   manual: (ColasManualEntryRow & Record<string, any>)[];
   costs: (ColasCostRow & Record<string, any>)[];
   consignments: Map<string, string | null>;
+  consignmentIssues: Map<string, ConsignmentIssue>;
   hazDocs: Map<string, ColasHazDoc>;
   /** Saved share recycled / energy recovery / landfill per stream (defaults apply where unset). */
   treatments: ColasTreatments;
@@ -82,7 +83,7 @@ export function useColasYear(year: number, startMonth: number | undefined) {
         supabase.from("ewc_codes").select("code, hazardous").eq("hazardous", true),
         supabase.from("colas_manual_entries").select("*").gte("collection_date", from).lte("collection_date", to).order("collection_date"),
         supabase.from("colas_costs").select("*").gte("year", first.year).lte("year", last.year).order("created_at"),
-        supabase.from("colas_consignments").select("job_number, consignment_ref").eq("source", "skiptrak"),
+        supabase.from("colas_consignments").select("job_number, consignment_ref, read_issue").eq("source", "skiptrak"),
         supabase.from("colas_report_periods").select("*").gte("year", first.year).lte("year", last.year),
         supabase.from("colas_opening_balances").select("*").eq("year", year).maybeSingle(),
         supabase.from("colas_report_settings").select("stream_treatments").eq("id", 1).maybeSingle(),
@@ -99,12 +100,13 @@ export function useColasYear(year: number, startMonth: number | undefined) {
       }));
       const hazardousCodes = new Set((ewc.data ?? []).map((r: any) => normaliseEwc(r.code)));
       const consignments = new Map<string, string | null>((cons.data ?? []).map((c: any) => [String(c.job_number), c.consignment_ref]));
+      const consignmentIssues = new Map<string, ConsignmentIssue>((cons.data ?? []).filter((c: any) => !c.consignment_ref && (c.read_issue === "unreadable" || c.read_issue === "page_missing")).map((c: any) => [String(c.job_number), c.read_issue as ConsignmentIssue]));
       const periodMap = new Map<string, ColasPeriodRow>((periods.data ?? []).map((p: any) => [monthKey(p.year, p.month), p as ColasPeriodRow]));
       const today = londonCalendarKey();
 
       const months = periodsList.map(p => buildColasMonth({
         year: p.year, month: p.month, today, jobs, midweigh,
-        manual: (manual.data ?? []) as any, costs: (costs.data ?? []) as any, consignments, hazardousCodes,
+        manual: (manual.data ?? []) as any, costs: (costs.data ?? []) as any, consignments, consignmentIssues, hazardousCodes,
         overrides: (periodMap.get(monthKey(p.year, p.month))?.source_status ?? {}) as Partial<Record<SourceKey, SourceOverride>>,
       }));
       const op = opening.data ? {
@@ -121,7 +123,7 @@ export function useColasYear(year: number, startMonth: number | undefined) {
         for (const d of data ?? []) if (d.job_number && !hazDocs.has(d.job_number)) hazDocs.set(d.job_number, d as ColasHazDoc);
       }
 
-      return { year, startMonth: sm, months, ytd: cumulative(months, op), periods: periodMap, opening: op, jobs, manual: (manual.data ?? []) as any, costs: (costs.data ?? []) as any, consignments, hazDocs, treatments: ((settingsRow.data?.stream_treatments ?? {}) as ColasTreatments), today };
+      return { year, startMonth: sm, months, ytd: cumulative(months, op), periods: periodMap, opening: op, jobs, manual: (manual.data ?? []) as any, costs: (costs.data ?? []) as any, consignments, consignmentIssues, hazDocs, treatments: ((settingsRow.data?.stream_treatments ?? {}) as ColasTreatments), today };
     },
   });
 }

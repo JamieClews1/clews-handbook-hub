@@ -577,6 +577,7 @@ export type Database = {
           id: string
           job_number: string
           notes: string | null
+          read_issue: string | null
           source: string
           updated_at: string
           updated_by: string | null
@@ -588,6 +589,7 @@ export type Database = {
           id?: string
           job_number: string
           notes?: string | null
+          read_issue?: string | null
           source?: string
           updated_at?: string
           updated_by?: string | null
@@ -599,6 +601,7 @@ export type Database = {
           id?: string
           job_number?: string
           notes?: string | null
+          read_issue?: string | null
           source?: string
           updated_at?: string
           updated_by?: string | null
