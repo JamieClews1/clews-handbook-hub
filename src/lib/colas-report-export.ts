@@ -2,11 +2,15 @@ import jsPDF from "jspdf";
 import ExcelJS from "exceljs";
 import clewsLogo from "@/assets/clews-logo.png";
 import { loadBrandLogo, toDataUrl } from "@/lib/brand-logo";
-import { COLAS_STREAMS, MONTH_NAMES, PROVIDER_LABELS, SOURCE_STATUS_LABELS, type ColasMonth, type ColasYtd, type ColasOpening } from "@/lib/colas-report";
+import { COLAS_STREAMS, MONTH_NAMES, PROVIDER_LABELS, SOURCE_STATUS_LABELS, type ColasMonth, type ColasYtd, type ColasOpening, type ColasArisings } from "@/lib/colas-report";
 
 export interface ColasReportPayload {
   month: ColasMonth;
   ytd: ColasYtd;
+  /** Spreadsheet-style breakdown (recycled / energy recovery / landfill) for the month. */
+  arisings: ColasArisings;
+  /** Same layout for the year to date (opening balances have no stream split, so are not included). */
+  ytdArisings: ColasArisings | null;
   yearMonths: { label: string; hazardous_t: number; non_hazardous_t: number; total_t: number; cost: number }[];
   opening: ColasOpening | null;
   reportingYearLabel: string;
@@ -60,15 +64,18 @@ export async function buildColasPdf(p: ColasReportPayload): Promise<Blob> {
     doc.setDrawColor(...GREEN); doc.setLineWidth(0.6); doc.line(M, y, M + 24, y); doc.setLineWidth(0.2);
     y += 6;
   };
-  const table = (cols: Col[], rows: (string | { text: string; bold?: boolean; color?: [number, number, number] })[][], opts: { totalRows?: number[] } = {}) => {
+  const table = (cols: Col[], rows: (string | { text: string; bold?: boolean; color?: [number, number, number] })[][], opts: { totalRows?: number[]; bandRows?: number[] } = {}) => {
     const total = cols.reduce((a, c) => a + c.width, 0);
     const scale = (W - 2 * M) / total;
     const xs: number[] = []; let x = M; for (const c of cols) { xs.push(x); x += c.width * scale; }
     const drawHeader = () => {
-      doc.setFillColor(237, 243, 240); doc.rect(M, y - 4.6, W - 2 * M, 7, "F");
-      doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.setTextColor(...DARK);
-      cols.forEach((c, i) => doc.text(c.header, c.align === "right" ? xs[i] + c.width * scale - 2 : xs[i] + 2, y, { align: c.align === "right" ? "right" : "left" }));
-      y += 6;
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8.5);
+      const hw = cols.map(c => doc.splitTextToSize(c.header, c.width * scale - 3) as string[]);
+      const hh = Math.max(...hw.map(w => w.length));
+      doc.setFillColor(237, 243, 240); doc.rect(M, y - 4.6, W - 2 * M, 3.6 * hh + 3.4, "F");
+      doc.setTextColor(...DARK);
+      cols.forEach((c, i) => doc.text(hw[i], c.align === "right" ? xs[i] + c.width * scale - 2 : xs[i] + 2, y, { align: c.align === "right" ? "right" : "left" }));
+      y += 6 + 3.6 * (hh - 1);
     };
     ensure(14); drawHeader();
     rows.forEach((row, ri) => {
@@ -78,6 +85,7 @@ export async function buildColasPdf(p: ColasReportPayload): Promise<Blob> {
       if (y + h > H - 20) { newPage(); drawHeader(); }
       const isTotal = opts.totalRows?.includes(ri);
       if (isTotal) { doc.setFillColor(246, 248, 247); doc.rect(M, y - 4, W - 2 * M, h, "F"); }
+      if (opts.bandRows?.includes(ri)) { doc.setFillColor(228, 240, 233); doc.rect(M, y - 4, W - 2 * M, h, "F"); }
       cells.forEach((c, i) => {
         doc.setFont("helvetica", c.bold || isTotal ? "bold" : "normal"); doc.setFontSize(8.5); doc.setTextColor(...(c.color ?? DARK));
         const right = cols[i].align === "right";
@@ -88,6 +96,33 @@ export async function buildColasPdf(p: ColasReportPayload): Promise<Blob> {
       y += 2;
     });
     y += 4;
+  };
+
+  const pctTxt = (n: number | null) => (n == null ? "—" : `${n.toFixed(1)}%`);
+  const tz = (n: number) => (n ? t3(n) : "–");
+  const arisingsTable = (title: string, a: ColasArisings, hazCost: number, nonHazCost: number, provisional: boolean) => {
+    heading(title);
+    const rows: any[] = []; const totals: number[] = []; const bands: number[] = [];
+    const fig = (f: ColasArisings["total"], charges: number, empty = false) => [
+      empty ? "–" : t3(f.removed), empty ? "–" : tz(f.recycled), empty ? "–" : tz(f.rdf), empty ? "–" : tz(f.landfill), pctTxt(f.pctLandfill), pctTxt(f.pctRecycled), charges ? gbp(charges) : "–",
+    ];
+    for (const g of a.groups) {
+      bands.push(rows.length);
+      rows.push([{ text: g.label, bold: true, color: GREEN }, "", "", "", "", "", "", ""]);
+      for (const r of g.rows) {
+        const empty = r.collections === 0;
+        rows.push([empty ? { text: r.label, color: MUTED } : (r.missingWeights ? { text: `${r.label} (${r.missingWeights} without weight)`, color: RED } : r.label), ...fig(r, r.charges, empty)]);
+      }
+      totals.push(rows.length);
+      rows.push([`Total ${g.label.toLowerCase()}`, ...fig(g.total, g.hazardous ? hazCost : nonHazCost)]);
+    }
+    totals.push(rows.length);
+    rows.push(["Total waste", ...fig(a.total, hazCost + nonHazCost)]);
+    table([{ header: "Waste stream", width: 52 }, { header: "Tonnes removed", width: 18, align: "right" }, { header: "Recycled (t)", width: 18, align: "right" }, { header: "RDF / energy recovery (t)", width: 20, align: "right" },
+      { header: "Landfill (t)", width: 17, align: "right" }, { header: "% to landfill", width: 15, align: "right" }, { header: "% recycled", width: 15, align: "right" }, { header: "Charges £", width: 22, align: "right" }], rows, { totalRows: totals, bandRows: bands });
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...MUTED);
+    const note = `Energy recovery (RDF) counts as recycled; only landfill lowers the % recycled. Consignment notes: ${a.consignmentNotes}. Stream charges are recorded job charges; group totals ${provisional ? "are provisional (Sage not yet imported)" : "come from Sage"}, all ex VAT.`;
+    const wr = doc.splitTextToSize(note, W - 2 * M); ensure(wr.length * 3.8); doc.text(wr, M, y); y += wr.length * 3.8 + 5;
   };
 
   // ---------- Front page ----------
@@ -144,19 +179,7 @@ export async function buildColasPdf(p: ColasReportPayload): Promise<Blob> {
     doc.text(`${m.missingWeights} collection${m.missingWeights === 1 ? " has" : "s have"} no recorded weight yet and ${m.missingWeights === 1 ? "is" : "are"} not included in these totals.`, M, y); y += 7;
   }
 
-  heading("Waste breakdown by stream");
-  const streamRows: any[] = []; const totals: number[] = [];
-  for (const group of [false, true]) {
-    streamRows.push([{ text: group ? "Hazardous" : "Non-hazardous", bold: true, color: GREEN }, "", "", "", ""]);
-    for (const s of m.streams.filter(s => s.hazardous === group)) {
-      if (!s.lines) continue;
-      const provs = [...new Set(m.lines.filter(l => l.stream === s.key).map(l => PROVIDER_LABELS[l.provider].replace(/ \(.*\)$/, "")))].join(", ");
-      streamRows.push([s.label, provs, String(s.lines), t3(s.tonnes), s.missingWeights ? { text: `${s.missingWeights} missing`, color: RED } : ""]);
-    }
-    totals.push(streamRows.length);
-    streamRows.push([`Total ${group ? "hazardous" : "non-hazardous"}`, "", String(m.lines.filter(l => l.hazardous === group).length), t3(group ? m.hazardous_t : m.non_hazardous_t), ""]);
-  }
-  table([{ header: "Waste stream", width: 58 }, { header: "Collection provider", width: 52 }, { header: "Collections", width: 22, align: "right" }, { header: "Tonnes", width: 24, align: "right" }, { header: "Weights", width: 22, align: "right" }], streamRows, { totalRows: totals });
+  arisingsTable(`Breakdown of waste arisings – ${m.label}`, p.arisings, m.costs.hazardous, m.costs.non_hazardous, m.costs.provisional);
 
   heading("Financial summary (excluding VAT)");
   table([{ header: "Category", width: 70 }, { header: "This month", width: 40, align: "right" }, { header: "Year to date", width: 40, align: "right" }], [
@@ -184,6 +207,8 @@ export async function buildColasPdf(p: ColasReportPayload): Promise<Blob> {
     doc.setFontSize(8.5); doc.setTextColor(...MUTED);
     doc.text(`Includes opening balance: ${t3(p.opening.hazardous_t + p.opening.non_hazardous_t)} t, ${gbp(p.opening.hazardous_cost + p.opening.non_hazardous_cost)}.`, M, y); y += 7;
   }
+
+  if (p.ytdArisings) arisingsTable(`Breakdown of waste arisings – year to date ${p.reportingYearLabel}`, p.ytdArisings, p.ytd.hazardous_cost, p.ytd.non_hazardous_cost, m.costs.provisional);
 
   // chart: monthly tonnes (stacked)
   ensure(80);
@@ -259,14 +284,42 @@ export async function buildColasExcel(p: ColasReportPayload): Promise<Blob> {
   s.addRow([m.costs.source === "sage" ? "Costs from Sage (ex VAT), including any authorised adjustments." : "Provisional costs: Sage not yet imported – Skiptrak job charges (ex VAT)."]);
   if (m.missingWeights) s.addRow([`${m.missingWeights} collection(s) without a recorded weight are not included.`]);
 
-  const b = wb.addWorksheet("Waste breakdown");
-  b.columns = [{ header: "Classification", width: 16 }, { header: "Waste stream", width: 40 }, { header: "Collections", width: 12 }, { header: "Tonnes", width: 12 }, { header: "Missing weights", width: 16 }, { header: "Recorded charges (ex VAT)", width: 22 }];
-  head(b, 1);
-  for (const st of COLAS_STREAMS) {
-    const x = m.streams.find(v => v.key === st.key)!;
-    const r = b.addRow([st.hazardous ? "Hazardous" : "Non-hazardous", st.label, x.lines, x.tonnes, x.missingWeights, x.charges]);
-    r.getCell(4).numFmt = tFmt; r.getCell(6).numFmt = gFmt;
-  }
+  const arisingsSheet = (name: string, title: string, a: ColasArisings, hazCost: number, nonHazCost: number, provisional: boolean, order: number) => {
+    const ws = wb.addWorksheet(name, { views: [{ state: "frozen", ySplit: 3 }] });
+    (ws as unknown as { orderNo: number }).orderNo = order; // opens on the spreadsheet-style sheet first, like the original report
+    ws.columns = [{ width: 44 }, { width: 14 }, { width: 14 }, { width: 18 }, { width: 13 }, { width: 13 }, { width: 13 }, { width: 14 }];
+    const border = { bottom: { style: "thin" as const, color: { argb: "FFD6DDDA" } } };
+    ws.mergeCells(1, 1, 1, 8);
+    const t = ws.getCell(1, 1); t.value = title; t.font = { bold: true, size: 14, color: { argb: "FFFFFFFF" } };
+    t.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF176239" } }; t.alignment = { vertical: "middle" }; ws.getRow(1).height = 26;
+    ws.addRow([]);
+    const hr = ws.addRow(["Waste stream", "Tonnes removed", "Recycled tonnes", "RDF / energy recovery tonnes", "Waste to landfill tonnes", "% to landfill", "% recycled", "Charges £"]);
+    hr.font = { bold: true }; hr.alignment = { wrapText: true, vertical: "bottom" }; hr.height = 32;
+    hr.eachCell(c => { c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEDF3F0" } }; c.border = border; });
+    const put = (label: string, f: ColasArisings["total"], charges: number, style: "row" | "empty" | "total" | "grand") => {
+      const r = ws.addRow([label, f.removed, f.recycled, f.rdf, f.landfill, f.pctLandfill == null ? null : f.pctLandfill / 100, f.pctRecycled == null ? null : f.pctRecycled / 100, charges || null]);
+      [2, 3, 4, 5].forEach(i => (r.getCell(i).numFmt = tFmt)); [6, 7].forEach(i => (r.getCell(i).numFmt = "0.0%")); r.getCell(8).numFmt = gFmt;
+      if (style === "empty") r.font = { color: { argb: "FF8A948F" } };
+      if (style === "total" || style === "grand") { r.font = { bold: true, size: style === "grand" ? 12 : 11 }; r.eachCell({ includeEmpty: true }, c => { c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: style === "grand" ? "FFE4F0E9" : "FFF6F8F7" } }; }); }
+      r.eachCell({ includeEmpty: true }, c => { c.border = border; });
+    };
+    for (const g of a.groups) {
+      const gr = ws.addRow([g.label]); gr.font = { bold: true, color: { argb: "FF176239" } };
+      gr.eachCell({ includeEmpty: true }, c => { c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE4F0E9" } }; });
+      for (let i = 2; i <= 8; i++) gr.getCell(i).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE4F0E9" } };
+      for (const r of g.rows) put(r.missingWeights ? `${r.label} (${r.missingWeights} without a weight – not included)` : r.label, r, r.charges, r.collections ? "row" : "empty");
+      put(`Total ${g.label.toLowerCase()}`, g.total, g.hazardous ? hazCost : nonHazCost, "total");
+      ws.addRow([]);
+    }
+    put("Total waste", a.total, hazCost + nonHazCost, "grand");
+    ws.addRow([]);
+    ws.addRow([`Consignment notes: ${a.consignmentNotes}`]);
+    ws.addRow(["Energy recovery (RDF) counts as recycled; only landfill lowers the % recycled."]);
+    ws.addRow([`Stream charges are recorded job charges; group totals ${provisional ? "are provisional (Sage not yet imported)" : "come from Sage"}. All charges ex VAT.`]);
+    ws.pageSetup = { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
+  };
+  arisingsSheet("Waste arisings", `Colas Rail – breakdown of waste arisings for month ${MONTH_NAMES[m.month - 1].slice(0, 3)} ${m.year}`, p.arisings, m.costs.hazardous, m.costs.non_hazardous, m.costs.provisional, -2);
+  if (p.ytdArisings) arisingsSheet("Waste arisings YTD", `Colas Rail – breakdown of waste arisings, year to date ${p.reportingYearLabel}`, p.ytdArisings, p.ytd.hazardous_cost, p.ytd.non_hazardous_cost, m.costs.provisional, -1);
 
   const c = wb.addWorksheet("Collections");
   c.columns = [{ header: "Date", width: 12 }, { header: "Reference", width: 14 }, { header: "Consignment ref", width: 18 }, { header: "Provider", width: 34 }, { header: "Waste description", width: 40 }, { header: "EWC", width: 12 }, { header: "Stream", width: 32 }, { header: "Classification", width: 15 }, { header: "Tonnes", width: 10 }, { header: "Weight source", width: 14 }, { header: "Charge (ex VAT)", width: 14 }, { header: "Flags", width: 28 }];

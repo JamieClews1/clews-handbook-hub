@@ -867,6 +867,7 @@ export type Database = {
         Row: {
           customer_access_enabled: boolean
           id: number
+          stream_treatments: Json
           updated_at: string
           updated_by: string | null
           year_start_month: number
@@ -874,6 +875,7 @@ export type Database = {
         Insert: {
           customer_access_enabled?: boolean
           id?: number
+          stream_treatments?: Json
           updated_at?: string
           updated_by?: string | null
           year_start_month?: number
@@ -881,6 +883,7 @@ export type Database = {
         Update: {
           customer_access_enabled?: boolean
           id?: number
+          stream_treatments?: Json
           updated_at?: string
           updated_by?: string | null
           year_start_month?: number

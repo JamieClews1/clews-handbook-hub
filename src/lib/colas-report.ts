@@ -446,3 +446,82 @@ export function parseDateCell(value: unknown): string | null {
 /** Duplicate key for imported collection rows. */
 export const manualDuplicateKey = (provider: string, date: string, kg: number | null, ref: string | null | undefined) =>
   `${provider}|${date}|${kg == null ? "" : Math.round(kg * 1000) / 1000}|${String(ref ?? "").trim().toLowerCase()}`;
+
+// ---------------------------------------------------------------------------
+// "Breakdown of waste arisings" — the layout of Colas Rail's original spreadsheet.
+// ---------------------------------------------------------------------------
+
+/** Share of a stream's tonnes recycled, sent to energy recovery (RDF) and landfilled, in percent (sums to 100). */
+export interface ColasTreatment { recycled: number; rdf: number; landfill: number }
+export type ColasTreatments = Partial<Record<ColasStreamKey, ColasTreatment>>;
+
+/** Starting point copied from the original spreadsheet: mixed municipal waste goes to energy recovery, everything else recycled. Editable in Settings. */
+export const DEFAULT_TREATMENTS: Record<ColasStreamKey, ColasTreatment> = Object.fromEntries(
+  COLAS_STREAMS.map(s => [s.key, s.key === "mixed_municipal" ? { recycled: 0, rdf: 100, landfill: 0 } : { recycled: 100, rdf: 0, landfill: 0 }]),
+) as Record<ColasStreamKey, ColasTreatment>;
+
+export function isValidTreatment(t: ColasTreatment | null | undefined): t is ColasTreatment {
+  if (!t) return false;
+  const vals = [t.recycled, t.rdf, t.landfill];
+  if (vals.some(v => typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > 100)) return false;
+  return Math.abs(vals.reduce((a, b) => a + b, 0) - 100) < 0.01;
+}
+export function treatmentFor(key: ColasStreamKey, saved?: ColasTreatments | null): ColasTreatment {
+  const t = saved?.[key];
+  return isValidTreatment(t) ? t : DEFAULT_TREATMENTS[key];
+}
+
+/** Streams the original spreadsheet always lists, even when nothing was collected. */
+const SHEET_STREAMS = new Set<ColasStreamKey>([
+  "cardboard_paper", "plastic", "mixed_municipal", "co_mingled", "wood", "mixed_cd", "misc",
+  "waste_engine_oil", "contaminated_packaging", "aqueous_oil_mix", "hydraulic_pipes", "oil_filters", "aerosols", "oil_contaminated_paint",
+]);
+
+export interface ArisingsFigures {
+  removed: number; recycled: number; rdf: number; landfill: number;
+  /** null when nothing was removed — an empty row has no percentage. */
+  pctLandfill: number | null;
+  /** Recycled + energy recovery (RDF counts as recycled), as a percentage of removed. */
+  pctRecycled: number | null;
+  charges: number; collections: number; missingWeights: number;
+}
+export interface ArisingsRow extends ArisingsFigures { key: ColasStreamKey; label: string; hazardous: boolean; treatment: ColasTreatment }
+export interface ArisingsGroup { hazardous: boolean; label: string; rows: ArisingsRow[]; total: ArisingsFigures }
+export interface ColasArisings { groups: ArisingsGroup[]; total: ArisingsFigures; consignmentNotes: number }
+
+function figures(parts: { removed: number; recycled: number; rdf: number; landfill: number; charges: number; collections: number; missingWeights: number }): ArisingsFigures {
+  const removed = r3(parts.removed);
+  return {
+    removed, recycled: r3(parts.recycled), rdf: r3(parts.rdf), landfill: r3(parts.landfill),
+    pctLandfill: removed > 0 ? Math.round((parts.landfill / parts.removed) * 1000) / 10 : null,
+    pctRecycled: removed > 0 ? Math.round(((parts.recycled + parts.rdf) / parts.removed) * 1000) / 10 : null,
+    charges: r2(parts.charges), collections: parts.collections, missingWeights: parts.missingWeights,
+  };
+}
+const sumFigures = (rows: ArisingsFigures[]) => figures(rows.reduce((a, r) => ({
+  removed: a.removed + r.removed, recycled: a.recycled + r.recycled, rdf: a.rdf + r.rdf, landfill: a.landfill + r.landfill,
+  charges: a.charges + r.charges, collections: a.collections + r.collections, missingWeights: a.missingWeights + r.missingWeights,
+}), { removed: 0, recycled: 0, rdf: 0, landfill: 0, charges: 0, collections: 0, missingWeights: 0 }));
+
+/** Builds the spreadsheet-style table from collection lines (one month, or several months for year to date). */
+export function buildArisings(lines: Pick<ColasLine, "stream" | "hazardous" | "weight_t" | "charge" | "needsWeight" | "consignmentRef">[], saved?: ColasTreatments | null): ColasArisings {
+  const groups: ArisingsGroup[] = [false, true].map(hazardous => {
+    const rows: ArisingsRow[] = [];
+    for (const s of COLAS_STREAMS.filter(x => x.hazardous === hazardous)) {
+      const ls = lines.filter(l => l.stream === s.key);
+      if (!ls.length && !SHEET_STREAMS.has(s.key)) continue;
+      const t = treatmentFor(s.key, saved);
+      const removed = ls.reduce((a, l) => a + (l.weight_t ?? 0), 0);
+      rows.push({
+        key: s.key, label: s.label, hazardous, treatment: t,
+        ...figures({ removed, recycled: removed * t.recycled / 100, rdf: removed * t.rdf / 100, landfill: removed * t.landfill / 100,
+          charges: ls.reduce((a, l) => a + (l.charge ?? 0), 0), collections: ls.length, missingWeights: ls.filter(l => l.needsWeight).length }),
+      });
+    }
+    return { hazardous, label: hazardous ? "Hazardous" : "Non-hazardous", rows, total: sumFigures(rows) };
+  });
+  return {
+    groups, total: sumFigures(groups.map(g => g.total)),
+    consignmentNotes: lines.filter(l => l.hazardous && l.consignmentRef).length,
+  };
+}

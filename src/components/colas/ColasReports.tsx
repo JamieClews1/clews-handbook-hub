@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { PROVIDER_LABELS, monthKey, type SourceKey } from "@/lib/colas-report";
+import { MONTH_NAMES, PROVIDER_LABELS, buildArisings, monthKey, type SourceKey } from "@/lib/colas-report";
+import { ColasArisingsTable } from "./ColasArisingsTable";
 import { buildColasExcel, buildColasPdf, colasReportFileName, downloadBlob, type ColasReportPayload } from "@/lib/colas-report-export";
 import { ensurePeriod, fmtGBP, fmtT, useInvalidateColas, type ColasYearData } from "./useColasData";
 import { buildPayload, payloadFromSnapshot, snapshotOf } from "./colas-payload";
@@ -68,6 +69,9 @@ function ColasMonthDetail({ data, index, onBack }: { data: ColasYearData; index:
   const names = useProfileNames([period?.approved_by, period?.last_generated_by]);
   const approved = period?.status === "approved";
   const snapshotPayload = approved ? payloadFromSnapshot(period?.snapshot) : null;
+  const monthArisings = buildArisings(m.lines, data.treatments);
+  const ytdArisings = buildArisings(data.months.slice(0, index + 1).flatMap(x => x.lines), data.treatments);
+  const ytdRow = data.ytd[index];
   const changed = snapshotPayload && (Math.abs(snapshotPayload.month.total_t - m.total_t) > 0.0005 || Math.abs(snapshotPayload.month.costs.total - m.costs.total) > 0.005);
 
   const download = async (kind: "pdf" | "xlsx", useLive = false) => {
@@ -156,6 +160,13 @@ function ColasMonthDetail({ data, index, onBack }: { data: ColasYearData; index:
         ))}
       </div>
 
+      <ColasArisingsTable
+        month={{ arisings: monthArisings, hazardousCost: m.costs.hazardous, nonHazardousCost: m.costs.non_hazardous, provisional: m.costs.provisional, title: `For the month of ${m.label}` }}
+        ytd={{ arisings: ytdArisings, hazardousCost: ytdRow.hazardous_cost, nonHazardousCost: ytdRow.non_hazardous_cost, provisional: data.months.slice(0, index + 1).some(x => x.costs.provisional && x.lines.length > 0),
+          title: `${MONTH_NAMES[data.months[0].month - 1]} – ${m.label}`,
+          note: data.opening && (data.opening.hazardous_t || data.opening.non_hazardous_t) ? `Year-to-date tonnes by stream come from the portal's records; the opening balance of ${fmtT(data.opening.hazardous_t + data.opening.non_hazardous_t)} t has no stream split so is not in this table. Charges include the opening balance.` : undefined }}
+      />
+
       <Card>
         <CardHeader><CardTitle className="text-lg">Data completeness</CardTitle></CardHeader>
         <CardContent>
@@ -185,23 +196,6 @@ function ColasMonthDetail({ data, index, onBack }: { data: ColasYearData; index:
         <CardContent className="space-y-2">
           <Textarea value={comments} onChange={(e) => setComments(e.target.value)} placeholder="Explain missing information, late paperwork or corrections…" rows={3} disabled={approved} />
           {!approved && <Button size="sm" variant="outline" onClick={saveComments} disabled={!!busy}>Save comments</Button>}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle className="text-lg">Waste breakdown</CardTitle></CardHeader>
-        <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader><TableRow><TableHead>Waste stream</TableHead><TableHead>Classification</TableHead><TableHead className="text-right">Collections</TableHead><TableHead className="text-right">Tonnes</TableHead><TableHead className="text-right">Recorded charges</TableHead><TableHead>Weights</TableHead></TableRow></TableHeader>
-            <TableBody>
-              {m.streams.filter(s => s.lines).map(s => (
-                <TableRow key={s.key}><TableCell className="font-medium">{s.label}</TableCell><TableCell>{s.hazardous ? <Chip tone="bad">Hazardous</Chip> : <Chip tone="good">Non-hazardous</Chip>}</TableCell>
-                  <TableCell className="text-right tabular-nums">{s.lines}</TableCell><TableCell className="text-right tabular-nums">{fmtT(s.tonnes)}</TableCell><TableCell className="text-right tabular-nums">{fmtGBP(s.charges)}</TableCell>
-                  <TableCell>{s.missingWeights ? <Chip tone="bad">{s.missingWeights} missing</Chip> : <span className="text-sm text-muted-foreground">Complete</span>}</TableCell></TableRow>
-              ))}
-              {m.streams.every(s => !s.lines) && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">No collections recorded for this month.</TableCell></TableRow>}
-            </TableBody>
-          </Table>
         </CardContent>
       </Card>
 

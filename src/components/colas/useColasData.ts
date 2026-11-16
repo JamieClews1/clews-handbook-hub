@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { londonCalendarKey } from "@/lib/ui-calendar";
 import {
   buildColasMonth, cumulative, reportingPeriods, normaliseEwc, monthKey,
-  type ColasSkiptrakJob, type ColasMidweighTicket, type ColasManualEntryRow, type ColasCostRow, type ColasMonth, type ColasYtd, type ColasOpening, type SourceKey, type SourceOverride,
+  type ColasSkiptrakJob, type ColasMidweighTicket, type ColasManualEntryRow, type ColasCostRow, type ColasMonth, type ColasYtd, type ColasOpening, type SourceKey, type SourceOverride, type ColasTreatments,
 } from "@/lib/colas-report";
 
 export const COLAS_CUSTOMER_PATTERN = "colas rail%";
@@ -13,7 +13,7 @@ export interface ColasPeriodRow {
   status: "open" | "approved"; approved_by: string | null; approved_at: string | null; outstanding_reason: string | null;
   snapshot: any; last_generated_at: string | null; last_generated_by: string | null;
 }
-export interface ColasSettingsRow { year_start_month: number; customer_access_enabled: boolean }
+export interface ColasSettingsRow { year_start_month: number; customer_access_enabled: boolean; stream_treatments: ColasTreatments }
 export interface ColasHazDoc { job_number: string; storage_path: string; file_name: string }
 
 const num = (v: unknown): number | null => {
@@ -37,9 +37,9 @@ export function useColasSettings() {
   return useQuery({
     queryKey: ["colas", "settings"],
     queryFn: async (): Promise<ColasSettingsRow> => {
-      const { data, error } = await supabase.from("colas_report_settings").select("year_start_month, customer_access_enabled").eq("id", 1).maybeSingle();
+      const { data, error } = await supabase.from("colas_report_settings").select("year_start_month, customer_access_enabled, stream_treatments").eq("id", 1).maybeSingle();
       if (error) throw error;
-      return (data as ColasSettingsRow) ?? { year_start_month: 1, customer_access_enabled: false };
+      return (data as unknown as ColasSettingsRow) ?? { year_start_month: 1, customer_access_enabled: false, stream_treatments: {} };
     },
   });
 }
@@ -56,6 +56,8 @@ export interface ColasYearData {
   costs: (ColasCostRow & Record<string, any>)[];
   consignments: Map<string, string | null>;
   hazDocs: Map<string, ColasHazDoc>;
+  /** Saved share recycled / energy recovery / landfill per stream (defaults apply where unset). */
+  treatments: ColasTreatments;
   today: string;
 }
 
@@ -72,7 +74,7 @@ export function useColasYear(year: number, startMonth: number | undefined) {
       const toDate = new Date(Date.UTC(last.year, last.month, 0));
       const to = toDate.toISOString().slice(0, 10);
 
-      const [jobsRaw, midRaw, ewc, manual, costs, cons, periods, opening] = await Promise.all([
+      const [jobsRaw, midRaw, ewc, manual, costs, cons, periods, opening, settingsRow] = await Promise.all([
         pageAll<any>((a, b) => supabase.from("data_hub_jobs").select("job_number, job_date, ewc, waste_description, weight_t, tipping_location, site, container_type, raw")
           .eq("source", "skiptrak").ilike("customer", COLAS_CUSTOMER_PATTERN).gte("job_date", from).lte("job_date", to).order("job_date").range(a, b)),
         pageAll<any>((a, b) => supabase.from("data_hub_jobs").select("job_number, job_date, ewc, waste_description, weight_t, linked_skip_job")
@@ -83,8 +85,9 @@ export function useColasYear(year: number, startMonth: number | undefined) {
         supabase.from("colas_consignments").select("job_number, consignment_ref").eq("source", "skiptrak"),
         supabase.from("colas_report_periods").select("*").gte("year", first.year).lte("year", last.year),
         supabase.from("colas_opening_balances").select("*").eq("year", year).maybeSingle(),
+        supabase.from("colas_report_settings").select("stream_treatments").eq("id", 1).maybeSingle(),
       ]);
-      for (const r of [ewc, manual, costs, cons, periods, opening]) if (r.error) throw r.error;
+      for (const r of [ewc, manual, costs, cons, periods, opening, settingsRow]) if (r.error) throw r.error;
 
       const jobs: ColasSkiptrakJob[] = jobsRaw.map((j: any) => ({
         job_number: String(j.job_number), job_date: j.job_date, ewc: j.ewc, waste_description: j.waste_description,
@@ -118,7 +121,7 @@ export function useColasYear(year: number, startMonth: number | undefined) {
         for (const d of data ?? []) if (d.job_number && !hazDocs.has(d.job_number)) hazDocs.set(d.job_number, d as ColasHazDoc);
       }
 
-      return { year, startMonth: sm, months, ytd: cumulative(months, op), periods: periodMap, opening: op, jobs, manual: (manual.data ?? []) as any, costs: (costs.data ?? []) as any, consignments, hazDocs, today };
+      return { year, startMonth: sm, months, ytd: cumulative(months, op), periods: periodMap, opening: op, jobs, manual: (manual.data ?? []) as any, costs: (costs.data ?? []) as any, consignments, hazDocs, treatments: ((settingsRow.data?.stream_treatments ?? {}) as ColasTreatments), today };
     },
   });
 }

@@ -1,0 +1,1 @@
+ALTER TABLE public.colas_report_settings ADD COLUMN IF NOT EXISTS stream_treatments jsonb NOT NULL DEFAULT '{}'::jsonb;

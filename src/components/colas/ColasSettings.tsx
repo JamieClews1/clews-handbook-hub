@@ -3,13 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MONTH_NAMES, PROVIDER_LABELS } from "@/lib/colas-report";
+import { COLAS_STREAMS, MONTH_NAMES, PROVIDER_LABELS, isValidTreatment, treatmentFor, type ColasStreamKey, type ColasTreatment, type ColasTreatments } from "@/lib/colas-report";
 import { useInvalidateColas, type ColasSettingsRow, type ColasYearData } from "./useColasData";
 import { Chip, ukDateTime, useColasAuthorised, useProfileNames } from "./ColasShared";
 
@@ -121,6 +122,8 @@ export function ColasSettings({ data, settings }: { data: ColasYearData; setting
         </Card>
       </div>
 
+      <TreatmentSettings saved={settings.stream_treatments ?? {}} authorised={authorised} onSaved={invalidate} />
+
       <Card>
         <CardHeader><CardTitle className="text-lg">Audit log</CardTitle></CardHeader>
         <CardContent className="overflow-x-auto">
@@ -140,5 +143,63 @@ export function ColasSettings({ data, settings }: { data: ColasYearData; setting
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+type Draft = Record<ColasStreamKey, Record<keyof ColasTreatment, string>>;
+const toDraft = (saved: ColasTreatments): Draft => Object.fromEntries(COLAS_STREAMS.map(s => {
+  const t = treatmentFor(s.key, saved);
+  return [s.key, { recycled: String(t.recycled), rdf: String(t.rdf), landfill: String(t.landfill) }];
+})) as Draft;
+const parse = (d: Record<keyof ColasTreatment, string>): ColasTreatment => ({ recycled: Number(d.recycled || 0), rdf: Number(d.rdf || 0), landfill: Number(d.landfill || 0) });
+
+/** Share of each stream recycled, sent to energy recovery (RDF) or landfilled — drives the waste arisings table. */
+function TreatmentSettings({ saved, authorised, onSaved }: { saved: ColasTreatments; authorised: boolean; onSaved: () => void }) {
+  const [draft, setDraft] = useState<Draft>(() => toDraft(saved));
+  useEffect(() => setDraft(toDraft(saved)), [JSON.stringify(saved)]);
+  const [saving, setSaving] = useState(false);
+  const invalid = COLAS_STREAMS.filter(s => !isValidTreatment(parse(draft[s.key])));
+  const save = async () => {
+    if (invalid.length) { toast.error(`Each row must add up to 100% (check ${invalid.map(s => s.label).join(", ")})`); return; }
+    setSaving(true);
+    const value = Object.fromEntries(COLAS_STREAMS.map(s => [s.key, parse(draft[s.key])]));
+    const { error } = await supabase.from("colas_report_settings").update({ stream_treatments: value as unknown as Json }).eq("id", 1);
+    setSaving(false);
+    if (error) toast.error(error.message); else { toast.success("Waste treatment saved — reports updated"); onSaved(); }
+  };
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-lg">How each waste stream is treated</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">Splits each stream's tonnes into recycled, energy recovery (RDF) and landfill for the waste arisings table. Each row must add up to 100%. Starting values follow the old spreadsheet: mixed municipal waste to energy recovery, everything else recycled. Approved months keep the split they were approved with.</p>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader><TableRow><TableHead>Waste stream</TableHead><TableHead className="w-32 text-right">Recycled %</TableHead><TableHead className="w-32 text-right">Energy recovery %</TableHead><TableHead className="w-32 text-right">Landfill %</TableHead><TableHead className="w-28" /></TableRow></TableHeader>
+            <TableBody>
+              {[false, true].map(h => [
+                <TableRow key={`g-${h}`} className="bg-muted/60"><TableCell colSpan={5} className="font-bold text-primary">{h ? "Hazardous" : "Non-hazardous"}</TableCell></TableRow>,
+                ...COLAS_STREAMS.filter(s => s.hazardous === h).map(s => {
+                  const ok = isValidTreatment(parse(draft[s.key]));
+                  return (
+                    <TableRow key={s.key}>
+                      <TableCell className="font-medium">{s.label}</TableCell>
+                      {(["recycled", "rdf", "landfill"] as const).map(k => (
+                        <TableCell key={k} className="text-right">
+                          <Input aria-label={`${s.label} ${k}`} inputMode="decimal" className="ml-auto w-24 text-right tabular-nums" value={draft[s.key][k]} disabled={!authorised}
+                            onChange={(e) => setDraft(d => ({ ...d, [s.key]: { ...d[s.key], [k]: e.target.value } }))} />
+                        </TableCell>
+                      ))}
+                      <TableCell>{ok ? null : <Chip tone="bad">Not 100%</Chip>}</TableCell>
+                    </TableRow>
+                  );
+                }),
+              ])}
+            </TableBody>
+          </Table>
+        </div>
+        {authorised ? <Button variant="outline" onClick={save} disabled={saving || invalid.length > 0}>{saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}Save treatment</Button>
+          : <p className="text-sm text-muted-foreground">Only a Clews administrator can change these.</p>}
+      </CardContent>
+    </Card>
   );
 }

@@ -94,3 +94,33 @@ it("non-hazardous loads to Robert Hopkins do not need a consignment reference", 
   const m = buildColasMonth(base({ jobs: [job({ job_number: "51808", ewc: "15 02 03", waste_description: "Used Aircon Filters", weight_t: 3.96, tipping_location: "Robert Hopkins Environmental" })] }));
   assert.equal(m.sources.find(s => s.key === "robert_hopkins")?.status, "received");
 });
+
+import { buildArisings, DEFAULT_TREATMENTS, treatmentFor } from "./colas-report";
+const aline = (o: any) => ({ stream: "cardboard_paper", hazardous: false, weight_t: 1, charge: null, needsWeight: false, consignmentRef: null, ...o });
+
+it("RDF / energy recovery counts as recycled: 2 t recycled + 1 t RDF of 3 t = 100% recycled, 0% landfill", () => {
+  const a = buildArisings([aline({ weight_t: 2 }), aline({ stream: "mixed_municipal", weight_t: 1 })]);
+  assert.equal(a.groups[0].total.removed, 3);
+  assert.equal(a.groups[0].total.rdf, 1);
+  assert.equal(a.groups[0].total.pctRecycled, 100);
+  assert.equal(a.groups[0].total.pctLandfill, 0);
+});
+
+it("only landfill lowers % recycled: 25% landfill on 4 t gives 1 t landfill and 75% recycled", () => {
+  const a = buildArisings([aline({ weight_t: 4 })], { cardboard_paper: { recycled: 75, rdf: 0, landfill: 25 } });
+  const row = a.groups[0].rows.find(r => r.key === "cardboard_paper")!;
+  assert.equal(row.landfill, 1);
+  assert.equal(row.pctRecycled, 75);
+  assert.equal(row.pctLandfill, 25);
+});
+
+it("an empty stream row has no percentage instead of claiming 100%", () => {
+  const a = buildArisings([]);
+  const row = a.groups[1].rows.find(r => r.key === "aerosols")!;
+  assert.equal(row.removed, 0);
+  assert.equal(row.pctRecycled, null);
+});
+
+it("a saved treatment that does not add up to 100% falls back to the default", () => {
+  assert.deepEqual(treatmentFor("plastic", { plastic: { recycled: 50, rdf: 10, landfill: 10 } }), DEFAULT_TREATMENTS.plastic);
+});
