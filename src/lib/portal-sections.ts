@@ -52,6 +52,7 @@ export const PORTAL_SECTIONS: PortalSection[] = [
   { key: "performance-stock-check", label: "Stock Check", category: "Performance", path: "/performance-hub/stock-check" },
   { key: "performance-fuel-surcharges", label: "Fuel Surcharges", category: "Performance", path: "/performance-hub/fuel-surcharges" },
   { key: "staci-reports", label: "STACI Reports", category: "Performance", path: "/staci-reports" },
+  { key: "colas-rail", label: "Colas Rail Reporting", category: "Performance", path: "/colas-rail" },
   { key: "customer-reporting", label: "Customer Reporting", category: "Performance", path: "/customer-reporting" },
   { key: "rebate-values", label: "Rebate Values", category: "Performance", path: "/rebate-values" },
   { key: "po-checks", label: "PO Checks", category: "Performance", path: "/po-checks" },

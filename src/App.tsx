@@ -61,6 +61,7 @@ import ReconomyPortalPage from "./pages/ReconomyPortalPage";
 import NearMissReportPage from "./pages/NearMissReportPage";
 import NearMissPage from "./pages/NearMissPage";
 import StaciReportsPage from "./pages/StaciReportsPage";
+import ColasRailPage from "./pages/ColasRailPage";
 import ContaminationsPage from "./pages/ContaminationsPage";
 import StockCheckPage from "./pages/StockCheckPage";
 import StockTakePage from "./pages/StockTakePage";
@@ -212,6 +213,8 @@ const App = () => (
             <Route path="/customer-reporting" element={<Staff><CustomerReportingPage /></Staff>} />
             <Route path="/po-checks" element={<Staff><PoChecksPage /></Staff>} />
             <Route path="/staci-reports" element={<Staff><StaciReportsPage /></Staff>} />
+            <Route path="/colas-rail" element={<Staff><ColasRailPage /></Staff>} />
+            <Route path="/colas-rail/:tab" element={<Staff><ColasRailPage /></Staff>} />
             <Route path="/performance-hub/contaminations" element={<Staff><ContaminationsPage /></Staff>} />
             <Route path="/performance-hub/stock-check" element={<Staff><StockCheckPage /></Staff>} />
             <Route path="/performance-hub/stock-check/tally" element={<Staff><StockTakePage /></Staff>} />

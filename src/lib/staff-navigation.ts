@@ -1,4 +1,4 @@
-import { Inbox, Route, Scale, Box, Radio, FileCheck, PoundSterling, Container, Users, AlertTriangle, CalendarCheck, CalendarDays, FileText, Package, Building2, FileSpreadsheet, Fuel, Upload, BarChart3, Gauge, TrendingUp, ClipboardList, Gem, ShieldCheck, HardHat, MessageSquare, Flame, BookOpen, ScrollText, Smartphone, Settings, Truck, ClipboardCheck, ListTodo } from "lucide-react";
+import { Inbox, Route, Scale, Box, Radio, FileCheck, PoundSterling, Container, Users, AlertTriangle, CalendarCheck, CalendarDays, FileText, Package, Building2, FileSpreadsheet, Fuel, Upload, BarChart3, Gauge, TrendingUp, ClipboardList, Gem, ShieldCheck, HardHat, MessageSquare, Flame, BookOpen, ScrollText, Smartphone, Settings, Truck, ClipboardCheck, ListTodo, TrainFront, LayoutDashboard, FlaskConical, Droplets, Settings2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export type NavigationAccess = { isAdmin: boolean; canAccessFinance: boolean; canAccessPl: boolean; restrictedAllows?: (key: string) => boolean | null };
@@ -34,6 +34,14 @@ export const STAFF_NAV_GROUPS: StaffNavGroup[] = [
     { label: "Rebates", path: "/rebate-values", icon: PoundSterling, access: "finance" },
     { label: "Staci Reports", path: "/staci-reports", icon: Package, key: "staci-reports" },
     { label: "Customer Setup", path: "/admin/customers", icon: Building2, access: "admin" },
+  ] },
+  { title: "Colas Rail", icon: TrainFront, key: "nav-colas-rail", items: [
+    { label: "Dashboard", path: "/colas-rail", icon: LayoutDashboard, key: "colas-rail" },
+    { label: "Monthly reports", path: "/colas-rail/reports", icon: FileText, key: "colas-rail" },
+    { label: "Hazardous waste", path: "/colas-rail/hazardous", icon: FlaskConical, key: "colas-rail" },
+    { label: "Enva, B&M & Fortress", path: "/colas-rail/collections", icon: Droplets, key: "colas-rail" },
+    { label: "Costs (Sage)", path: "/colas-rail/costs", icon: PoundSterling, key: "colas-rail" },
+    { label: "Sources & settings", path: "/colas-rail/settings", icon: Settings2, key: "colas-rail" },
   ] },
   { title: "Finance", icon: PoundSterling, key: "nav-finance", items: [
     { label: "Invoicing", path: "/finance", icon: PoundSterling, key: "finance", access: "finance" },

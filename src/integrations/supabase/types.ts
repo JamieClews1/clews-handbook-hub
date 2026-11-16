@@ -536,6 +536,357 @@ export type Database = {
         }
         Relationships: []
       }
+      colas_audit_log: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string | null
+          id: number
+          new_row: Json | null
+          old_row: Json | null
+          record_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by?: string | null
+          id?: never
+          new_row?: Json | null
+          old_row?: Json | null
+          record_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string | null
+          id?: never
+          new_row?: Json | null
+          old_row?: Json | null
+          record_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
+      colas_consignments: {
+        Row: {
+          consignment_ref: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          job_number: string
+          notes: string | null
+          source: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          consignment_ref?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_number: string
+          notes?: string | null
+          source?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          consignment_ref?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_number?: string
+          notes?: string | null
+          source?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      colas_costs: {
+        Row: {
+          amount_ex_vat: number
+          category: string
+          created_at: string
+          created_by: string | null
+          entry_type: string
+          id: string
+          import_id: string | null
+          month: number
+          original_amount: number | null
+          reason: string | null
+          source_file: string | null
+          source_row: Json | null
+          updated_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+          year: number
+        }
+        Insert: {
+          amount_ex_vat: number
+          category: string
+          created_at?: string
+          created_by?: string | null
+          entry_type: string
+          id?: string
+          import_id?: string | null
+          month: number
+          original_amount?: number | null
+          reason?: string | null
+          source_file?: string | null
+          source_row?: Json | null
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          year: number
+        }
+        Update: {
+          amount_ex_vat?: number
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          entry_type?: string
+          id?: string
+          import_id?: string | null
+          month?: number
+          original_amount?: number | null
+          reason?: string | null
+          source_file?: string | null
+          source_row?: Json | null
+          updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          year?: number
+        }
+        Relationships: []
+      }
+      colas_import_log: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          details: Json | null
+          file_name: string | null
+          id: string
+          rows_failed: number
+          rows_flagged: number
+          rows_imported: number
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          details?: Json | null
+          file_name?: string | null
+          id?: string
+          rows_failed?: number
+          rows_flagged?: number
+          rows_imported?: number
+          source: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          details?: Json | null
+          file_name?: string | null
+          id?: string
+          rows_failed?: number
+          rows_flagged?: number
+          rows_imported?: number
+          source?: string
+        }
+        Relationships: []
+      }
+      colas_manual_entries: {
+        Row: {
+          collection_date: string
+          collection_reference: string | null
+          consignment_ref: string | null
+          created_at: string
+          created_by: string | null
+          document_name: string | null
+          document_path: string | null
+          hazardous: boolean
+          id: string
+          import_id: string | null
+          location: string | null
+          notes: string | null
+          provider: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+          waste_stream: string
+          waste_type: string | null
+          weight_kg: number | null
+          weight_t: number | null
+        }
+        Insert: {
+          collection_date: string
+          collection_reference?: string | null
+          consignment_ref?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_name?: string | null
+          document_path?: string | null
+          hazardous?: boolean
+          id?: string
+          import_id?: string | null
+          location?: string | null
+          notes?: string | null
+          provider: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          waste_stream: string
+          waste_type?: string | null
+          weight_kg?: number | null
+          weight_t?: number | null
+        }
+        Update: {
+          collection_date?: string
+          collection_reference?: string | null
+          consignment_ref?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_name?: string | null
+          document_path?: string | null
+          hazardous?: boolean
+          id?: string
+          import_id?: string | null
+          location?: string | null
+          notes?: string | null
+          provider?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+          waste_stream?: string
+          waste_type?: string | null
+          weight_kg?: number | null
+          weight_t?: number | null
+        }
+        Relationships: []
+      }
+      colas_opening_balances: {
+        Row: {
+          hazardous_cost: number
+          hazardous_t: number
+          non_hazardous_cost: number
+          non_hazardous_t: number
+          note: string | null
+          updated_at: string
+          updated_by: string | null
+          year: number
+        }
+        Insert: {
+          hazardous_cost?: number
+          hazardous_t?: number
+          non_hazardous_cost?: number
+          non_hazardous_t?: number
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          year: number
+        }
+        Update: {
+          hazardous_cost?: number
+          hazardous_t?: number
+          non_hazardous_cost?: number
+          non_hazardous_t?: number
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          year?: number
+        }
+        Relationships: []
+      }
+      colas_report_periods: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          comments: string | null
+          created_at: string
+          id: string
+          last_generated_at: string | null
+          last_generated_by: string | null
+          month: number
+          outstanding_reason: string | null
+          snapshot: Json | null
+          source_status: Json
+          status: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          comments?: string | null
+          created_at?: string
+          id?: string
+          last_generated_at?: string | null
+          last_generated_by?: string | null
+          month: number
+          outstanding_reason?: string | null
+          snapshot?: Json | null
+          source_status?: Json
+          status?: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          comments?: string | null
+          created_at?: string
+          id?: string
+          last_generated_at?: string | null
+          last_generated_by?: string | null
+          month?: number
+          outstanding_reason?: string | null
+          snapshot?: Json | null
+          source_status?: Json
+          status?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      colas_report_settings: {
+        Row: {
+          customer_access_enabled: boolean
+          id: number
+          updated_at: string
+          updated_by: string | null
+          year_start_month: number
+        }
+        Insert: {
+          customer_access_enabled?: boolean
+          id?: number
+          updated_at?: string
+          updated_by?: string | null
+          year_start_month?: number
+        }
+        Update: {
+          customer_access_enabled?: boolean
+          id?: number
+          updated_at?: string
+          updated_by?: string | null
+          year_start_month?: number
+        }
+        Relationships: []
+      }
       company_contacts: {
         Row: {
           contact_type: string
@@ -11728,6 +12079,7 @@ export type Database = {
         Args: { _period: string; _retry?: boolean }
         Returns: string
       }
+      colas_can_authorise: { Args: { _user_id: string }; Returns: boolean }
       create_invoice_with_lines: {
         Args: { _header: Json; _lines: Json }
         Returns: string
