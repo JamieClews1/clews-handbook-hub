@@ -453,7 +453,7 @@ export const WeighbridgeRatesSettings = () => {
                         {!wt.min_weight_exempt ? (
                           <div className="text-sm tabular-nums" title={`${minChargeWeightKg} kg at the £/tonne rate`}>
                             £{Number(isDefaultGroup ? wt.min_charge : override?.min_charge ?? wt.min_charge ?? 0).toFixed(2)}
-                            <div className="text-[11px] text-muted-foreground">{minChargeWeightKg} kg</div>
+                            <div className="text-xs text-muted-foreground">{minChargeWeightKg} kg</div>
                           </div>
                         ) : (
                         <Input
@@ -576,7 +576,7 @@ export const WeighbridgeRatesSettings = () => {
                   <TableRow key={c.id} className={c.is_active ? "" : "opacity-50"}>
                     <TableCell className="font-medium text-sm">
                       {c.customer_name}
-                      {!c.is_active && <Badge variant="outline" className="ml-2 text-[10px]">Inactive</Badge>}
+                      {!c.is_active && <Badge variant="outline" className="ml-2 text-xs">Inactive</Badge>}
                     </TableCell>
                     <TableCell>
                       <Select

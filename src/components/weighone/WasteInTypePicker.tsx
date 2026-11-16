@@ -85,7 +85,7 @@ export function WasteInTypePicker({ types, value, onChange, bookedWaste, placeho
                 <Check className="mt-0.5 h-4 w-4 shrink-0 opacity-100" />
                 <span className="min-w-0 flex-1">
                   <span className="text-sm italic">{bookedWaste}</span>
-                  <span className="ml-2 text-[11px] text-muted-foreground">from the booking</span>
+                  <span className="ml-2 text-xs text-muted-foreground">from the booking</span>
                 </span>
               </button>
             )}
@@ -98,7 +98,7 @@ export function WasteInTypePicker({ types, value, onChange, bookedWaste, placeho
               return (
                 <div key={t.id}>
                   {showHeader && (
-                    <p className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <p className="px-2 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       {topIds.has(t.id) ? "Most common" : "All waste types"}
                     </p>
                   )}
@@ -117,7 +117,7 @@ export function WasteInTypePicker({ types, value, onChange, bookedWaste, placeho
                       <span className="text-sm">{t.waste_type}</span>
                     </span>
                     {topIds.has(t.id) && loads ? (
-                      <span className="shrink-0 text-[11px] text-muted-foreground">{loads} {loads === 1 ? "load" : "loads"}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">{loads} {loads === 1 ? "load" : "loads"}</span>
                     ) : null}
                   </button>
                 </div>

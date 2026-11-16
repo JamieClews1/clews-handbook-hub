@@ -25,7 +25,7 @@ export const CustomerTypeSelector = ({ onSelect, onViewAll, onContainer }: Custo
           <Truck className="h-6 w-6 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Load Reports</h1>
+          <h1 className="text-[28px] leading-9 font-bold text-foreground">Load Reports</h1>
           <p className="text-muted-foreground text-sm">
             Track pallet loads and weights for recyclables
           </p>

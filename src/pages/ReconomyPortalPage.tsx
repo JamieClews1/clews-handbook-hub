@@ -415,7 +415,7 @@ const ReconomyPortalPage = () => {
                 <Building2 className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Reconomy Portal</h1>
+                <h1 className="text-[28px] leading-9 font-bold text-foreground">Reconomy Portal</h1>
                 <p className="text-muted-foreground text-sm">
                   View activity across all Reconomy-group customers, or focus on one.
                 </p>

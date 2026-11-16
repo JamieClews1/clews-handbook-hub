@@ -56,7 +56,7 @@ export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWei
           const stage = stageOf(job);
           const elapsed = ticket.first_weigh_at ? Math.max(0, Math.floor((Date.now() - new Date(ticket.first_weigh_at).getTime()) / 60000)) : null;
           return <div role="button" tabIndex={0} key={ticket.id} onClick={() => onTicket(ticket.id)} onKeyDown={e => { if (e.key === "Enter") onTicket(ticket.id); }} className={`cursor-pointer ` + `min-w-0 rounded-xl border bg-card p-3.5 text-left space-y-2 transition-colors hover:border-foreground/30 ${t === "urgent" ? "border-destructive" : "border-border"}`}>
-            <div className="flex items-center justify-between gap-2"><span className="rounded bg-warning-subtle px-2 py-0.5 font-mono text-sm font-bold text-foreground">{ticket.vehicle_reg}</span><span className="flex items-center gap-1.5 text-xs text-muted-foreground">{elapsed !== null && elapsed > 45 && <span className="h-2 w-2 rounded-full bg-warning" />}{elapsed !== null ? `${elapsed} min` : "—"}</span></div>
+            <div className="flex items-center justify-between gap-2"><span className="rounded bg-warning-subtle px-2 py-0.5 reg-plate text-foreground">{ticket.vehicle_reg}</span><span className="flex items-center gap-1.5 text-xs text-muted-foreground">{elapsed !== null && elapsed > 45 && <span className="h-2 w-2 rounded-full bg-warning" />}{elapsed !== null ? `${elapsed} min` : "—"}</span></div>
             <div><p className="truncate font-semibold text-foreground">{ticket.customer || "No customer"}</p><p className="truncate text-xs text-muted-foreground">{ticket.waste_description || "—"} · {hhmm(ticket.first_weigh_at)}</p></div>
             <p className="font-mono text-xs text-muted-foreground">1st {hhmm(ticket.first_weigh_at)} · {ticket.gross_weight_kg !== null ? `${(ticket.gross_weight_kg / 1000).toFixed(2)} t gross` : "—"} · #{ticket.ticket_number}{isTestRecord(ticket) && <span className="ml-1 inline-flex align-middle"><TestBadge /></span>}</p>
             <div className="grid grid-cols-4 gap-1">{STEPS.map((s, i) => <span key={s} className={`h-1 rounded-full ${i <= stage ? (t === "urgent" ? "bg-destructive" : "bg-primary") : "bg-muted"}`} />)}</div>
@@ -79,13 +79,13 @@ export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWei
               const job = match(ticket.id); const t = tone(job);
               return <tr key={ticket.id} title={onEdit ? "Double-click to edit" : undefined} onClick={() => { clearRowTimer(); rowTimer.current = window.setTimeout(() => onTicket(ticket.id), 250); }} onDoubleClick={e => { e.stopPropagation(); clearRowTimer(); if (onEdit) onEdit(ticket.id); }} className={`cursor-pointer border-b border-border last:border-0 hover:bg-muted/50 ${t === "urgent" ? "shadow-[inset_3px_0_0_hsl(var(--destructive))]" : t === "contamination" ? "shadow-[inset_3px_0_0_hsl(var(--warning))]" : ""}`}>
                 <td className="px-3 py-2 font-mono font-semibold">{ticket.ticket_number}{isTestRecord(ticket) && <span className="ml-1 inline-flex align-middle"><TestBadge /></span>}</td>
-                <td className="px-3 py-2">{ticketTypeCode(ticket.job_type) ? <span className={`inline-flex items-center rounded-md border px-1.5 py-0 text-[10px] font-bold leading-4 tracking-wide ${ticketTypeCode(ticket.job_type)!.className}`}>{ticketTypeCode(ticket.job_type)!.code}</span> : <span className="text-xs text-muted-foreground">—</span>}</td>
+                <td className="px-3 py-2">{ticketTypeCode(ticket.job_type) ? <span className={`inline-flex items-center rounded-md border px-1.5 py-0 text-xs font-bold leading-4 tracking-wide ${ticketTypeCode(ticket.job_type)!.className}`}>{ticketTypeCode(ticket.job_type)!.code}</span> : <span className="text-xs text-muted-foreground">—</span>}</td>
 
                 <td className="px-3 py-2">{ticket.customer || "—"}</td>
-                <td className="px-3 py-2"><span className="rounded bg-warning-subtle px-1.5 py-0.5 font-mono text-xs font-bold">{ticket.vehicle_reg}</span></td>
+                <td className="px-3 py-2"><span className="rounded bg-warning-subtle px-1.5 py-0.5 reg-plate">{ticket.vehicle_reg}</span></td>
                 <td className="px-3 py-2 text-muted-foreground">{ticket.waste_description || "—"}</td>
                 <td className="px-3 py-2">{t ? <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${toneClass[t]}`}>{banksmanLabel(job)}</span> : <span className="text-xs text-muted-foreground">Not checked yet</span>}</td>
-                <td className="px-3 py-2 text-right font-mono">{ticket.net_weight_kg != null ? (ticket.net_weight_kg / 1000).toFixed(3) : "—"}</td>
+                <td className="px-3 py-2 text-right font-semibold tabular-nums">{ticket.net_weight_kg != null ? (ticket.net_weight_kg / 1000).toFixed(3) : "—"}</td>
                 <td className="px-3 py-2">{ticket.status === "first_weigh" ? <Badge variant="outline">In yard</Badge> : <Badge className="bg-primary/10 text-primary hover:bg-primary/10">Complete</Badge>}</td>
               </tr>;
             })}{!rows.length && <tr><td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">No tickets.</td></tr>}</tbody>
@@ -97,14 +97,14 @@ export function WeighOneYard({ tickets, todayTickets = [], jobs, onTicket, onWei
     <aside className="space-y-3 rounded-xl border border-border bg-card p-4 self-start">
       <div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><h2 className="font-semibold text-sm">Banksman alerts</h2>{alerts.length > 0 && <Badge variant="outline" className="border-destructive text-destructive">{alerts.length} need action</Badge>}</div><Link to="/banksman" className="text-xs font-medium text-primary hover:underline">Open app</Link></div>
       {alerts.map(job => { const urgent = job.alert_status === "urgent"; return <div key={job.id} className={`rounded-lg border p-3 space-y-2 ${urgent ? "border-destructive bg-destructive-subtle" : "border-warning bg-warning-subtle"}`}>
-        <div className="flex items-center justify-between gap-2 text-xs"><span className="flex items-center gap-2"><span className={`rounded px-1.5 py-0.5 font-semibold ${urgent ? "bg-destructive text-destructive-foreground" : "bg-warning text-foreground"}`}>{urgent ? "Urgent" : "Contamination"}</span><span className="rounded bg-card px-1.5 py-0.5 font-mono font-bold">{job.vehicle_reg}</span></span></div>
+        <div className="flex items-center justify-between gap-2 text-xs"><span className="flex items-center gap-2"><span className={`rounded px-1.5 py-0.5 font-semibold ${urgent ? "bg-destructive text-destructive-foreground" : "bg-warning text-foreground"}`}>{urgent ? "Urgent" : "Contamination"}</span><span className="rounded bg-card px-1.5 py-0.5 reg-plate">{job.vehicle_reg}</span></span></div>
         <p className="text-xs font-medium text-foreground">#{job.job_number} · {job.customer}</p>
         <BanksmanTicketReport job={job} />
         <Button size="sm" onClick={() => setReport(job)}>{urgent ? "Review alert" : "Review charge"}</Button>
       </div>; })}
       {!alerts.length && <p className="text-sm text-muted-foreground py-4">No alerts need action.</p>}
       <h3 className="border-t border-border pt-3 text-xs font-semibold text-muted-foreground">Recently checked</h3>
-      {jobs.filter(j => j.status === "completed" && j.alert_status !== "urgent").slice(0, 5).map(job => <button type="button" key={job.id} className="flex w-full items-center gap-2 rounded-md p-1.5 text-left text-xs hover:bg-muted" onClick={() => setReport(job)}><span className="rounded bg-warning-subtle px-1.5 py-0.5 font-mono font-bold">{job.vehicle_reg}</span><span className="truncate text-muted-foreground">#{job.job_number} · {banksmanLabel(job)}</span></button>)}
+      {jobs.filter(j => j.status === "completed" && j.alert_status !== "urgent").slice(0, 5).map(job => <button type="button" key={job.id} className="flex w-full items-center gap-2 rounded-md p-1.5 text-left text-xs hover:bg-muted" onClick={() => setReport(job)}><span className="rounded bg-warning-subtle px-1.5 py-0.5 reg-plate">{job.vehicle_reg}</span><span className="truncate text-muted-foreground">#{job.job_number} · {banksmanLabel(job)}</span></button>)}
       <BanksmanJobDialog job={report} onClose={() => setReport(null)} />
     </aside>
   </div>;

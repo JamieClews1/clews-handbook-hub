@@ -36,6 +36,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { formatKgAsTonnes, formatTonnes } from "@/lib/weight-format";
 import { Download, Copy, Scale, Activity, Truck, Plus, Printer, Search, ArrowDownUp, Clock, CheckCircle2, XCircle, Weight, FileText, Trash2, PoundSterling, Settings, Database, HardHat, Users, Pencil, Maximize2, Minimize2, AlertTriangle as AlertTriangleIcon } from "lucide-react";
 import { WeighOneCMS } from "@/components/weighone/WeighOneCMS";
 import MidweighHistory from "@/components/weighone/MidweighHistory";
@@ -1423,7 +1424,7 @@ const WeighOnePage = () => {
   const todayTotalTonnes = todayCompleted.reduce((sum, t) => sum + (t.net_weight_kg ?? 0) / 1000, 0);
   const todayTotalRevenue = todayCompleted.reduce((sum, t) => sum + (t.total_price ?? 0), 0);
 
-  const fmtWeight = (kg: number | null) => kg != null ? (kg / 1000).toFixed(3) : "-";
+  const fmtWeight = (kg: number | null) => formatKgAsTonnes(kg, "-");
   const fmtPrice = (val: number | null) => val != null ? `£${val.toFixed(2)}` : "-";
 
   /** Print the A4 waste transfer note (customer copy top, Clews copy bottom). */
@@ -1590,7 +1591,7 @@ const WeighOnePage = () => {
       {/* Header */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex flex-wrap items-center gap-4 min-w-0">
-          <h1 className="text-2xl font-bold text-foreground">WeighOne</h1>
+          <h1 className="text-[28px] leading-9 font-bold text-foreground">WeighOne</h1>
           <div role="tablist" aria-label="WeighOne views" className="inline-flex rounded-lg bg-muted p-1">
             {([["yard", "Yard"], ["tickets", "Tickets"], ["log", "Transaction log"], ...(tablet ? [] : [["midweigh", "Midweigh data"]])] as [string, string][]).map(([v, l]) => (
               <button key={v} role="tab" aria-selected={tab === v} onClick={() => setTab(v)} className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === v ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{l}</button>
@@ -2197,7 +2198,7 @@ const WeighOnePage = () => {
                         </Select>
                       )}
                       {newAdditionalItems.length > 0 && (
-                        <div className="grid grid-cols-[1fr_4.5rem_5.5rem_5rem_2rem] items-center gap-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+                        <div className="grid grid-cols-[1fr_4.5rem_5.5rem_5rem_2rem] items-center gap-2 text-xs font-semibold text-muted-foreground">
                           <span>Item</span><span className="text-center">Qty</span><span className="text-right">Unit £</span><span className="text-right">Line £</span><span />
                         </div>
                       )}
@@ -2315,13 +2316,22 @@ const WeighOnePage = () => {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-y border-border py-2.5 text-sm text-muted-foreground">
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-primary" /><strong className="text-foreground">{pendingTransactions.length}</strong> in yard</span>
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-warning" /><strong className="text-foreground">{awaitingSecondWeigh}</strong> awaiting 2nd weigh</span>
-        <span><strong className="text-foreground">{todayTickets.length}</strong> tickets</span>
-        <span><strong className="text-foreground font-mono">{todayTotalTonnes.toFixed(1)} t</strong> net today</span>
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-destructive" /><strong className="text-foreground">{alertCount}</strong> banksman alerts</span>
-        {midweighSyncedLabel && <span className="ml-auto text-xs">● Midweigh synced {midweighSyncedLabel}</span>}
+      <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" aria-label="Today at the weighbridge">
+          {[
+            { label: "In yard", value: String(pendingTransactions.length), icon: Truck, tone: "text-primary", alert: false },
+            { label: "Awaiting 2nd weigh", value: String(awaitingSecondWeigh), icon: Clock, tone: "text-warning-text", alert: false },
+            { label: "Tickets today", value: String(todayTickets.length), icon: FileText, tone: "text-muted-foreground", alert: false },
+            { label: "Net today", value: `${formatTonnes(todayTotalTonnes)} t`, icon: Weight, tone: "text-muted-foreground", alert: false },
+            { label: "Banksman alerts", value: String(alertCount), icon: AlertTriangleIcon, tone: alertCount > 0 ? "text-destructive" : "text-muted-foreground", alert: alertCount > 0 },
+          ].map((stat) => (
+            <div key={stat.label} className={`flex flex-col justify-between rounded-lg border bg-card px-4 py-3 ${stat.alert ? "border-destructive border-l-4 bg-destructive-subtle" : "border-border"}`}>
+              <div className={`flex items-center gap-1.5 text-sm font-semibold ${stat.tone}`}><stat.icon className="h-4 w-4 shrink-0" aria-hidden="true" /><span className="leading-tight">{stat.label}</span></div>
+              <div className="mt-1 text-[28px] font-bold leading-9 tabular-nums text-foreground">{stat.value}</div>
+            </div>
+          ))}
+        </div>
+        {midweighSyncedLabel && <p className="flex items-center justify-end gap-1.5 text-sm text-muted-foreground"><CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" />Midweigh synced {midweighSyncedLabel}</p>}
       </div>
 
       {/* Second Weigh Dialog */}
@@ -2333,7 +2343,7 @@ const WeighOnePage = () => {
           {selectedTransaction && (
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-muted-foreground">Vehicle:</span> <span className="font-mono font-bold">{selectedTransaction.vehicle_reg}</span></div>
+                <div><span className="text-muted-foreground">Vehicle:</span> <span className="reg-plate">{selectedTransaction.vehicle_reg}</span></div>
                 <div><span className="text-muted-foreground">Customer:</span> {selectedTransaction.customer ?? "-"}</div>
                 <div><span className="text-muted-foreground">Waste:</span> {selectedTransaction.waste_description ?? "-"}</div>
                 {hasWeighbridgePricing(selectedTransaction.job_type) && <div><span className="text-muted-foreground">Price/t:</span> {selectedTransaction.price_per_tonne != null ? `£${selectedTransaction.price_per_tonne.toFixed(2)}` : "-"}</div>}
@@ -2459,7 +2469,7 @@ const WeighOnePage = () => {
                             </TableCell>
 
 
-                            <TableCell className="font-mono">{t.vehicle_reg}</TableCell>
+                            <TableCell className="reg-plate">{t.vehicle_reg}</TableCell>
                             <TableCell>{t.customer ?? "-"}</TableCell>
                             <TableCell className="whitespace-nowrap text-xs">
                               {jobTypeLabel(t.job_type)}
@@ -2617,7 +2627,7 @@ const WeighOnePage = () => {
               {isTestRecord(selectedTransaction) && <TestModeBanner label="Test ticket" />}
 
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-muted-foreground">Vehicle:</span> <span className="font-mono font-bold">{selectedTransaction.vehicle_reg}</span></div>
+                <div><span className="text-muted-foreground">Vehicle:</span> <span className="reg-plate">{selectedTransaction.vehicle_reg}</span></div>
                 <div><span className="text-muted-foreground">Status:</span> <Badge variant="outline" className={STATUS_CONFIG[selectedTransaction.status].color}>{STATUS_CONFIG[selectedTransaction.status].label}</Badge></div>
                 <div><span className="text-muted-foreground">Customer:</span> {selectedTransaction.customer ?? "-"}</div>
                 <div><span className="text-muted-foreground">Driver:</span> {selectedTransaction.driver_name ?? "-"}</div>

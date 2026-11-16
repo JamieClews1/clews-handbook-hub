@@ -904,7 +904,7 @@ const RouteOnePage = () => {
       <div className="px-4 py-2 border-b border-border bg-card flex items-center gap-3 shrink-0 overflow-x-auto">
         <div className="flex items-center gap-2 shrink-0">
           <div>
-            <h1 className="text-2xl font-bold text-foreground leading-tight">RouteOne</h1>
+            <h1 className="text-[28px] leading-9 font-bold text-foreground leading-tight">RouteOne</h1>
           </div>
         </div>
 

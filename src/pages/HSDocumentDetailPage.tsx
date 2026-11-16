@@ -393,7 +393,7 @@ const HSDocumentDetailPage = () => {
                 <p className="text-sm text-muted-foreground">
                   {doc.category === "fire_safety" ? "Fire Safety" : doc.category === "visitor_induction" ? "Visitor & Haulier Induction" : "Site Induction"}
                 </p>
-                <h1 className="text-2xl font-bold leading-tight">{title}</h1>
+                <h1 className="text-[28px] leading-9 font-bold leading-tight">{title}</h1>
               </div>
             </div>
             {signature && (

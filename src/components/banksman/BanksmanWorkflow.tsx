@@ -345,7 +345,7 @@ function JobCard({ job, onStart }: { job: BJob; onStart?: () => void }) {
       <p className="text-2xl font-extrabold">#{job.job_number}</p><StatusPill job={job} />
     </div>
     <div className="mt-2 space-y-1 text-lg">
-      <p><span className="text-muted-foreground">Reg: </span><span className="rounded bg-yellow-300 px-1.5 font-mono font-bold text-black">{job.vehicle_reg || "—"}</span></p>
+      <p><span className="text-muted-foreground">Reg: </span><span className="rounded bg-yellow-300 px-1.5 reg-plate text-black">{job.vehicle_reg || "—"}</span></p>
       {job.customer && <p className="truncate"><span className="text-muted-foreground">Customer: </span><b>{job.customer}</b></p>}
       {job.material && <p className="truncate"><span className="text-muted-foreground">Material: </span><b>{job.material}</b></p>}
       {job.status === "completed" && <p className="text-sm text-muted-foreground">Completed {time(job.completed_at)} by {job.completed_by_name}

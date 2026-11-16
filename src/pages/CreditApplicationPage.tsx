@@ -168,7 +168,7 @@ const CreditApplicationPage = () => {
         ) : (
           <div className="space-y-6">
             <div className="text-center">
-              <h1 className="text-2xl font-bold">Application For Credit Facilities</h1>
+              <h1 className="text-[28px] leading-9 font-bold">Application For Credit Facilities</h1>
               <p className="text-muted-foreground mt-1">Please complete all fields and sign below</p>
             </div>
 

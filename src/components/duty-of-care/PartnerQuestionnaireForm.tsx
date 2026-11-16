@@ -350,7 +350,7 @@ export function PartnerQuestionnaireForm({ questionnaireId, shareToken, isPublic
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 mb-4">
             <Building2 className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Partner Onboarding Questionnaire</h1>
+          <h1 className="text-[28px] leading-9 font-bold text-foreground">Partner Onboarding Questionnaire</h1>
           <p className="text-muted-foreground mt-2">Please complete all sections below to register as a partner</p>
           {isSubmitted && (
             <Badge variant="secondary" className="mt-4">

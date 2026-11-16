@@ -72,7 +72,7 @@ export function BanksmanAlertsPanel() {
               {list.map((j) => (
                 <Button variant="ghost" key={j.id} onClick={() => setOpenId(j.id)} className="flex h-auto min-h-16 w-full flex-wrap justify-start gap-3 rounded-none px-4 py-4 text-left whitespace-normal hover:bg-muted/50">
                   <span className="w-24 font-bold">#{j.job_number}</span>
-                  <span className="w-28 font-mono">{j.vehicle_reg || "—"}</span>
+                  <span className="w-28 reg-plate">{j.vehicle_reg || "—"}</span>
                   <span className="min-w-40 flex-1 break-words">{j.customer || "—"} <span className="text-muted-foreground">· {j.material || ""}</span></span>
                   {j.has_contamination && <span className="font-bold text-destructive">{gbp(j.contamination_total)}</span>}
                   <span className="text-xs text-muted-foreground">{tm(j.completed_at ?? j.created_at)}</span>

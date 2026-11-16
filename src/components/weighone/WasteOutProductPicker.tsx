@@ -90,7 +90,7 @@ export function WasteOutProductPicker({ products, value, onChange, placeholder =
               return (
                 <div key={p.id}>
                   {showHeader && (
-                    <p className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <p className="px-2 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       {topIds.has(p.id) ? "Most common" : "All products"}
                     </p>
                   )}
@@ -109,7 +109,7 @@ export function WasteOutProductPicker({ products, value, onChange, placeholder =
                       <span className="text-sm">{p.display_name}</span>
                     </span>
                     {topIds.has(p.id) && loads ? (
-                      <span className="shrink-0 text-[11px] text-muted-foreground">{loads} {loads === 1 ? "load" : "loads"}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">{loads} {loads === 1 ? "load" : "loads"}</span>
                     ) : null}
                   </button>
                 </div>

@@ -21,7 +21,7 @@ const HandbookPage = () => {
           {editing ? <Eye className="h-4 w-4 mr-2" /> : <Pencil className="h-4 w-4 mr-2" />}{editing ? "View Handbook" : "Edit Handbook"}
         </Button>
       </div>}
-      {editing ? <main className="container max-w-screen-2xl mx-auto px-4 py-6"><h1 className="text-2xl font-bold mb-6">Edit Handbook</h1><HandbookBuilder /></main> : <>
+      {editing ? <main className="container max-w-screen-2xl mx-auto px-4 py-6"><h1 className="text-[28px] leading-9 font-bold mb-6">Edit Handbook</h1><HandbookBuilder /></main> : <>
         <Header language={language} onLanguageChange={setLanguage} />
         <Navigation language={language} />
         <Handbook language={language} />

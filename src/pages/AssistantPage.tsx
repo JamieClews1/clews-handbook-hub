@@ -74,7 +74,7 @@ const AssistantPage = () => {
     <div className="h-[calc(100vh-3.5rem)] flex flex-col">
       <div className="border-b border-border bg-background px-6 py-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-baseline gap-3">
-            <h1 className="text-2xl font-bold text-foreground">Ask One</h1>
+            <h1 className="text-[28px] leading-9 font-bold text-foreground">Ask One</h1>
             <p className="text-sm text-muted-foreground">Portal assistant</p>
         </div>
         <div className="flex items-center gap-2">

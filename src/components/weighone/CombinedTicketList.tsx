@@ -138,7 +138,7 @@ export function CombinedTicketList({ tablet = false, banksmanJobs = [] }: { tabl
             return <div key={key}>
               <Button variant="ghost" aria-expanded={open} aria-label={`View ticket ${ticket.ticket}`} onClick={() => setExpanded(open ? null : key)} className="h-auto min-h-24 w-full justify-start gap-3 rounded-none p-3 text-left whitespace-normal">
                 <div className="min-w-0 flex-1 space-y-1">
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1"><span className="font-mono text-lg font-bold">#{ticket.ticket}</span><span className="font-mono">{ticket.vehicle || "—"}</span><span className="ml-auto tabular-nums">{ticket.weightTonnes?.toFixed(3) ?? "—"} t</span></div>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1"><span className="font-mono text-lg font-bold">#{ticket.ticket}</span><span className="reg-plate">{ticket.vehicle || "—"}</span><span className="ml-auto font-semibold tabular-nums">{ticket.weightTonnes?.toFixed(3) ?? "—"} t</span></div>
                   <p className="break-words text-base">{ticket.customer || "—"}</p>
                   <p className="break-words text-sm text-muted-foreground">{ticket.site} · {ticket.waste} · {dateLabel(ticket.date)}</p>
                 </div>
@@ -168,7 +168,7 @@ export function CombinedTicketList({ tablet = false, banksmanJobs = [] }: { tabl
                   <TableCell><Badge variant={ticket.source !== "midweigh" ? "secondary" : "outline"}>{ticket.source === "midweigh" ? "Midweigh" : ticket.source === "skiptrak" ? "RouteOne · Skiptrak" : "RouteOne"}</Badge></TableCell>
                   <TableCell className="whitespace-nowrap text-muted-foreground">{dateLabel(ticket.date)}</TableCell>
                   <TableCell className="min-w-44"><p>{ticket.customer || "—"}</p><p className="text-xs text-muted-foreground">{ticket.site}</p></TableCell>
-                  <TableCell className="whitespace-nowrap font-mono">{ticket.vehicle || "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap reg-plate">{ticket.vehicle || "—"}</TableCell>
                   <TableCell className="min-w-40">{ticket.waste || "—"}<p className="text-xs text-muted-foreground">{ticket.ewc}</p></TableCell>
                   <TableCell className="text-xs">{banksmanLabel(banksmanJobs.find(j => j.weighbridge_transaction_id === ticket.transactionId))}</TableCell>
                   <TableCell className="text-xs"><p>{ticketStateLabel(ticket.movement)}</p>{ticket.status && <p className="text-muted-foreground">{ticketStateLabel(ticket.status)}</p>}</TableCell>

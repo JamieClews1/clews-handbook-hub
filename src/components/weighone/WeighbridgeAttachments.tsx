@@ -214,7 +214,7 @@ export const WeighbridgeAttachments = ({ transactionId }: { transactionId: strin
         <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
           <Paperclip className="h-3.5 w-3.5" /> Documents & Photos
         </span>
-        <Badge variant="outline" className="text-[10px]">{attachments.length}</Badge>
+        <Badge variant="outline" className="text-xs">{attachments.length}</Badge>
       </div>
       <div className="p-3 space-y-3">
         <div className="flex gap-2">
@@ -275,7 +275,7 @@ export const WeighbridgeAttachments = ({ transactionId }: { transactionId: strin
                 >
                   <Trash2 className="h-3 w-3 text-destructive" />
                 </button>
-                <div className="px-1.5 py-1 text-[10px] text-muted-foreground truncate">
+                <div className="px-1.5 py-1 text-xs text-muted-foreground truncate">
                   {format(new Date(a.created_at), "dd/MM HH:mm")}
                 </div>
               </div>

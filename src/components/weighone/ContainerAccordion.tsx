@@ -94,9 +94,9 @@ export function ContainerAccordion({ groups, value, openGroup, onOpenGroup, onSe
               <span className="flex items-baseline gap-2">
                 <span className="text-xs font-semibold text-foreground">{g.vehicle}</span>
                 {selected ? (
-                  <span className="text-[11px] font-medium text-primary">{containerChipLabel(selected)}{containerRef(selected) ? ` · ${containerRef(selected)}` : ""}</span>
+                  <span className="text-xs font-medium text-primary">{containerChipLabel(selected)}{containerRef(selected) ? ` · ${containerRef(selected)}` : ""}</span>
                 ) : (
-                  <span className="text-[11px] text-muted-foreground">{g.options.length} types</span>
+                  <span className="text-xs text-muted-foreground">{g.options.length} types</span>
                 )}
               </span>
               <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", open && "rotate-180")} />
@@ -113,7 +113,7 @@ export function ContainerAccordion({ groups, value, openGroup, onOpenGroup, onSe
                     onClick={() => onSelect(o, g.vehicle)}
                   >
                     {containerChipLabel(o)}
-                    {containerRef(o) && <span className="ml-1.5 font-mono text-[10px] font-semibold opacity-70">{containerRef(o)}</span>}
+                    {containerRef(o) && <span className="ml-1.5 font-mono text-xs font-semibold opacity-70">{containerRef(o)}</span>}
                   </Button>
                 ))}
               </div>

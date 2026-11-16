@@ -262,7 +262,7 @@ const PublicInventoryPage = () => {
       <div className="mx-auto max-w-screen-2xl space-y-5">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">Skip &amp; RoRo Asset Inventory</h1>
+            <h1 className="text-[28px] leading-9 font-bold">Skip &amp; RoRo Asset Inventory</h1>
             <p className="text-sm text-muted-foreground">
               {label ? `${label} · ` : ""}Read-only view · {items.length} assets · as at{" "}
               {format(new Date(), "d MMM yyyy")}

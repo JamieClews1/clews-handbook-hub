@@ -313,7 +313,7 @@ const SkipTrackerFlow = ({
           <ChevronLeft className="w-5 h-5" />
           <span className="text-sm font-medium">Back</span>
         </button>
-        <h1 className="text-2xl font-bold text-foreground">Catalogue Skip / RoRo</h1>
+        <h1 className="text-[28px] leading-9 font-bold text-foreground">Catalogue Skip / RoRo</h1>
       </div>
 
       <div className="p-4 space-y-4">
@@ -737,7 +737,7 @@ const DriverSkipTracker = ({
           <div>
             <div className="flex items-center gap-2">
               <Boxes className="w-6 h-6 text-emerald-500" />
-              <h1 className="text-2xl font-bold text-foreground">Skip Tracker</h1>
+              <h1 className="text-[28px] leading-9 font-bold text-foreground">Skip Tracker</h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               {userName ? `${userName} · ` : ""}Catalogue skips & RoRos to earn points

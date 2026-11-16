@@ -289,7 +289,7 @@ const ContaminationDetail = ({ queryId, onBack, isAdmin }: Props) => {
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-3 flex-wrap">
+            <h1 className="text-[28px] leading-9 font-bold flex items-center gap-3 flex-wrap">
               Job #{query.job_number}
               <Badge className={`${currentStatus.color} text-xs`}>{currentStatus.label}</Badge>
               <Badge className={`${approval.color} text-xs`}>{approval.label}</Badge>

@@ -72,7 +72,7 @@ export const CustomerPortalLogin = ({ onLoginSuccess }: CustomerPortalLoginProps
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
               <Building2 className="h-5 w-5 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground">Customer Portal</h1>
+            <h1 className="text-[28px] leading-9 font-bold text-foreground">Customer Portal</h1>
           </div>
           <p className="text-muted-foreground text-sm">
             Access your recycling reports and account information

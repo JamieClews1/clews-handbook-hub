@@ -19,23 +19,24 @@
     --popover-foreground: 150 18.52% 10.59%;
 
     /* WasteOne Fresh Green - Primary (from logo #4ECB71) */
-    --primary: 148.35 59.48% 30%;
+    /* Legibility review: #176239 gives 7.4:1 with white text */
+    --primary: 147.2 62% 23.7%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 148.35 59.48% 24%;
+    --primary-hover: 147.5 66.3% 17.5%;
 
     /* Slightly darker green - Secondary */
     --secondary: 140 9.68% 93.92%;
     --secondary-foreground: 150 18.52% 10.59%;
 
     --muted: 140 9.68% 93.92%;
-    --muted-foreground: 165 8.33% 37.65%;
+    --muted-foreground: 160 7.9% 29.8%; /* #46524E, 8.1:1 */
 
     /* Green accent */
     --accent: 140 9.68% 93.92%;
     --accent-foreground: 150 18.52% 10.59%;
 
     /* Semantic palette — strict, one meaning each */
-    --success: 148.35 59.48% 30%;
+    --success: 147.2 62% 23.7%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 40 100% 12%;
@@ -53,7 +54,7 @@
     /* Hairline border for flat, data-dense card surfaces */
     --border-hairline: 220 12% 90%;
     --input: 145.71 9.09% 84.9%;
-    --ring: 148.35 59.48% 30%;
+    --ring: 147.2 62% 23.7%;
 
     /* Radius scale: 8 controls / 12 cards / 16 modals */
     --radius: 0.75rem;
@@ -85,9 +86,18 @@
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 220 10% 16%;
     --sidebar-ring: 147.07 59.64% 56.27%;
+    /* Footer meta (version, date, live sync) on the near-black sidebar: #A3ACA7, 7.9:1 */
+    --sidebar-muted: 146.7 5.1% 65.7%;
+
+    /* Type scale (legibility review). Screen sizes; print keeps the compact scale below. */
+    --text-xs: 0.875rem;   --text-xs-lh: 1.25rem;
+    --text-sm: 0.9375rem;  --text-sm-lh: 1.375rem;
+    --text-base: 1rem;     --text-base-lh: 1.5rem;
+    --text-lg: 1.125rem;   --text-lg-lh: 1.75rem;
   }
 
   .dark {
+    --sidebar-muted: 146.7 5.1% 65.7%;
     --background: 160 20% 7%;
     --foreground: 150 10% 95%;
 
@@ -361,4 +371,24 @@
 @layer utilities {
   .tracking-tight, .tracking-tighter { letter-spacing: 0; }
   .text-\[10px\], .text-\[11px\] { font-size: 12px; }
+}
+
+/* Printed pages keep the original compact type scale so paperwork layouts don't change. */
+@media print {
+  :root {
+    --text-xs: 0.75rem;  --text-xs-lh: 1rem;
+    --text-sm: 0.875rem; --text-sm-lh: 1.25rem;
+  }
+}
+
+@layer components {
+  /* Vehicle registrations: bold monospace, tabular figures, slight tracking */
+  .reg-plate {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    line-height: 1.375rem;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+  }
 }

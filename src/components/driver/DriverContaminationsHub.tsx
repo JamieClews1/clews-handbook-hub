@@ -107,7 +107,7 @@ const DriverContaminationsHub = ({
           <div>
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-6 h-6 text-red-500" />
-              <h1 className="text-2xl font-bold text-foreground">Contaminations</h1>
+              <h1 className="text-[28px] leading-9 font-bold text-foreground">Contaminations</h1>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               {userName ? `${userName} · ` : ""}Report issues and track your reward points

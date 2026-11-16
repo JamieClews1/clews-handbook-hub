@@ -207,11 +207,11 @@ const MidweighHistory = () => {
                   <span className="text-muted-foreground tabular-nums">{job.job_date ? format(parseISO(job.job_date), "dd/MM/yy") : "-"}</span>
                   <span className="text-foreground truncate">{job.customer || "-"}</span>
                   <span className="text-foreground truncate">{job.waste_description || "-"}</span>
-                  <span className="font-mono text-foreground truncate">{job.vehicle_registration || "-"}</span>
+                  <span className="reg-plate text-foreground truncate">{job.vehicle_registration || "-"}</span>
                   <span className="text-foreground truncate">{job.driver || "-"}</span>
                   <span>
                     {job.movement_type && (
-                      <Badge variant="outline" className={`text-[10px] px-1 py-0 h-4 ${
+                      <Badge variant="outline" className={`text-xs px-1.5 py-0 ${
                         job.movement_type === "INWARD"
                           ? "bg-blue-500/10 text-blue-700 border-blue-500/30"
                           : "bg-orange-500/10 text-orange-700 border-orange-500/30"
@@ -249,7 +249,7 @@ const MidweighHistory = () => {
                     {/* Raw data */}
                     {Object.keys(rawFields).length > 0 && (
                       <div className="mt-3 space-y-1.5">
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Raw Midweigh Data</p>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Raw Midweigh Data</p>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-xs bg-muted/40 rounded-lg p-3">
                           {Object.entries(rawFields).map(([key, val]) => (
                             <div key={key} className="flex gap-1.5">

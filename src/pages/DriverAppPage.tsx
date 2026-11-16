@@ -680,7 +680,7 @@ const DriverJobDetail = ({
           </Badge>
           <span className="text-xs text-muted-foreground font-mono">{job.job_number}</span>
         </div>
-        <h1 className="text-2xl font-bold text-foreground mt-2">{job.customer_name}</h1>
+        <h1 className="text-[28px] leading-9 font-bold text-foreground mt-2">{job.customer_name}</h1>
       </div>
 
       <div className="p-4 space-y-4">
@@ -1230,7 +1230,7 @@ const SkiptrakJobDetailView = ({
           <Badge variant="secondary" className="text-xs">Skiptrak</Badge>
           <span className="text-xs text-muted-foreground font-mono">#{job.job_number}</span>
         </div>
-        <h1 className="text-2xl font-bold text-foreground mt-2">{job.customer || "Unknown"}</h1>
+        <h1 className="text-[28px] leading-9 font-bold text-foreground mt-2">{job.customer || "Unknown"}</h1>
       </div>
       <div className="p-4 space-y-4">
         <Card>

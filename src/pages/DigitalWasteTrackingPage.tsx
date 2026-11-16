@@ -310,7 +310,7 @@ const DigitalWasteTrackingPage = () => {
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-foreground">Digital Waste Tracking</h1>
+                <h1 className="text-[28px] leading-9 font-bold text-foreground">Digital Waste Tracking</h1>
                 <Badge variant="outline" className="gap-1.5">
                   <Radio className="h-3 w-3" /> DEFRA sandbox
                 </Badge>

@@ -33,7 +33,7 @@ export function BanksmanJobDialog({ job, onClose }: { job: BJob | null; onClose:
       {photos.map((p) => (
         <Button variant="ghost" key={p.url} aria-label={`Enlarge photo taken ${dt(p.taken_at)}`} onClick={() => setBig(p.url)} className="group relative h-auto aspect-square overflow-hidden rounded-lg border border-border p-0">
           <img src={p.url} alt="Load evidence" className="h-full w-full object-cover" />
-          <span className="absolute inset-x-0 bottom-0 bg-background/80 px-1 text-[11px]">{dt(p.taken_at)}</span>
+          <span className="absolute inset-x-0 bottom-0 bg-background/80 px-1 text-xs">{dt(p.taken_at)}</span>
         </Button>
       ))}
       {photos.length === 0 && <p className="col-span-full text-sm text-muted-foreground">No photos.</p>}

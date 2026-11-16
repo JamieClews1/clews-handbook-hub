@@ -456,7 +456,7 @@ const DriverContaminationFlow = ({ job, reporter, onBack, onSubmitted }: Props) 
         </button>
         <div className="flex items-center gap-2">
           <AlertTriangle className="w-6 h-6 text-red-500" />
-          <h1 className="text-2xl font-bold text-foreground">
+          <h1 className="text-[28px] leading-9 font-bold text-foreground">
             {editId ? "Edit Contamination" : "Report Contamination"}
           </h1>
         </div>
