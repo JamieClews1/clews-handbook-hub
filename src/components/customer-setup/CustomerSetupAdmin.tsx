@@ -24,7 +24,7 @@ import { SiteRebateItemsEditor } from "./SiteRebateItemsEditor";
 import { SiteRebateOverridesEditor } from "./SiteRebateOverridesEditor";
 import { DataHubCombobox } from "./DataHubCombobox";
 import { SitePostcodeFinder } from "./SitePostcodeFinder";
-import { applySiteSearchHit, hitIsLinked } from "@/lib/site-postcode-finder";
+import { applySiteSearchHit, hitIsLinked, siteMatchesSearch } from "@/lib/site-postcode-finder";
 import { SiteSkipRebatesEditor } from "./SiteSkipRebatesEditor";
 import { CustomerSkipRebatesEditor } from "./CustomerSkipRebatesEditor";
 import { StaciPalletRatesEditor } from "./StaciPalletRatesEditor";
@@ -42,7 +42,7 @@ import { publicUrl } from "@/lib/public-url";
 import { allAccessSiteIds } from "@/lib/portal-site-access";
 import { PortalAccessDirectory } from "./PortalAccessDirectory";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Plus } from "lucide-react";
+import { MoreHorizontal, Plus, Search } from "lucide-react";
 import { summariseAccountFacts, type AccountFacts } from "@/lib/customer-account-facts";
 
 const UNDERLINE_LIST = "h-auto w-full justify-start gap-6 overflow-x-auto rounded-none border-0 border-b border-border bg-transparent p-0";
@@ -255,6 +255,8 @@ export function CustomerSetupAdmin() {
     what3words: "",
   });
   const [savingSite, setSavingSite] = useState(false);
+  // Per portal user: text typed into the "Search sites" box on Edit site access.
+  const [accessSiteSearch, setAccessSiteSearch] = useState<Record<string, string>>({});
   // Human-readable window (e.g. "01/05/2026 → ongoing") of the period whose rebate values are shown below.
   const [selectedPeriodLabel, setSelectedPeriodLabel] = useState<string | null>(null);
   const [newRebateSetInline, setNewRebateSetInline] = useState("");
@@ -1783,7 +1785,7 @@ export function CustomerSetupAdmin() {
                   <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
                     <div className="flex flex-wrap items-center gap-2">
                       <Input
-                        placeholder={showArchivedSites ? "Search archived sites" : "Search sites"}
+                        placeholder={showArchivedSites ? "Search archived sites or postcode" : "Search sites or postcode"}
                         value={siteSearch}
                         onChange={(e) => setSiteSearch(e.target.value)}
                         className="w-full sm:w-80"
@@ -1822,8 +1824,7 @@ export function CustomerSetupAdmin() {
                           .filter((s) => {
                             const q = siteSearch.trim().toLowerCase();
                             if (!q) return true;
-                            return [s.site_name, s.data_hub_customer, s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5]
-                              .some((v) => (v ?? "").toLowerCase().includes(q));
+                            return (s.data_hub_customer ?? "").toLowerCase().includes(q) || siteMatchesSearch(s, q);
                           })
                           .map((s) => {
                           const owner = s.owner_contact_id ? contactsById[s.owner_contact_id] : null;
@@ -2227,20 +2228,64 @@ export function CustomerSetupAdmin() {
                               </CardHeader>
 
                               <CardContent className="space-y-3">
-                                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                  {sites.map((s) => (
-                                    <label key={`${m.id}-${s.id}`} className="flex items-center gap-2 rounded-md border border-border p-3">
-                                      <Checkbox
-                                        checked={allowed.has(s.id)}
-                                        onCheckedChange={(v) => toggleSiteAccess(m.id, s.id, Boolean(v))}
-                                      />
-                                      <span className="text-sm">{s.site_name}</span>
-                                      {s.is_archived && (
-                                        <span className="ml-auto text-xs text-muted-foreground">Archived</span>
-                                      )}
-                                    </label>
-                                  ))}
-                                </div>
+                                {(() => {
+                                  const term = accessSiteSearch[m.id] ?? "";
+                                  const shown = sites.filter((s) => siteMatchesSearch(s, term));
+                                  return (
+                                    <>
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <div className="relative flex-1 min-w-56 max-w-xl">
+                                          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                          <Input
+                                            aria-label={`Search sites for ${profile?.email ?? "this user"}`}
+                                            placeholder="Search postcode, site name or address"
+                                            value={term}
+                                            onChange={(e) => setAccessSiteSearch((p) => ({ ...p, [m.id]: e.target.value }))}
+                                            className="pl-9"
+                                          />
+                                        </div>
+                                        {term.trim() && (
+                                          <>
+                                            <span className="text-sm text-muted-foreground">
+                                              {shown.length} of {sites.length} sites
+                                            </span>
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              disabled={shown.length === 0}
+                                              onClick={() => shown.forEach((s) => toggleSiteAccess(m.id, s.id, true))}
+                                            >
+                                              Tick shown sites
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => setAccessSiteSearch((p) => ({ ...p, [m.id]: "" }))}>
+                                              Clear search
+                                            </Button>
+                                          </>
+                                        )}
+                                      </div>
+                                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {shown.map((s) => (
+                                          <label key={`${m.id}-${s.id}`} className="flex items-center gap-2 rounded-md border border-border p-3">
+                                            <Checkbox
+                                              checked={allowed.has(s.id)}
+                                              onCheckedChange={(v) => toggleSiteAccess(m.id, s.id, Boolean(v))}
+                                            />
+                                            <span className="min-w-0">
+                                              <span className="block text-sm">{s.site_name}</span>
+                                              {s.postcode && <span className="block text-xs text-muted-foreground tabular-nums">{s.postcode}</span>}
+                                            </span>
+                                            {s.is_archived && (
+                                              <span className="ml-auto text-xs text-muted-foreground">Archived</span>
+                                            )}
+                                          </label>
+                                        ))}
+                                        {shown.length === 0 && (
+                                          <p className="text-sm text-muted-foreground">No sites match that search.</p>
+                                        )}
+                                      </div>
+                                    </>
+                                  );
+                                })()}
                                 <div className="flex justify-end">
                                   <Button size="sm" onClick={() => saveSiteAccess(m.id)}>
                                     Save access

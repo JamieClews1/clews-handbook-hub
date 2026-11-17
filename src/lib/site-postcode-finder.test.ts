@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { applySiteSearchHit, normaliseSiteSearchTerm, type SiteFinderForm, type SiteSearchHit } from "./site-postcode-finder";
+import { applySiteSearchHit, normaliseSiteSearchTerm, siteMatchesSearch, type SiteFinderForm, type SiteSearchHit } from "./site-postcode-finder";
 
 const empty: SiteFinderForm = {
   site_name: "", data_hub_customer: "", data_hub_site: "", data_hub_site_2: "", data_hub_site_3: "", data_hub_site_4: "", data_hub_site_5: "",
@@ -42,5 +42,19 @@ describe("applySiteSearchHit", () => {
     assert.equal(applySiteSearchHit(linked, hit).status, "already");
     const full = { ...empty, data_hub_site: "A", data_hub_site_2: "B", data_hub_site_3: "C", data_hub_site_4: "D", data_hub_site_5: "E" };
     assert.equal(applySiteSearchHit(full, hit).status, "full");
+  });
+});
+
+describe("siteMatchesSearch", () => {
+  const site = { site_name: "Britvic Rugby", postcode: "CV21 1HA", address_2: "Aventine Way" };
+  it("finds a site by postcode typed with or without the space", () => {
+    assert.equal(siteMatchesSearch(site, "cv211ha"), true);
+    assert.equal(siteMatchesSearch(site, "CV21 1HA"), true);
+    assert.equal(siteMatchesSearch(site, "cv21"), true);
+    assert.equal(siteMatchesSearch({ site_name: "Paul Jackson", postcode: "CV2 1NE" }, "cv21"), false);
+  });
+  it("finds by name or address and hides sites that don't match", () => {
+    assert.equal(siteMatchesSearch(site, "aventine"), true);
+    assert.equal(siteMatchesSearch(site, "CV22 5AB"), false);
   });
 });

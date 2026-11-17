@@ -58,3 +58,33 @@ export function applySiteSearchHit<F extends SiteFinderForm>(form: F, hit: SiteS
   if (!next.postcode.trim() && hit.postcode) next.postcode = hit.postcode.trim().toUpperCase();
   return { form: next, status: "added" };
 }
+
+export interface SearchableSite {
+  site_name?: string | null;
+  postcode?: string | null;
+  address_1?: string | null;
+  address_2?: string | null;
+  address_3?: string | null;
+  address_4?: string | null;
+  data_hub_site?: string | null;
+  data_hub_site_2?: string | null;
+  data_hub_site_3?: string | null;
+  data_hub_site_4?: string | null;
+  data_hub_site_5?: string | null;
+}
+
+/**
+ * Does a portal site match the access-list search? Postcodes match with or without the space
+ * ("cv211ha" finds "CV21 1HA"); other words match the name, address or linked Data Hub site names.
+ */
+export function siteMatchesSearch(site: SearchableSite, raw: string): boolean {
+  const term = raw.trim().toLowerCase();
+  if (!term) return true;
+  const compact = term.replace(/\s/g, "");
+  // Space-free matching only for a near-complete postcode, so "cv21" doesn't also find "CV2 1NE".
+  if (compact.length >= 5 && !/\s/.test(term) && (site.postcode ?? "").toLowerCase().replace(/\s/g, "").startsWith(compact)) return true;
+  const text = [site.site_name, site.postcode, site.address_1, site.address_2, site.address_3, site.address_4,
+    site.data_hub_site, site.data_hub_site_2, site.data_hub_site_3, site.data_hub_site_4, site.data_hub_site_5]
+    .filter(Boolean).join(" ").toLowerCase();
+  return term.split(/\s+/).every((w) => text.includes(w));
+}
