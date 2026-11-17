@@ -219,7 +219,7 @@ function ColasMonthDetail({ data, index, onBack }: { data: ColasYearData; index:
                   <TableCell className="whitespace-nowrap">{l.ewc ?? "—"}</TableCell>
                   <TableCell>{PROVIDER_LABELS[l.provider]}</TableCell>
                   <TableCell className="text-right tabular-nums">{l.weight_t == null ? "—" : fmtT(l.weight_t)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{l.weightSource === "midweigh" ? "Weighbridge ticket" : l.weightSource === "skiptrak" ? "Skiptrak" : l.weightSource === "manual" ? "Entered" : "—"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{l.weightSource === "midweigh" ? "Weighbridge ticket" : l.weightSource === "skiptrak" ? "Skiptrak" : l.weightSource === "manual" ? "Entered" : l.weightSource === "assumed" ? "Assumed" : "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">{l.charge == null ? "—" : fmtGBP(l.charge)}</TableCell>
                   <TableCell className="space-x-1 whitespace-nowrap">{l.needsWeight && <Chip tone="bad">No weight</Chip>}{l.awaitingPaperwork && <Chip tone="warn">Awaiting paperwork</Chip>}{l.consignmentIssue ? <Chip tone="bad">{CONSIGNMENT_ISSUE_LABELS[l.consignmentIssue]}</Chip> : l.hazardous && l.provider === "robert_hopkins" && !l.consignmentRef && <Chip tone="warn">No consignment ref</Chip>}</TableCell>
                 </TableRow>

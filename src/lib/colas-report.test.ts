@@ -159,3 +159,46 @@ it("an Enva entry is shown as an Enva collection with its consignment, not a tic
   assert.equal(src.source, "Enva collection · consignment COLASR/11939");
   assert.deepEqual(src.tickets, []);
 });
+
+const manualEntry = (o: any) => ({ id: "m1", provider: "bm", collection_date: "2026-07-15", waste_stream: "co_mingled", hazardous: false, weight_kg: null, status: "confirmed", ...o });
+
+it("a wheelie bin lift with no weight counts as 0.5 t", () => {
+  const month = buildColasMonth(base({ jobs: [job({ container_type: "660 litre Wheelie Bin", movement: "Exchange", weight_t: null })] }));
+  assert.equal(month.lines[0].weight_t, 0.5);
+  assert.equal(month.lines[0].weightSource, "assumed");
+  assert.equal(month.missingWeights, 0);
+});
+
+it("a weighed wheelie bin keeps its recorded weight, not 0.5 t", () => {
+  const month = buildColasMonth(base({ jobs: [job({ container_type: "660 litre Wheelie Bin", weight_t: 0.04 })] }));
+  assert.equal(month.lines[0].weight_t, 0.04);
+});
+
+it("a wheelie bin weighed on the linked Clews ticket uses that weight, not 0.5 t", () => {
+  const month = buildColasMonth(base({ jobs: [job({ job_number: "45058", container_type: "660 litre Wheelie Bin", weight_t: null })], midweigh: [{ job_number: "76741", job_date: "2026-07-09", ewc: "15 01 06", waste_description: "Mixed", weight_kg: 40, linked_skip_job: "45058" }] }));
+  assert.equal(month.lines[0].weight_t, 0.04);
+});
+
+it("a skip with no weight is still flagged as missing, not assumed", () => {
+  const month = buildColasMonth(base({ jobs: [job({ container_type: "8 Yard", weight_t: null })] }));
+  assert.equal(month.lines[0].weight_t, null);
+  assert.equal(month.missingWeights, 1);
+});
+
+it("a B&M wheelie bin entry with no weight counts as 0.5 t", () => {
+  const month = buildColasMonth(base({ manual: [manualEntry({ provider: "bm" })] as any }));
+  assert.equal(month.lines[0].weight_t, 0.5);
+  assert.equal(month.missingWeights, 0);
+});
+
+it("a Fortress food waste entry with no weight counts as 0.3 t", () => {
+  const month = buildColasMonth(base({ manual: [manualEntry({ provider: "fortress", waste_stream: "food" })] as any }));
+  assert.equal(month.lines[0].weight_t, 0.3);
+  assert.equal(month.lines[0].weightSource, "assumed");
+});
+
+it("an Enva entry with no weight is still flagged as missing", () => {
+  const month = buildColasMonth(base({ manual: [manualEntry({ provider: "enva", waste_stream: "aqueous_oil_mix", hazardous: true })] as any }));
+  assert.equal(month.lines[0].weight_t, null);
+  assert.equal(month.missingWeights, 1);
+});

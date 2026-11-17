@@ -91,6 +91,14 @@ export function classifyStream(ewcRaw: string | null | undefined, descRaw: strin
 /** Skiptrak movements that remove waste from site (deliveries only drop an empty container). */
 export const isRemovalMovement = (movement: string | null | undefined) => !/^deliver/i.test(String(movement ?? "").trim());
 
+/** Weights assumed for collections that come through with no weight (agreed with Clews, 17 Nov 2026). */
+export const ASSUMED_WHEELIE_BIN_T = 0.5;
+export const ASSUMED_FORTRESS_FOOD_T = 0.3;
+export const isWheelieBin = (container: string | null | undefined) => /wheel/i.test(String(container ?? ""));
+/** Assumed tonnes for a manual entry with no weight: B&M wheelie bins and Fortress food waste only. */
+export const assumedManualWeight = (provider: string): number | null =>
+  provider === "bm" ? ASSUMED_WHEELIE_BIN_T : provider === "fortress" ? ASSUMED_FORTRESS_FOOD_T : null;
+
 export interface ColasSkiptrakJob {
   job_number: string;
   job_date: string; // YYYY-MM-DD
@@ -162,7 +170,7 @@ export interface ColasLine {
   stream: ColasStreamKey;
   hazardous: boolean;
   weight_t: number | null;
-  weightSource: "skiptrak" | "midweigh" | "manual" | null;
+  weightSource: "skiptrak" | "midweigh" | "manual" | "assumed" | null;
   charge: number | null;
   consignmentRef: string | null;
   /** Staff could not read the consignment number off the scanned paperwork (only set while no number is saved). */
@@ -258,6 +266,8 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
       const kg = midByJob.get(String(j.job_number).trim());
       if (kg) { weight = kg / 1000; weightSource = "midweigh"; }
     }
+    // A wheelie bin lift with no weight anywhere counts as the agreed assumed weight.
+    if (weight == null && removal && isWheelieBin(j.container_type)) { weight = ASSUMED_WHEELIE_BIN_T; weightSource = "assumed"; }
     const rh = /hopkins/i.test(j.tipping_location ?? "");
     lines.push({
       id: `skiptrak:${j.job_number}`,
@@ -307,7 +317,9 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
   for (const e of input.manual) {
     if (e.voided_at || !inMonth(e.collection_date, year, month)) continue;
     const stream = (COLAS_STREAMS.some(s => s.key === e.waste_stream) ? e.waste_stream : "misc") as ColasStreamKey;
-    const w = e.weight_kg != null && e.weight_kg >= 0 ? e.weight_kg / 1000 : null;
+    const entered = e.weight_kg != null && e.weight_kg >= 0 ? e.weight_kg / 1000 : null;
+    const assumed = entered == null ? assumedManualWeight(e.provider) : null;
+    const w = entered ?? assumed;
     const provider = (["enva", "bm", "fortress"].includes(e.provider) ? e.provider : "other") as ColasProvider;
     lines.push({
       id: `manual:${e.id}`,
@@ -319,7 +331,7 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
       stream,
       hazardous: e.hazardous,
       weight_t: w,
-      weightSource: w != null ? "manual" : null,
+      weightSource: entered != null ? "manual" : assumed != null ? "assumed" : null,
       charge: null,
       consignmentRef: e.consignment_ref ?? null,
       consignmentIssue: null,
@@ -371,9 +383,10 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
   };
   const sk = lines.filter(l => l.provider === "clews" || l.provider === "midweigh");
   const skMissing = sk.filter(l => l.needsWeight).length;
+  const skAssumed = sk.filter(l => l.weightSource === "assumed").length;
   if (sk.length === 0) add("skiptrak", "awaiting", inProgress ? "Month in progress — no completed jobs uploaded yet" : "No completed Colas Rail jobs found for this month");
   else add("skiptrak", skMissing || notCompleted ? "requires_verification" : "received",
-    [`${sk.length} completed job${sk.length === 1 ? "" : "s"}`, skMissing ? `${skMissing} without a weight` : "", notCompleted ? `${notCompleted} past job${notCompleted === 1 ? "" : "s"} not marked complete in Skiptrak` : ""].filter(Boolean).join(" · "));
+    [`${sk.length} completed job${sk.length === 1 ? "" : "s"}`, skMissing ? `${skMissing} without a weight` : "", skAssumed ? `${skAssumed} wheelie bin${skAssumed === 1 ? "" : "s"} at an assumed ${ASSUMED_WHEELIE_BIN_T.toFixed(3)} t` : "", notCompleted ? `${notCompleted} past job${notCompleted === 1 ? "" : "s"} not marked complete in Skiptrak` : ""].filter(Boolean).join(" · "));
   const rh = lines.filter(l => l.provider === "robert_hopkins");
   // Only hazardous loads travel on a consignment note; non-hazardous loads to Robert Hopkins need a weight only.
   const rhMissW = rh.filter(l => l.needsWeight).length, rhMissRef = rh.filter(l => l.hazardous && !l.consignmentRef).length;
@@ -386,8 +399,9 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
     if (ls.length === 0) add(p, "awaiting", "No figures entered for this month");
     else {
       const aw = ls.filter(l => l.awaitingPaperwork).length, mw = ls.filter(l => l.needsWeight).length;
+      const as = ls.filter(l => l.weightSource === "assumed").length;
       add(p, aw || mw ? "requires_verification" : "received",
-        [`${ls.length} entr${ls.length === 1 ? "y" : "ies"}`, mw ? `${mw} without a weight` : "", aw ? `${aw} awaiting paperwork` : ""].filter(Boolean).join(" · "));
+        [`${ls.length} entr${ls.length === 1 ? "y" : "ies"}`, mw ? `${mw} without a weight` : "", as ? `${as} at an assumed ${(assumedManualWeight(p) ?? 0).toFixed(3)} t` : "", aw ? `${aw} awaiting paperwork` : ""].filter(Boolean).join(" · "));
     }
   }
   add("sage", hasSage ? "received" : "awaiting", hasSage ? "Sage figures imported" : hasSkCharges ? "Not imported — Skiptrak job charges shown as provisional" : "Not imported");
@@ -557,10 +571,11 @@ export function lineSource(l: Pick<ColasLine, "provider" | "reference" | "weight
   const tickets = l.weighbridgeTickets ?? [];
   if (l.provider === "enva" || l.provider === "bm" || l.provider === "fortress" || l.provider === "other") {
     const who = PROVIDER_LABELS[l.provider];
-    return { source: `${who} collection${l.consignmentRef ? ` · consignment ${l.consignmentRef}` : l.reference ? ` · ref ${l.reference}` : ""}`, tickets: [], weightFrom: l.weight_t == null ? "No weight yet" : `Entered from the ${who} paperwork` };
+    return { source: `${who} collection${l.consignmentRef ? ` · consignment ${l.consignmentRef}` : l.reference ? ` · ref ${l.reference}` : ""}`, tickets: [], weightFrom: l.weight_t == null ? "No weight yet" : l.weightSource === "assumed" ? `Assumed ${l.weight_t.toFixed(3)} t – no weight on the ${who} paperwork` : `Entered from the ${who} paperwork` };
   }
   if (l.provider === "midweigh") return { source: `Clews weighbridge ticket ${l.reference}`, tickets, weightFrom: l.weight_t == null ? "No weight on the ticket" : "Clews weighbridge (Midweigh)" };
   const source = `${l.provider === "robert_hopkins" ? "Robert Hopkins" : "Skiptrak"} job ${l.reference}`;
   if (l.weight_t == null) return { source, tickets, weightFrom: l.needsWeight ? "No weight yet – not in the totals" : `${l.movement || "Delivery"} – no waste removed` };
+  if (l.weightSource === "assumed") return { source, tickets, weightFrom: `Assumed ${l.weight_t.toFixed(3)} t – wheelie bin with no weight recorded` };
   return { source, tickets, weightFrom: l.weightSource === "midweigh" ? "Clews weighbridge ticket linked to the job (Midweigh)" : l.provider === "robert_hopkins" ? "Robert Hopkins weighbridge, recorded in Skiptrak" : "Recorded in Skiptrak" };
 }
