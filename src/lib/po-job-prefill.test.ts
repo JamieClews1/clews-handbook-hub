@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
 import { poToJobPrefill, prefillFormFields, type PoInterpretation } from "./po-job-prefill";
 
 const base: PoInterpretation = {
@@ -9,35 +10,33 @@ const base: PoInterpretation = {
 
 describe("PO to New Job prefill", () => {
   it("uses the end customer, falling back to the broker", () => {
-    expect(poToJobPrefill(base).customer).toBe("Acme Ltd");
-    expect(poToJobPrefill({ ...base, end_customer: null }).customer).toBe("GoGreen");
+    assert.equal(poToJobPrefill(base).customer, "Acme Ltd");
+    assert.equal(poToJobPrefill({ ...base, end_customer: null }).customer, "GoGreen");
   });
 
   it("books wait & load as a delivery and notes it", () => {
     const p = poToJobPrefill({ ...base, service: "wait_and_load" });
-    expect(p.type).toBe("delivery");
-    expect(p.notes).toContain("wait & load");
+    assert.equal(p.type, "delivery");
+    assert.match(p.notes, /wait & load/);
   });
 
   it("keeps the PO price in the notes, never as the job price", () => {
     const p = poToJobPrefill(base);
-    expect(p.notes).toContain("PO price: £185.00 net");
-    expect(prefillFormFields(p)).not.toHaveProperty("haulage_cost");
+    assert.match(p.notes, /PO price: £185\.00 net/);
+    assert.equal("haulage_cost" in prefillFormFields(p), false);
   });
 
   it("drops a date that is not a full YYYY-MM-DD", () => {
-    expect(poToJobPrefill({ ...base, requested_date: "20/11/2026" }).date).toBe("");
+    assert.equal(poToJobPrefill({ ...base, requested_date: "20/11/2026" }).date, "");
   });
 
   it("resolves container wording to the booking choice", () => {
-    expect(prefillFormFields({ container: "8 yard skip" })).toMatchObject({ container_type: "Skip", container_size: "8yd" });
-    expect(prefillFormFields({ container: "40yd RoRo" })).toMatchObject({ container_type: "Ro Ro", container_size: "40yd" });
+    assert.deepEqual(prefillFormFields({ container: "8 yard skip" }), { container_type: "Skip", container_size: "8yd" });
+    assert.deepEqual(prefillFormFields({ container: "40yd RoRo" }), { container_type: "Ro Ro", container_size: "40yd" });
   });
 
   it("leaves fields the PO does not mention untouched", () => {
     const fields = prefillFormFields(poToJobPrefill({ ...base, site_name: null, container: null, requested_date: null }));
-    expect(fields).not.toHaveProperty("site_name");
-    expect(fields).not.toHaveProperty("container_type");
-    expect(fields).not.toHaveProperty("scheduled_date");
+    for (const k of ["site_name", "container_type", "scheduled_date"]) assert.equal(k in fields, false);
   });
 });
