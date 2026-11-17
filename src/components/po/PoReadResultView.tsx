@@ -53,6 +53,7 @@ export function PoReadResultView({ result }: { result: PoReadResult }) {
         <Row label="Site" value={po.site_name} />
         <Row label="Address" value={po.site_address} />
         <Row label="Postcode" value={po.postcode} />
+        <Row label="Site contact" value={[po.site_contact_name, po.site_contact_phone].filter(Boolean).join(" · ")} />
         <Row label="Container" value={po.container} />
         <Row label="Waste" value={po.waste_type} />
         <Row label="EWC" value={po.ewc_code} />
@@ -72,7 +73,9 @@ export function PoReadResultView({ result }: { result: PoReadResult }) {
           />
         )}
         {po.extras && <Row label="Extras" value={po.extras} />}
-        {po.notes && <Row label="Notes" value={po.notes} />}
+        {po.order_notes && <Row label="Order notes" value={po.order_notes} />}
+        {po.time_preference && <Row label="Time" value={po.time_preference} />}
+        {po.notes && <Row label="Other notes" value={po.notes} />}
       </div>
     </div>
   );

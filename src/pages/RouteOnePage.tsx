@@ -354,7 +354,7 @@ const RouteOnePage = () => {
     if (searchParams.get("newjob") !== "1") return;
     prefillDone.current = true;
     const g = (k: keyof JobPrefill) => searchParams.get(k) ?? "";
-    applyJobPrefill({ customer: g("customer"), site: g("site"), address: g("address"), postcode: g("postcode"), po: g("po"), container: g("container"), waste: g("waste"), ewc: g("ewc"), date: g("date"), type: g("type"), notes: g("notes") });
+    applyJobPrefill({ customer: g("customer"), site: g("site"), address: g("address"), postcode: g("postcode"), contact: g("contact"), phone: g("phone"), po: g("po"), container: g("container"), waste: g("waste"), ewc: g("ewc"), date: g("date"), type: g("type"), notes: g("notes") });
     setNewJobOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);

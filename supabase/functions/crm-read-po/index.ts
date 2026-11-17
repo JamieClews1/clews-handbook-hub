@@ -58,9 +58,13 @@ const PO_SCHEMA = {
     requested_date: { type: ['string', 'null'], description: 'YYYY-MM-DD' },
     price_net: { type: ['number', 'null'], description: 'Net price before VAT for the hire/movement, excluding disposal per-tonne charges' },
     extras: { type: ['string', 'null'], description: 'Other chargeable items on the PO, e.g. permit, tonnage rate' },
-    notes: { type: ['string', 'null'], description: 'Anything unusual: access, timings, contacts' },
+    site_contact_name: { type: ['string', 'null'], description: 'Name of the contact on site' },
+    site_contact_phone: { type: ['string', 'null'], description: 'Phone number(s) for the site contact, as written' },
+    order_notes: { type: ['string', 'null'], description: 'The ORDER NOTES / special instructions / comments section, copied word for word in full' },
+    time_preference: { type: ['string', 'null'], description: 'Time preference or slot, as written' },
+    notes: { type: ['string', 'null'], description: 'Any other instructions or requirements on the PO (access, documentation, permits), copied in full. Do not repeat order notes, contact or time preference here.' },
   },
-  required: ['po_number', 'broker', 'end_customer', 'site_name', 'site_address', 'postcode', 'container', 'waste_type', 'ewc_code', 'service', 'requested_date', 'price_net', 'extras', 'notes'],
+  required: ['po_number', 'broker', 'end_customer', 'site_name', 'site_address', 'postcode', 'container', 'waste_type', 'ewc_code', 'service', 'requested_date', 'price_net', 'extras', 'site_contact_name', 'site_contact_phone', 'order_notes', 'time_preference', 'notes'],
 };
 
 Deno.serve(async (req) => {
@@ -113,7 +117,8 @@ Deno.serve(async (req) => {
       'You are reading a purchase order sent to Clews Recycling, a UK skip and RoRo hire company. ' +
       'Extract the order details exactly as written. Dates are UK format (day before month). ' +
       'price_net is the net hire/movement price before VAT, excluding any per-tonne disposal rate; if several prices appear, use the main hire line. ' +
-      'service is delivery (dropping off), exchange (swap), collection (pick up) or wait_and_load. Use null for anything not stated — never guess.';
+      'service is delivery (dropping off), exchange (swap), collection (pick up) or wait_and_load. ' +
+      'Copy order notes and other instructions in full, word for word — never shorten or summarise them. Use null for anything not stated — never guess.';
     let po: any = null;
     if (raw) {
       po = await aiJson(apiKey, { name: 'purchase_order', effort: 'low', instructions, input: `File: ${fileName}\n\n${raw.slice(0, 60000)}`, schema: PO_SCHEMA });

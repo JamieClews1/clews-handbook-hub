@@ -17,6 +17,10 @@ export interface PoInterpretation {
   requested_date: string | null;
   price_net: number | null;
   extras: string | null;
+  site_contact_name?: string | null;
+  site_contact_phone?: string | null;
+  order_notes?: string | null;
+  time_preference?: string | null;
   notes: string | null;
 }
 
@@ -34,6 +38,8 @@ export interface JobPrefill {
   site: string;
   address: string;
   postcode: string;
+  contact: string;
+  phone: string;
   po: string;
   container: string;
   waste: string;
@@ -51,6 +57,8 @@ export function poToJobPrefill(po: PoInterpretation): JobPrefill {
     site: clean(po.site_name),
     address: clean(po.site_address),
     postcode: clean(po.postcode).toUpperCase(),
+    contact: clean(po.site_contact_name),
+    phone: clean(po.site_contact_phone),
     po: clean(po.po_number),
     container: clean(po.container),
     waste: clean(po.waste_type),
@@ -58,11 +66,16 @@ export function poToJobPrefill(po: PoInterpretation): JobPrefill {
     date: /^\d{4}-\d{2}-\d{2}$/.test(clean(po.requested_date)) ? clean(po.requested_date) : "",
     type: po.service === "exchange" || po.service === "collection" ? po.service : "delivery",
     notes: [
+      clean(po.order_notes) ? `Order notes: ${clean(po.order_notes)}` : "",
+      clean(po.time_preference) && !/^no\s*preference$/i.test(clean(po.time_preference)) ? `Time: ${clean(po.time_preference)}` : "",
+      clean(po.site_contact_name) || clean(po.site_contact_phone)
+        ? `Site contact: ${[clean(po.site_contact_name), clean(po.site_contact_phone)].filter(Boolean).join(" ")}`
+        : "",
+      po.service === "wait_and_load" ? "PO asks for wait & load" : "",
+      clean(po.notes),
       po.broker ? `Broker: ${clean(po.broker)}` : "",
       po.price_net != null ? `PO price: £${po.price_net.toFixed(2)} net` : "",
       po.extras ? `Extras: ${clean(po.extras)}` : "",
-      po.service === "wait_and_load" ? "PO asks for wait & load" : "",
-      clean(po.notes),
     ].filter(Boolean).join("\n"),
   };
 }
@@ -85,6 +98,8 @@ export function prefillFormFields(p: Partial<JobPrefill>) {
   if (p.site) out.site_name = p.site;
   if (p.address) out.site_address = p.address;
   if (p.postcode) out.site_postcode = p.postcode;
+  if (p.contact) out.site_contact_name = p.contact;
+  if (p.phone) out.site_contact_phone = p.phone;
   if (p.po) out.po_number = p.po;
   if (p.date) out.scheduled_date = p.date;
   if (p.type && ["delivery", "exchange", "collection"].includes(p.type)) out.job_type = p.type;

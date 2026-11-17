@@ -26,6 +26,17 @@ describe("PO to New Job prefill", () => {
     assert.equal("haulage_cost" in prefillFormFields(p), false);
   });
 
+  it("keeps the full order notes, other instructions and site contact", () => {
+    const po = { ...base, order_notes: "call on route", site_contact_name: "Sam", site_contact_phone: "07791586993", time_preference: "No preference",
+      notes: "Documentation must state the waste producer's SIC code and the Waste Management Hierarchy Statement" };
+    const p = poToJobPrefill(po);
+    assert.match(p.notes, /^Order notes: call on route$/m);
+    assert.match(p.notes, /Site contact: Sam 07791586993/);
+    assert.match(p.notes, /SIC code and the Waste Management Hierarchy Statement/);
+    assert.doesNotMatch(p.notes, /No preference/);
+    assert.deepEqual([prefillFormFields(p).site_contact_name, prefillFormFields(p).site_contact_phone], ["Sam", "07791586993"]);
+  });
+
   it("drops a date that is not a full YYYY-MM-DD", () => {
     assert.equal(poToJobPrefill({ ...base, requested_date: "20/11/2026" }).date, "");
   });
