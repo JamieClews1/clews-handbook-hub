@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { COLAS_STREAMS, MONTH_NAMES, PROVIDER_LABELS, isValidTreatment, treatmentFor, type ColasStreamKey, type ColasTreatment, type ColasTreatments } from "@/lib/colas-report";
 import { useInvalidateColas, type ColasSettingsRow, type ColasYearData } from "./useColasData";
 import { Chip, ukDateTime, useColasAuthorised, useProfileNames } from "./ColasShared";
+import { ColasAutoReader } from "./ColasAutoReader";
 
 const TABLE_LABELS: Record<string, string> = { colas_manual_entries: "Collection entry", colas_consignments: "Consignment reference", colas_costs: "Cost line", colas_report_periods: "Monthly report", colas_opening_balances: "Opening balance", colas_report_settings: "Settings" };
 const ACTION_LABELS: Record<string, string> = { insert: "Added", update: "Changed", void: "Voided", approve: "Approved", reopen: "Reopened", delete: "Deleted" };
@@ -43,7 +44,7 @@ export function ColasSettings({ data, settings }: { data: ColasYearData; setting
   const sources = [
     { name: "Skiptrak", how: "Uploaded through Data Uploads (export file)", last: lastUpload("skiptrak")?.uploaded_at, records: lines.filter(l => l.provider === "clews" || l.provider === "robert_hopkins").length, attention: lines.filter(l => (l.provider === "clews" || l.provider === "robert_hopkins") && l.needsWeight).length, attentionLabel: "without a weight" },
     { name: "Midweigh (Clews weighbridge)", how: "Uploaded through Data Uploads; fills missing Skiptrak weights from linked tickets", last: lastUpload("midweigh")?.uploaded_at, records: lines.filter(l => l.weightSource === "midweigh").length, attention: 0, attentionLabel: "" },
-    { name: "QuickConsign paperwork (scanned into Skiptrak)", how: "Read from the job paperwork files already in the portal; consignment numbers entered by staff", last: null, records: hazJobs.filter(l => data.hazDocs.has(l.reference)).length, attention: hazJobs.filter(l => !l.consignmentRef).length, attentionLabel: "without a consignment reference" },
+    { name: "QuickConsign paperwork (scanned into Skiptrak)", how: "Read automatically at 5pm each day from the job paperwork scanned into Skiptrak; staff can type or correct a number on the Hazardous tab", last: null, records: hazJobs.filter(l => data.hazDocs.has(l.reference)).length, attention: hazJobs.filter(l => !l.consignmentRef).length, attentionLabel: "without a consignment reference" },
     { name: "Sage", how: "Not connected — Excel/CSV import", last: lastImport("sage")?.created_at, records: data.costs.filter(c => c.entry_type === "sage_import" && !c.voided_at).length, attention: data.months.filter(m => !m.inProgress && m.costs.source !== "sage").length, attentionLabel: "completed months without Sage figures", failed: lastImport("sage")?.rows_failed },
     ...(["enva", "bm", "fortress"] as const).map(p => ({ name: PROVIDER_LABELS[p], how: p === "enva" ? "Manual entry" : "Manual entry or Excel/CSV import", last: lastImport(p)?.created_at ?? data.manual.filter(e => e.provider === p).map(e => e.created_at).sort().pop(), records: data.manual.filter(e => e.provider === p && !e.voided_at).length, attention: data.manual.filter(e => e.provider === p && !e.voided_at && (e.status !== "confirmed" || e.weight_kg == null)).length, attentionLabel: "awaiting paperwork or weight", failed: lastImport(p)?.rows_failed })),
   ];
@@ -90,6 +91,8 @@ export function ColasSettings({ data, settings }: { data: ColasYearData; setting
           <p className="mt-3 text-sm text-muted-foreground">No live connection to Skiptrak or Sage exists yet; neither has an API available to the portal. Figures update when files are uploaded.</p>
         </CardContent>
       </Card>
+
+      <ColasAutoReader authorised={authorised} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

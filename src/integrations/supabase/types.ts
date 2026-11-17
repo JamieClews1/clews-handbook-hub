@@ -569,8 +569,85 @@ export type Database = {
         }
         Relationships: []
       }
+      colas_consignment_scan_attempts: {
+        Row: {
+          applied: string
+          consignment_ref: string | null
+          created_at: string
+          document_id: string
+          evidence: string | null
+          file_name: string | null
+          id: string
+          job_number: string
+          result: string
+          run_trigger: string | null
+        }
+        Insert: {
+          applied: string
+          consignment_ref?: string | null
+          created_at?: string
+          document_id: string
+          evidence?: string | null
+          file_name?: string | null
+          id?: string
+          job_number: string
+          result: string
+          run_trigger?: string | null
+        }
+        Update: {
+          applied?: string
+          consignment_ref?: string | null
+          created_at?: string
+          document_id?: string
+          evidence?: string | null
+          file_name?: string | null
+          id?: string
+          job_number?: string
+          result?: string
+          run_trigger?: string | null
+        }
+        Relationships: []
+      }
+      colas_consignment_scan_state: {
+        Row: {
+          enabled: boolean
+          id: number
+          last_error: string | null
+          last_run_at: string | null
+          last_run_summary: Json | null
+          last_run_trigger: string | null
+          lease_until: string | null
+          paused_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          id?: number
+          last_error?: string | null
+          last_run_at?: string | null
+          last_run_summary?: Json | null
+          last_run_trigger?: string | null
+          lease_until?: string | null
+          paused_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          id?: number
+          last_error?: string | null
+          last_run_at?: string | null
+          last_run_summary?: Json | null
+          last_run_trigger?: string | null
+          lease_until?: string | null
+          paused_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       colas_consignments: {
         Row: {
+          auto_evidence: string | null
+          auto_read_at: string | null
           consignment_ref: string | null
           created_at: string
           created_by: string | null
@@ -583,6 +660,8 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          auto_evidence?: string | null
+          auto_read_at?: string | null
           consignment_ref?: string | null
           created_at?: string
           created_by?: string | null
@@ -595,6 +674,8 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          auto_evidence?: string | null
+          auto_read_at?: string | null
           consignment_ref?: string | null
           created_at?: string
           created_by?: string | null
@@ -12086,6 +12167,7 @@ export type Database = {
         Returns: string
       }
       colas_can_authorise: { Args: { _user_id: string }; Returns: boolean }
+      colas_scan_claim: { Args: { _seconds: number }; Returns: boolean }
       create_invoice_with_lines: {
         Args: { _header: Json; _lines: Json }
         Returns: string

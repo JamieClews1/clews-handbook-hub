@@ -59,6 +59,8 @@ export interface ColasYearData {
   hazDocs: Map<string, ColasHazDoc>;
   /** Saved share recycled / energy recovery / landfill per stream (defaults apply where unset). */
   treatments: ColasTreatments;
+  /** Jobs whose number or reading flag came from the automatic reader, with what it saw. */
+  autoRead: Map<string, string | null>;
   today: string;
 }
 
@@ -83,7 +85,7 @@ export function useColasYear(year: number, startMonth: number | undefined) {
         supabase.from("ewc_codes").select("code, hazardous").eq("hazardous", true),
         supabase.from("colas_manual_entries").select("*").gte("collection_date", from).lte("collection_date", to).order("collection_date"),
         supabase.from("colas_costs").select("*").gte("year", first.year).lte("year", last.year).order("created_at"),
-        supabase.from("colas_consignments").select("job_number, consignment_ref, read_issue").eq("source", "skiptrak"),
+        supabase.from("colas_consignments").select("job_number, consignment_ref, read_issue, auto_read_at, auto_evidence").eq("source", "skiptrak"),
         supabase.from("colas_report_periods").select("*").gte("year", first.year).lte("year", last.year),
         supabase.from("colas_opening_balances").select("*").eq("year", year).maybeSingle(),
         supabase.from("colas_report_settings").select("stream_treatments").eq("id", 1).maybeSingle(),
@@ -101,6 +103,8 @@ export function useColasYear(year: number, startMonth: number | undefined) {
       const hazardousCodes = new Set((ewc.data ?? []).map((r: any) => normaliseEwc(r.code)));
       const consignments = new Map<string, string | null>((cons.data ?? []).map((c: any) => [String(c.job_number), c.consignment_ref]));
       const consignmentIssues = new Map<string, ConsignmentIssue>((cons.data ?? []).filter((c: any) => !c.consignment_ref && (c.read_issue === "unreadable" || c.read_issue === "page_missing")).map((c: any) => [String(c.job_number), c.read_issue as ConsignmentIssue]));
+      // Numbers and flags the 5pm automatic reader set (cleared when staff change them by hand).
+      const autoRead = new Map<string, string | null>((cons.data ?? []).filter((c: any) => c.auto_read_at).map((c: any) => [String(c.job_number), c.auto_evidence ?? null]));
       const periodMap = new Map<string, ColasPeriodRow>((periods.data ?? []).map((p: any) => [monthKey(p.year, p.month), p as ColasPeriodRow]));
       const today = londonCalendarKey();
 
@@ -123,7 +127,7 @@ export function useColasYear(year: number, startMonth: number | undefined) {
         for (const d of data ?? []) if (d.job_number && !hazDocs.has(d.job_number)) hazDocs.set(d.job_number, d as ColasHazDoc);
       }
 
-      return { year, startMonth: sm, months, ytd: cumulative(months, op), periods: periodMap, opening: op, jobs, manual: (manual.data ?? []) as any, costs: (costs.data ?? []) as any, consignments, consignmentIssues, hazDocs, treatments: ((settingsRow.data?.stream_treatments ?? {}) as ColasTreatments), today };
+      return { year, startMonth: sm, months, ytd: cumulative(months, op), periods: periodMap, opening: op, jobs, manual: (manual.data ?? []) as any, costs: (costs.data ?? []) as any, consignments, consignmentIssues, autoRead, hazDocs, treatments: ((settingsRow.data?.stream_treatments ?? {}) as ColasTreatments), today };
     },
   });
 }

@@ -28,14 +28,14 @@ export function ColasHazardous({ data }: { data: ColasYearData }) {
     const value = (drafts[job] ?? "").trim();
     if (value === (data.consignments.get(job) ?? "")) return;
     setSaving(job);
-    const { error } = await supabase.from("colas_consignments").upsert({ job_number: job, source: "skiptrak", consignment_ref: value || null, ...(value ? { read_issue: null } : {}) }, { onConflict: "job_number,source" });
+    const { error } = await supabase.from("colas_consignments").upsert({ job_number: job, source: "skiptrak", consignment_ref: value || null, ...(value ? { read_issue: null } : {}), auto_read_at: null, auto_evidence: null }, { onConflict: "job_number,source" });
     setSaving(null);
     if (error) toast.error(error.message); else { toast.success(`Consignment reference saved for job ${job}`); invalidate(); }
   };
   // Recording that the number could not be read keeps the job flagged as an issue until a number is entered.
   const setIssue = async (job: string, issue: ConsignmentIssue | null) => {
     setSaving(job);
-    const { error } = await supabase.from("colas_consignments").upsert({ job_number: job, source: "skiptrak", consignment_ref: data.consignments.get(job) ?? null, read_issue: issue }, { onConflict: "job_number,source" });
+    const { error } = await supabase.from("colas_consignments").upsert({ job_number: job, source: "skiptrak", consignment_ref: data.consignments.get(job) ?? null, read_issue: issue, auto_read_at: null, auto_evidence: null }, { onConflict: "job_number,source" });
     setSaving(null);
     if (error) toast.error(error.message); else { toast.success(issue ? `Job ${job} flagged: ${CONSIGNMENT_ISSUE_LABELS[issue].toLowerCase()}` : `Flag cleared for job ${job}`); invalidate(); }
   };
@@ -47,7 +47,7 @@ export function ColasHazardous({ data }: { data: ColasYearData }) {
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <div>
             <CardTitle className="text-lg">Robert Hopkins hazardous collections</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">Weights come from Skiptrak, which records the Robert Hopkins weighbridge figure. The QuickConsign consignment note is scanned into each job's Skiptrak paperwork — open it to read the note number. Estimated quantities on the note are not used.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Weights come from Skiptrak, which records the Robert Hopkins weighbridge figure. The QuickConsign consignment note is scanned into each job's Skiptrak paperwork. Every day at 5pm the portal reads new scans and fills in the number, or flags the note if it can't be read; you can still type or correct a number here. Estimated quantities on the note are not used.</p>
           </div>
           <div className="flex items-center gap-2"><Switch id="haz-missing" checked={missingOnly} onCheckedChange={setMissingOnly} /><Label htmlFor="haz-missing">Needs attention only</Label></div>
         </CardHeader>
@@ -78,6 +78,7 @@ export function ColasHazardous({ data }: { data: ColasYearData }) {
                           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); save(l.reference); } }} />
                         {saving === l.reference && <Loader2 className="h-4 w-4 animate-spin" />}
                       </div>
+                      {data.autoRead.has(l.reference) && <div className="mt-1" title={data.autoRead.get(l.reference) ?? undefined}><Chip tone="info">{l.consignmentRef ? "Read automatically" : "Checked automatically"}</Chip></div>}
                       {!l.consignmentRef && (
                         <div className="mt-1 flex items-center gap-2">
                           <Select value={l.consignmentIssue ?? "none"} onValueChange={(v) => setIssue(l.reference, v === "none" ? null : v as ConsignmentIssue)}>
