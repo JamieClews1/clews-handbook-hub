@@ -99,7 +99,7 @@ export function InsertPoDialog({ open, onOpenChange, onApply }: { open: boolean;
           <DialogFooter className="flex-row items-center gap-2 sm:justify-between">
             <p className="mr-auto text-xs text-muted-foreground truncate">{result.attachment.file_name}</p>
             <Button variant="ghost" onClick={reset}><RotateCcw className="h-4 w-4 mr-1.5" />Read another</Button>
-            <Button onClick={() => { onApply(poToJobPrefill(result.po)); close(false); }}>Fill job</Button>
+            <Button onClick={() => { onApply(poToJobPrefill(result.po, result.account)); close(false); }}>Fill job</Button>
           </DialogFooter>
         )}
       </DialogContent>

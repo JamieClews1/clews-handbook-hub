@@ -49,6 +49,7 @@ export function PoReadResultView({ result }: { result: PoReadResult }) {
 
       <div className="divide-y divide-border rounded-md border px-3">
         <Row label="PO number" value={po.po_number} />
+        <Row label="Account" value={result.account ? `${result.account.customer_name}${result.account.customer_code ? ` · ${result.account.customer_code}` : ""}` : "Not matched — choose the customer"} />
         <Row label="Customer" value={po.end_customer} />
         <Row label="Site" value={po.site_name} />
         <Row label="Address" value={po.site_address} />

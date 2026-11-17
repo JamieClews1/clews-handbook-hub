@@ -41,7 +41,7 @@ export function CrmPoReaderDialog({
     })();
   }, [open, attachmentId, ticketId]);
 
-  const createParams = result ? jobPrefillToParams(poToJobPrefill(result.po)).toString() : "";
+  const createParams = result ? jobPrefillToParams(poToJobPrefill(result.po, result.account)).toString() : "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

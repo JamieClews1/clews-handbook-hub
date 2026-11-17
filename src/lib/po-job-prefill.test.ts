@@ -9,9 +9,46 @@ const base: PoInterpretation = {
 };
 
 describe("PO to New Job prefill", () => {
-  it("uses the end customer, falling back to the broker", () => {
-    assert.equal(poToJobPrefill(base).customer, "Acme Ltd");
-    assert.equal(poToJobPrefill({ ...base, end_customer: null }).customer, "GoGreen");
+  it("books a broker PO under the matched broker account with the end customer as the site", () => {
+    const p = poToJobPrefill({ ...base, broker: "Reconomy UK Ltd t/a Circle Waste", end_customer: "Travis Perkins Trading Co Ltd", site_name: "Daventry - Sopwith Way" },
+      { customer_name: "Reconomy (UK) Limited", customer_code: "SK0694", matched_from: "Reconomy UK Ltd t/a Circle Waste" });
+    assert.equal(p.customer, "Reconomy (UK) Limited");
+    assert.equal(p.site, "Travis Perkins Trading Co Ltd");
+    assert.match(p.notes, /PO site: Daventry - Sopwith Way/);
+  });
+
+  it("uses a householder's first address line as the site", () => {
+    const p = poToJobPrefill({ ...base, end_customer: "Jason Woodcock", end_customer_is_private: true, site_address: "Main Street,Monks Kirby,Rugby" },
+      { customer_name: "Go Green Limited", customer_code: "ZZGOG001", matched_from: "GoGreen" });
+    assert.equal(p.site, "Main Street");
+  });
+
+  it("treats a personal name with a street site as a householder even without the AI flag", () => {
+    const p = poToJobPrefill({ ...base, end_customer: "Jason Woodcock", end_customer_is_private: false, site_name: "Main Street", site_address: "Main Street,Monks Kirby,Rugby" },
+      { customer_name: "Go Green Limited", customer_code: "ZZGOG001", matched_from: "GoGreen" });
+    assert.equal(p.site, "Main Street");
+    const biz = poToJobPrefill({ ...base, end_customer: "Pioneer Construction Services Ltd", site_name: null, site_address: "Unit 2/3 Pelham Road, Rugby" },
+      { customer_name: "LB Waste Management", customer_code: null, matched_from: "LB Waste" });
+    assert.equal(biz.site, "Pioneer Construction Services Ltd");
+  });
+
+  it("books a direct customer PO under the customer with the PO's site name", () => {
+    const p = poToJobPrefill({ ...base, broker: null });
+    assert.equal(p.customer, "Acme Ltd");
+    assert.equal(p.site, "Acme Rugby");
+  });
+
+  it("maps unknown waste wording on 17 09 04 to Construction & Demolition and notes the PO wording", () => {
+    const p = poToJobPrefill({ ...base, waste_type: "Mixed construction and demolition wastes", ewc_code: "17.09.04" });
+    assert.equal(p.waste, "Construction & Demolition");
+    assert.equal(p.ewc, "17 09 04");
+    assert.match(p.notes, /PO waste: Mixed construction and demolition wastes/);
+  });
+
+  it("leaves a £0 price and 'Anytime' out of the notes", () => {
+    const p = poToJobPrefill({ ...base, price_net: 0, time_preference: "Anytime" });
+    assert.doesNotMatch(p.notes, /PO price/);
+    assert.doesNotMatch(p.notes, /Anytime/);
   });
 
   it("books wait & load as a delivery and notes it", () => {
@@ -47,7 +84,7 @@ describe("PO to New Job prefill", () => {
   });
 
   it("leaves fields the PO does not mention untouched", () => {
-    const fields = prefillFormFields(poToJobPrefill({ ...base, site_name: null, container: null, requested_date: null }));
+    const fields = prefillFormFields(poToJobPrefill({ ...base, end_customer: null, site_name: null, container: null, requested_date: null }));
     for (const k of ["site_name", "container_type", "scheduled_date"]) assert.equal(k in fields, false);
   });
 });
