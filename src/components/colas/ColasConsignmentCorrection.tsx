@@ -144,7 +144,7 @@ export function ColasConsignmentCorrection({ entry, data, onClose }: { entry: Co
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           {mode === "move"
-            ? <Button onClick={move} disabled={saving || !target || !currentRef}>{saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}Move number</Button>
+            ? <Button onClick={move} disabled={saving || !target || !currentRef || (!!data.consignments.get(target.reference) && data.consignments.get(target.reference) !== currentRef)}>{saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}Move number</Button>
             : <Button onClick={saveEdit} disabled={saving}>{saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}Save</Button>}
         </DialogFooter>
       </DialogContent>
