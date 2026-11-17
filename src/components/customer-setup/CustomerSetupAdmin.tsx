@@ -23,6 +23,8 @@ import { Badge } from "@/components/ui/badge";
 import { SiteRebateItemsEditor } from "./SiteRebateItemsEditor";
 import { SiteRebateOverridesEditor } from "./SiteRebateOverridesEditor";
 import { DataHubCombobox } from "./DataHubCombobox";
+import { SitePostcodeFinder } from "./SitePostcodeFinder";
+import { applySiteSearchHit, hitIsLinked } from "@/lib/site-postcode-finder";
 import { SiteSkipRebatesEditor } from "./SiteSkipRebatesEditor";
 import { CustomerSkipRebatesEditor } from "./CustomerSkipRebatesEditor";
 import { StaciPalletRatesEditor } from "./StaciPalletRatesEditor";
@@ -2574,6 +2576,20 @@ export function CustomerSetupAdmin() {
             <TabsContent value="details" className="mt-4">
               <ScrollArea className="h-[calc(92vh-260px)] w-full pr-4">
                 <div className="grid gap-4 min-w-0">
+            <SitePostcodeFinder
+              isLinked={(hit) => hitIsLinked(siteForm, hit)}
+              onPick={(hit) => {
+                const { form, status } = applySiteSearchHit(siteForm, hit);
+                if (status === "full") {
+                  toast({ title: "All five site boxes are used", description: "Clear a Data Hub site box first, then add this site.", variant: "destructive" });
+                  return;
+                }
+                if (status === "added") {
+                  setSiteForm(form);
+                  toast({ title: "Site added", description: `${hit.site} linked to this site. Check the details, then press Save.` });
+                }
+              }}
+            />
             <div className="grid gap-2">
 
               <Label htmlFor="site_name">Site name</Label>
