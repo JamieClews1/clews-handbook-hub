@@ -1,6 +1,6 @@
 // Streams a structured JSON answer from the Lovable AI Gateway Responses API.
 export async function aiJson(apiKey: string, opts: {
-  instructions: string; input: string; name: string; schema: Record<string, unknown>; effort?: 'low' | 'medium';
+  instructions: string; input: string | unknown[]; name: string; schema: Record<string, unknown>; effort?: 'low' | 'medium';
 }): Promise<any> {
   const res = await fetch('https://ai.gateway.lovable.dev/v1/responses', {
     method: 'POST',

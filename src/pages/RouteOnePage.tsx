@@ -83,7 +83,9 @@ import { newExchangeForm } from "@/lib/route-job-exchange";
 import { importedBookingPrices } from "@/lib/route-booking-pricing";
 import { loadExchangeBookingDate } from "@/lib/load-exchange-booking-date";
 import { importedSiteDetails } from "@/lib/route-booking-sites";
-import { Save, Repeat2, X, GanttChart } from "lucide-react";
+import { Save, Repeat2, X, GanttChart, FileUp } from "lucide-react";
+import { InsertPoDialog } from "@/components/route-one/InsertPoDialog";
+import { prefillFormFields, type JobPrefill } from "@/lib/po-job-prefill";
 import { SiteContainersDialog } from "@/components/route-one/SiteContainersDialog";
 import { TintedJobCard } from "@/components/route-one/TintedJobCard";
 import { boardRegistration, boardUnconfirmed } from "@/lib/route-board-presentation";
@@ -334,27 +336,25 @@ const RouteOnePage = () => {
   const weekEnd = format(endOfWeek(selectedDate, { weekStartsOn: 1 }), "yyyy-MM-dd");
   const search = (searchParams.get("search") ?? "").trim().toLowerCase();
 
+  // Fill the New Job form from a PO / email: only values given are applied, so
+  // anything already chosen stays. Nothing is saved until staff press Save/Book.
+  const applyJobPrefill = (p: Partial<JobPrefill>) => {
+    setJobForm((prev) => ({
+      ...prev,
+      ...prefillFormFields(p),
+      ...(p.waste ? standardBookingWaste(p.waste, p.ewc || null, { source: "route_one" }) : {}),
+    } as typeof prev));
+  };
+  const [insertPoOpen, setInsertPoOpen] = useState(false);
+
   // Open New Job pre-filled from a CRM email ("New job from this email" action).
   const prefillDone = useRef(false);
   useEffect(() => {
     if (prefillDone.current) return;
     if (searchParams.get("newjob") !== "1") return;
     prefillDone.current = true;
-    const g = (k: string) => searchParams.get(k) ?? "";
-    const type = g("type");
-    setJobForm((prev) => ({
-      ...prev,
-      customer_name: g("customer") || prev.customer_name,
-      site_name: g("site") || prev.site_name,
-      site_address: g("address") || prev.site_address,
-      site_postcode: g("postcode") || prev.site_postcode,
-      po_number: g("po") || prev.po_number,
-      container_size: g("container") || prev.container_size,
-      ...(g("waste") ? standardBookingWaste(g("waste"), g("ewc") || null, { source: "route_one" }) : { waste_type: prev.waste_type }),
-      scheduled_date: g("date") || prev.scheduled_date,
-      job_type: (["delivery", "exchange", "collection"].includes(type) ? type : prev.job_type) as JobType,
-      notes: g("notes") || prev.notes,
-    }));
+    const g = (k: keyof JobPrefill) => searchParams.get(k) ?? "";
+    applyJobPrefill({ customer: g("customer"), site: g("site"), address: g("address"), postcode: g("postcode"), po: g("po"), container: g("container"), waste: g("waste"), ewc: g("ewc"), date: g("date"), type: g("type"), notes: g("notes") });
     setNewJobOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -976,8 +976,12 @@ const RouteOnePage = () => {
             <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
               <DialogHeader className="px-5 py-4 border-b border-border pr-12 shrink-0">
                 <DialogTitle className="flex flex-wrap items-center gap-2">{jobForm.job_type === "exchange" ? "New exchange" : jobForm.job_type === "waste_out_skip" ? "New Waste Out load" : "New job"}{testMode && <TestBadge />}</DialogTitle>
-                <p className="text-sm text-muted-foreground break-words">{[jobForm.customer_name, jobForm.site_name].filter(Boolean).join(" · ") || "New booking"}</p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm text-muted-foreground break-words">{[jobForm.customer_name, jobForm.site_name].filter(Boolean).join(" · ") || "New booking"}</p>
+                  {jobForm.job_type !== "waste_out_skip" && <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => setInsertPoOpen(true)}><FileUp className="h-4 w-4" />Insert PO</Button>}
+                </div>
               </DialogHeader>
+              <InsertPoDialog open={insertPoOpen} onOpenChange={setInsertPoOpen} onApply={applyJobPrefill} />
               {testMode && <div className="shrink-0 px-5 pt-3"><TestModeBanner label="Test job" /></div>}
               <div className="overflow-y-auto flex-1 min-h-0 px-5 py-3"><JobFormFields form={jobForm} setForm={setJobForm} drivers={drivers} exchangeMode={jobForm.job_type === "exchange"} allowPrevious={jobForm.job_type !== "exchange"} /></div>
 

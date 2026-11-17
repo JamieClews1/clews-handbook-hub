@@ -1,4 +1,5 @@
-// Reads a purchase-order PDF attached to an Inbox email, interprets it with AI,
+// Reads a purchase order — a PDF attached to an Inbox email, a PDF uploaded from
+// Route One's New Job window, or pasted order text — interprets it with AI,
 // and checks the price against the rate cards and the date against the bookings
 // board. It never creates jobs or sends email — it only returns the
 // interpretation and flags for staff to review.
@@ -20,10 +21,26 @@ function bookingDateIso(day: string | null | undefined): string | null {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
+const MAX_UPLOAD_BASE64 = 14_000_000; // ~10 MB PDF
 const Body = z.object({
   attachmentId: z.string().uuid().optional(),
   ticketId: z.string().uuid().optional(),
-}).refine((b) => b.attachmentId || b.ticketId, { message: 'attachmentId or ticketId required' });
+  file: z.object({ name: z.string().max(300), data: z.string().min(1).max(MAX_UPLOAD_BASE64) }).optional(),
+  text: z.string().min(1).max(60000).optional(),
+}).refine((b) => b.attachmentId || b.ticketId || b.file || b.text, { message: 'A PO file, pasted text, attachmentId or ticketId is required' });
+
+function base64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64.replace(/^data:[^,]*,/, ''));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
 
 const PO_SCHEMA = {
   type: 'object', additionalProperties: false,
@@ -62,34 +79,61 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!apiKey) return json({ error: 'AI is not configured' }, 500);
 
-    // Find the PDF attachment to read.
-    let q = admin.from('crm_ticket_attachments').select('id, ticket_id, file_name, content_type, storage_path');
-    if (parsed.data.attachmentId) q = q.eq('id', parsed.data.attachmentId);
-    else q = q.eq('ticket_id', parsed.data.ticketId!).ilike('content_type', '%pdf%').order('created_at').limit(1);
-    const { data: att } = await q.maybeSingle();
-    if (!att?.storage_path) return json({ error: 'No PDF attachment found on this email' }, 404);
+    // Get the PO text from an uploaded PDF, pasted text, or an Inbox attachment.
+    let fileName = 'Pasted PO';
+    let attachmentId: string | null = null;
+    let bytes: Uint8Array | null = null;
+    let raw = '';
+    if (parsed.data.text) {
+      raw = parsed.data.text.trim();
+    } else if (parsed.data.file) {
+      fileName = parsed.data.file.name || 'PO.pdf';
+      bytes = base64ToBytes(parsed.data.file.data);
+      if (String.fromCharCode(...bytes.subarray(0, 5)) !== '%PDF-') return json({ error: 'That file is not a PDF' }, 400);
+    } else {
+      let q = admin.from('crm_ticket_attachments').select('id, ticket_id, file_name, content_type, storage_path');
+      if (parsed.data.attachmentId) q = q.eq('id', parsed.data.attachmentId);
+      else q = q.eq('ticket_id', parsed.data.ticketId!).ilike('content_type', '%pdf%').order('created_at').limit(1);
+      const { data: att } = await q.maybeSingle();
+      if (!att?.storage_path) return json({ error: 'No PDF attachment found on this email' }, 404);
+      const { data: blob, error: dlErr } = await admin.storage.from('crm-attachments').download(att.storage_path);
+      if (dlErr || !blob) return json({ error: `Could not download the attachment: ${dlErr?.message ?? 'not found'}` }, 500);
+      bytes = new Uint8Array(await blob.arrayBuffer());
+      fileName = att.file_name;
+      attachmentId = att.id;
+    }
+    if (bytes) {
+      const { extractText, getDocumentProxy } = await import('https://esm.sh/unpdf@0.12.1');
+      const doc = await getDocumentProxy(bytes.slice());
+      const { text } = await extractText(doc, { mergePages: true });
+      raw = (Array.isArray(text) ? text.join('\n') : String(text ?? '')).trim();
+    }
 
-    const { data: blob, error: dlErr } = await admin.storage.from('crm-attachments').download(att.storage_path);
-    if (dlErr || !blob) return json({ error: `Could not download the attachment: ${dlErr?.message ?? 'not found'}` }, 500);
-
-    const bytes = new Uint8Array(await blob.arrayBuffer());
-    const { extractText, getDocumentProxy } = await import('https://esm.sh/unpdf@0.12.1');
-    const doc = await getDocumentProxy(bytes);
-    const { text } = await extractText(doc, { mergePages: true });
-    const raw = (Array.isArray(text) ? text.join('\n') : String(text ?? '')).trim();
-    if (!raw) return json({ error: 'Could not read any text from that PDF — it may be a scanned image' }, 400);
-
-    const po = await aiJson(apiKey, {
-      name: 'purchase_order',
-      effort: 'low',
-      instructions:
-        'You are reading a purchase order sent to Clews Recycling, a UK skip and RoRo hire company. ' +
-        'Extract the order details exactly as written. Dates are UK format (day before month). ' +
-        'price_net is the net hire/movement price before VAT, excluding any per-tonne disposal rate; if several prices appear, use the main hire line. ' +
-        'service is delivery (dropping off), exchange (swap), collection (pick up) or wait_and_load. Use null for anything not stated — never guess.',
-      input: `File: ${att.file_name}\n\n${raw.slice(0, 60000)}`,
-      schema: PO_SCHEMA,
-    });
+    const instructions =
+      'You are reading a purchase order sent to Clews Recycling, a UK skip and RoRo hire company. ' +
+      'Extract the order details exactly as written. Dates are UK format (day before month). ' +
+      'price_net is the net hire/movement price before VAT, excluding any per-tonne disposal rate; if several prices appear, use the main hire line. ' +
+      'service is delivery (dropping off), exchange (swap), collection (pick up) or wait_and_load. Use null for anything not stated — never guess.';
+    let po: any = null;
+    if (raw) {
+      po = await aiJson(apiKey, { name: 'purchase_order', effort: 'low', instructions, input: `File: ${fileName}\n\n${raw.slice(0, 60000)}`, schema: PO_SCHEMA });
+    } else if (bytes) {
+      // Scanned PDF with no text layer: let the AI look at the pages instead.
+      try {
+        po = await aiJson(apiKey, {
+          name: 'purchase_order', effort: 'low', instructions, schema: PO_SCHEMA,
+          input: [{ role: 'user', content: [
+            { type: 'input_file', filename: fileName, file_data: `data:application/pdf;base64,${bytesToBase64(bytes)}` },
+            { type: 'input_text', text: `File: ${fileName}. This is a scanned purchase order; read it from the page images.` },
+          ] }],
+        });
+      } catch (e) {
+        console.error('crm-read-po scanned fallback failed', e);
+        return json({ error: 'Could not read any text from that PDF — it may be a scanned image. Try pasting the order text instead.' }, 400);
+      }
+    } else {
+      return json({ error: 'No order text to read' }, 400);
+    }
     if (!po) return json({ error: 'The AI could not interpret that PO' }, 500);
 
     // ---- Checks ----------------------------------------------------------------
@@ -171,7 +215,7 @@ Deno.serve(async (req) => {
       flags.push({ level: 'amber', message: 'No date found on the PO.' });
     }
 
-    return json({ attachment: { id: att.id, file_name: att.file_name }, po, zone: zoneLabel, expected, flags });
+    return json({ attachment: { id: attachmentId, file_name: fileName }, po, zone: zoneLabel, expected, flags });
   } catch (e) {
     console.error('crm-read-po error', e);
     return json({ error: (e as Error).message }, 500);
