@@ -1,6 +1,6 @@
 import { it } from "node:test";
 import assert from "node:assert/strict";
-import { buildColasMonth, cumulative, classifyStream, isHazardousEwc, parseWeightKg, reportingPeriods, type BuildMonthInput } from "./colas-report";
+import { buildColasMonth, cumulative, classifyStream, isHazardousEwc, lineSource, parseWeightKg, reportingPeriods, type BuildMonthInput } from "./colas-report";
 
 const haz = new Set(["15 02 02", "16 01 07", "13 02 05"]);
 const base = (over: Partial<BuildMonthInput> = {}): BuildMonthInput => ({
@@ -138,4 +138,24 @@ it("an empty stream row has no percentage instead of claiming 100%", () => {
 
 it("a saved treatment that does not add up to 100% falls back to the default", () => {
   assert.deepEqual(treatmentFor("plastic", { plastic: { recycled: 50, rdf: 10, landfill: 10 } }), DEFAULT_TREATMENTS.plastic);
+});
+
+it("a waste line shows the weighbridge ticket its weight came from", () => {
+  const month = buildColasMonth(base({ jobs: [job({ job_number: "49138", weight_t: null })], midweigh: [{ job_number: "83033", job_date: "2026-07-10", ewc: "15 01 01", waste_description: "Paper", weight_kg: 140, linked_skip_job: "49138" }] }));
+  const src = lineSource(month.lines[0]);
+  assert.equal(src.source, "Skiptrak job 49138");
+  assert.deepEqual(src.tickets, ["83033"]);
+  assert.match(src.weightFrom, /weighbridge/i);
+});
+
+it("a Skiptrak job keeps its own recorded weighbridge ticket", () => {
+  const month = buildColasMonth(base({ jobs: [job({ job_number: "51534", weighbridge_ref: "87495" })] }));
+  assert.deepEqual(lineSource(month.lines[0]).tickets, ["87495"]);
+});
+
+it("an Enva entry is shown as an Enva collection with its consignment, not a ticket", () => {
+  const month = buildColasMonth(base({ manual: [{ id: "e1", provider: "enva", collection_date: "2026-07-06", waste_stream: "aqueous_oil_mix", hazardous: true, weight_kg: 12000, status: "confirmed", consignment_ref: "COLASR/11939" }] }));
+  const src = lineSource(month.lines[0]);
+  assert.equal(src.source, "Enva collection · consignment COLASR/11939");
+  assert.deepEqual(src.tickets, []);
 });

@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import type { ArisingsFigures, ColasArisings } from "@/lib/colas-report";
+import { lineSource, type ArisingsFigures, type ColasArisings, type ColasLine } from "@/lib/colas-report";
 import { fmtGBP, fmtT } from "./useColasData";
-import { Chip } from "./ColasShared";
+import { Chip, ukDate } from "./ColasShared";
 
 export interface ArisingsView {
   arisings: ColasArisings;
@@ -13,6 +14,8 @@ export interface ArisingsView {
   provisional: boolean;
   title: string;
   note?: string;
+  /** Collection lines behind the table, so a stream row can show where its weights came from. */
+  lines?: ColasLine[];
 }
 
 const pct = (n: number | null) => (n == null ? "—" : `${n.toFixed(1)}%`);
@@ -48,6 +51,8 @@ function Figures({ f, charges, strong, muted }: { f: ArisingsFigures; charges: n
 /** Colas Rail's "breakdown of waste arisings" sheet, laid out like the original spreadsheet. */
 export function ColasArisingsTable({ month, ytd }: { month: ArisingsView; ytd: ArisingsView }) {
   const [mode, setMode] = useState<"month" | "ytd">("month");
+  const [open, setOpen] = useState<Set<string>>(new Set());
+  const toggle = (k: string) => setOpen(o => { const n = new Set(o); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   const v = mode === "month" ? month : ytd;
   const a = v.arisings;
   const head = "px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground align-bottom";
@@ -102,15 +107,53 @@ export function ColasArisingsTable({ month, ytd }: { month: ArisingsView; ytd: A
               </tr>
               {g.rows.map(r => {
                 const empty = r.collections === 0;
+                const isOpen = !empty && open.has(r.key);
+                const rowLines = isOpen ? (v.lines ?? []).filter(l => l.stream === r.key).sort((x, y) => x.date.localeCompare(y.date) || x.reference.localeCompare(y.reference)) : [];
                 return (
-                  <tr key={r.key} className="border-b last:border-b hover:bg-muted/40">
-                    <td className={cn("px-3 py-2.5", empty ? "text-muted-foreground" : "font-medium")}>
-                      {r.label}
-                      {!empty && <span className="ml-2 text-xs font-normal text-muted-foreground">{r.collections} collection{r.collections === 1 ? "" : "s"}</span>}
-                      {r.missingWeights > 0 && <div className="text-xs font-semibold text-destructive">{r.missingWeights} without a weight – not in the totals</div>}
-                    </td>
-                    <Figures f={r} charges={r.charges} muted={empty} />
-                  </tr>
+                  <Fragment key={r.key}>
+                    <tr className={cn("border-b last:border-b", !empty && "cursor-pointer hover:bg-muted/40", isOpen && "bg-muted/40")} onClick={empty ? undefined : () => toggle(r.key)}>
+                      <td className={cn("px-3 py-2.5", empty ? "text-muted-foreground" : "font-medium")}>
+                        {empty ? <span className="pl-6">{r.label}</span> : (
+                          <button type="button" className="flex items-start gap-1 text-left" aria-expanded={isOpen} onClick={(e) => { e.stopPropagation(); toggle(r.key); }}>
+                            <ChevronRight className={cn("mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform", isOpen && "rotate-90")} aria-hidden />
+                            <span>{r.label}<span className="ml-2 text-xs font-normal text-muted-foreground">{r.collections} collection{r.collections === 1 ? "" : "s"}</span></span>
+                          </button>
+                        )}
+                        {r.missingWeights > 0 && <div className="pl-6 text-xs font-semibold text-destructive">{r.missingWeights} without a weight – not in the totals</div>}
+                      </td>
+                      <Figures f={r} charges={r.charges} muted={empty} />
+                    </tr>
+                    {isOpen && (
+                      <tr className="border-b bg-muted/20">
+                        <td colSpan={8} className="px-3 pb-3 pt-1">
+                          <div className="ml-6 overflow-x-auto rounded-md border bg-card">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                  <th className="px-3 py-2">Date</th><th className="px-3 py-2">Brought in from</th><th className="px-3 py-2">Weighbridge ticket</th><th className="px-3 py-2 text-right">Tonnes</th><th className="px-3 py-2">Weight taken from</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {rowLines.map(l => {
+                                  const src = lineSource(l);
+                                  return (
+                                    <tr key={l.id} className="border-b last:border-0">
+                                      <td className="whitespace-nowrap px-3 py-2">{ukDate(l.date)}</td>
+                                      <td className="px-3 py-2 font-medium">{src.source}</td>
+                                      <td className="whitespace-nowrap px-3 py-2 tabular-nums">{src.tickets.length ? src.tickets.join(", ") : <span className="text-muted-foreground">{l.provider === "clews" || l.provider === "robert_hopkins" ? "Not recorded" : "—"}</span>}</td>
+                                      <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">{l.weight_t == null ? "–" : fmtT(l.weight_t)}</td>
+                                      <td className={cn("px-3 py-2", l.needsWeight ? "font-semibold text-destructive" : "text-muted-foreground")}>{src.weightFrom}</td>
+                                    </tr>
+                                  );
+                                })}
+                                {rowLines.length === 0 && <tr><td colSpan={5} className="px-3 py-2 text-muted-foreground">No collection details available.</td></tr>}
+                              </tbody>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 );
               })}
               <tr className="border-b-2 border-border bg-muted/60">
@@ -131,7 +174,7 @@ export function ColasArisingsTable({ month, ytd }: { month: ArisingsView; ytd: A
       <div className="space-y-1 border-t px-4 py-3 text-sm text-muted-foreground">
         <p>Energy recovery (RDF) counts as recycled. Only landfill lowers the % recycled. Consignment notes: {a.consignmentNotes}.</p>
         <p>Stream charges are the charges recorded on each job. Group totals {v.provisional ? "are provisional (* Sage not imported yet – recorded job charges, ex VAT)" : "come from Sage, ex VAT"}.</p>
-        <p>How each stream splits into recycled, energy recovery and landfill is set under Sources &amp; settings.</p>
+        <p>Click a waste stream to see each collection, the weighbridge ticket or Enva/B&amp;M/Fortress entry its weight came from. How each stream splits into recycled, energy recovery and landfill is set under Sources &amp; settings.</p>
         {v.note && <p>{v.note}</p>}
       </div>
     </section>

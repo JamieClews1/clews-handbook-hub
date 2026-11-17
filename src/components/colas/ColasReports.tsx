@@ -161,8 +161,8 @@ function ColasMonthDetail({ data, index, onBack }: { data: ColasYearData; index:
       </div>
 
       <ColasArisingsTable
-        month={{ arisings: monthArisings, hazardousCost: m.costs.hazardous, nonHazardousCost: m.costs.non_hazardous, provisional: m.costs.provisional, title: `For the month of ${m.label}` }}
-        ytd={{ arisings: ytdArisings, hazardousCost: ytdRow.hazardous_cost, nonHazardousCost: ytdRow.non_hazardous_cost, provisional: data.months.slice(0, index + 1).some(x => x.costs.provisional && x.lines.length > 0),
+        month={{ arisings: monthArisings, lines: m.lines, hazardousCost: m.costs.hazardous, nonHazardousCost: m.costs.non_hazardous, provisional: m.costs.provisional, title: `For the month of ${m.label}` }}
+        ytd={{ arisings: ytdArisings, lines: data.months.slice(0, index + 1).flatMap(x => x.lines), hazardousCost: ytdRow.hazardous_cost, nonHazardousCost: ytdRow.non_hazardous_cost, provisional: data.months.slice(0, index + 1).some(x => x.costs.provisional && x.lines.length > 0),
           title: `${MONTH_NAMES[data.months[0].month - 1]} – ${m.label}`,
           note: data.opening && (data.opening.hazardous_t || data.opening.non_hazardous_t) ? `Year-to-date tonnes by stream come from the portal's records; the opening balance of ${fmtT(data.opening.hazardous_t + data.opening.non_hazardous_t)} t has no stream split so is not in this table. Charges include the opening balance.` : undefined }}
       />

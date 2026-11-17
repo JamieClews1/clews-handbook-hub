@@ -169,6 +169,10 @@ export interface ColasLine {
   consignmentIssue: ConsignmentIssue | null;
   needsWeight: boolean;
   awaitingPaperwork: boolean;
+  /** Weighbridge ticket numbers behind this line's weight (Skiptrak's recorded ticket and/or linked Midweigh tickets). */
+  weighbridgeTickets?: string[];
+  /** Skiptrak movement (Delivery, Exchange, Collection…) — deliveries carry no waste weight. */
+  movement?: string | null;
 }
 export type ConsignmentIssue = "unreadable" | "page_missing";
 export const CONSIGNMENT_ISSUE_LABELS: Record<ConsignmentIssue, string> = {
@@ -232,8 +236,10 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
   const key = monthKey(year, month);
   const inProgress = today.slice(0, 7) <= key;
   const midByJob = new Map<string, number>();
+  const midTicketsByJob = new Map<string, string[]>();
   for (const t of input.midweigh) {
     if (t.linked_skip_job && t.weight_kg && t.weight_kg > 0) midByJob.set(String(t.linked_skip_job).trim(), (midByJob.get(String(t.linked_skip_job).trim()) ?? 0) + t.weight_kg);
+    if (t.linked_skip_job) { const k = String(t.linked_skip_job).trim(); midTicketsByJob.set(k, [...(midTicketsByJob.get(k) ?? []), String(t.job_number)]); }
   }
   const skiptrakNumbers = new Set(input.jobs.map(j => String(j.job_number).trim()));
   const lines: ColasLine[] = [];
@@ -269,6 +275,8 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
       consignmentIssue: hazardous && !input.consignments.get(String(j.job_number)) ? input.consignmentIssues?.get(String(j.job_number)) ?? null : null,
       needsWeight: removal && weight == null,
       awaitingPaperwork: false,
+      weighbridgeTickets: [...new Set([j.weighbridge_ref, ...(midTicketsByJob.get(String(j.job_number).trim()) ?? [])].map(x => String(x ?? "").trim()).filter(x => x && x !== "0"))],
+      movement: j.movement ?? null,
     });
   }
   // Midweigh tickets not linked to a Skiptrak job in this customer's data are their own loads.
@@ -293,6 +301,7 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
       consignmentIssue: null,
       needsWeight: w == null,
       awaitingPaperwork: false,
+      weighbridgeTickets: [String(t.job_number)],
     });
   }
   for (const e of input.manual) {
@@ -541,4 +550,17 @@ export function buildArisings(lines: Pick<ColasLine, "stream" | "hazardous" | "w
     groups, total: sumFigures(groups.map(g => g.total)),
     consignmentNotes: lines.filter(l => l.hazardous && l.consignmentRef).length,
   };
+}
+
+/** Plain-English "where this weight came from" for one collection line (shown when a waste stream row is opened). */
+export function lineSource(l: Pick<ColasLine, "provider" | "reference" | "weightSource" | "weight_t" | "needsWeight" | "consignmentRef" | "weighbridgeTickets" | "movement">): { source: string; tickets: string[]; weightFrom: string } {
+  const tickets = l.weighbridgeTickets ?? [];
+  if (l.provider === "enva" || l.provider === "bm" || l.provider === "fortress" || l.provider === "other") {
+    const who = PROVIDER_LABELS[l.provider];
+    return { source: `${who} collection${l.consignmentRef ? ` · consignment ${l.consignmentRef}` : l.reference ? ` · ref ${l.reference}` : ""}`, tickets: [], weightFrom: l.weight_t == null ? "No weight yet" : `Entered from the ${who} paperwork` };
+  }
+  if (l.provider === "midweigh") return { source: `Clews weighbridge ticket ${l.reference}`, tickets, weightFrom: l.weight_t == null ? "No weight on the ticket" : "Clews weighbridge (Midweigh)" };
+  const source = `${l.provider === "robert_hopkins" ? "Robert Hopkins" : "Skiptrak"} job ${l.reference}`;
+  if (l.weight_t == null) return { source, tickets, weightFrom: l.needsWeight ? "No weight yet – not in the totals" : `${l.movement || "Delivery"} – no waste removed` };
+  return { source, tickets, weightFrom: l.weightSource === "midweigh" ? "Clews weighbridge ticket linked to the job (Midweigh)" : l.provider === "robert_hopkins" ? "Robert Hopkins weighbridge, recorded in Skiptrak" : "Recorded in Skiptrak" };
 }
