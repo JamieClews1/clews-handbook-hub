@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, PenLine } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
@@ -14,6 +14,8 @@ import { COLAS_STREAMS, MONTH_NAMES, PROVIDER_LABELS, isValidTreatment, treatmen
 import { useInvalidateColas, type ColasSettingsRow, type ColasYearData } from "./useColasData";
 import { Chip, ukDateTime, useColasAuthorised, useProfileNames } from "./ColasShared";
 import { ColasAutoReader } from "./ColasAutoReader";
+import { ColasConsignmentCorrection, type ConsignmentAuditEntry } from "./ColasConsignmentCorrection";
+import { EntryDialog } from "./ColasCollections";
 
 const TABLE_LABELS: Record<string, string> = { colas_manual_entries: "Collection entry", colas_consignments: "Consignment reference", colas_costs: "Cost line", colas_report_periods: "Monthly report", colas_opening_balances: "Opening balance", colas_report_settings: "Settings" };
 const ACTION_LABELS: Record<string, string> = { insert: "Added", update: "Changed", void: "Voided", approve: "Approved", reopen: "Reopened", delete: "Deleted" };
@@ -55,6 +57,8 @@ export function ColasSettings({ data, settings }: { data: ColasYearData; setting
     setOp({ hazardous_t: String(data.opening?.hazardous_t ?? 0), non_hazardous_t: String(data.opening?.non_hazardous_t ?? 0), hazardous_cost: String(data.opening?.hazardous_cost ?? 0), non_hazardous_cost: String(data.opening?.non_hazardous_cost ?? 0), note: "" });
   }, [data.year, data.opening]);
   const [saving, setSaving] = useState(false);
+  const [correcting, setCorrecting] = useState<ConsignmentAuditEntry | null>(null);
+  const [editingEntry, setEditingEntry] = useState<Record<string, any> | null>(null);
 
   const saveStart = async () => {
     const { error } = await supabase.from("colas_report_settings").update({ year_start_month: Number(startMonth) }).eq("id", 1);
@@ -67,6 +71,14 @@ export function ColasSettings({ data, settings }: { data: ColasYearData; setting
     const { error } = await supabase.from("colas_opening_balances").upsert({ year: data.year, ...vals, note: op.note.trim() || null });
     setSaving(false);
     if (error) toast.error(error.message); else { toast.success("Opening balance saved"); invalidate(); }
+  };
+
+  type AuditRow = { table_name: string; record_id: string | null; new_row: unknown; old_row: unknown };
+  const liveEntry = (a: AuditRow) => a.table_name === "colas_manual_entries" ? data.manual.find(e => e.id === a.record_id && !e.voided_at) : undefined;
+  const correctable = (a: AuditRow) => a.table_name === "colas_consignments" ? !!(a.new_row as any)?.job_number : !!liveEntry(a);
+  const openCorrection = (a: AuditRow) => {
+    if (a.table_name === "colas_consignments") setCorrecting({ job: String((a.new_row as any).job_number), oldRow: a.old_row as any, newRow: a.new_row as any });
+    else { const e = liveEntry(a); if (e) setEditingEntry(e); }
   };
 
   return (
@@ -128,23 +140,28 @@ export function ColasSettings({ data, settings }: { data: ColasYearData; setting
       <TreatmentSettings saved={settings.stream_treatments ?? {}} authorised={authorised} onSaved={invalidate} />
 
       <Card>
-        <CardHeader><CardTitle className="text-lg">Audit log</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-lg">Audit log</CardTitle>
+          <p className="text-sm text-muted-foreground">Entered something on the wrong job? Press Correct on that line to fix it or move it to the right job. The original line stays in the log and your correction is added as a new line.</p>
+        </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>
-            <TableHeader><TableRow><TableHead>When</TableHead><TableHead>Who</TableHead><TableHead>What</TableHead><TableHead>Action</TableHead><TableHead>Detail</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>When</TableHead><TableHead>Who</TableHead><TableHead>What</TableHead><TableHead>Action</TableHead><TableHead>Detail</TableHead><TableHead className="w-28" /></TableRow></TableHeader>
             <TableBody>
               {(audit.data ?? []).map(a => {
                 const r = (a.new_row ?? a.old_row ?? {}) as Record<string, any>;
-                const detail = a.table_name === "colas_report_periods" ? `${MONTH_NAMES[(r.month ?? 1) - 1]} ${r.year}` : a.table_name === "colas_manual_entries" ? `${PROVIDER_LABELS[r.provider as keyof typeof PROVIDER_LABELS] ?? r.provider} ${r.collection_date} · ${r.weight_kg ?? "—"} kg` : a.table_name === "colas_costs" ? `${MONTH_NAMES[(r.month ?? 1) - 1]} ${r.year} · £${r.amount_ex_vat}` : a.table_name === "colas_consignments" ? `Job ${r.job_number} → ${r.consignment_ref ?? "—"}` : a.table_name === "colas_opening_balances" ? String(r.year) : "";
+                const detail = a.table_name === "colas_report_periods" ? `${MONTH_NAMES[(r.month ?? 1) - 1]} ${r.year}` : a.table_name === "colas_manual_entries" ? `${PROVIDER_LABELS[r.provider as keyof typeof PROVIDER_LABELS] ?? r.provider} ${r.collection_date} · ${r.weight_kg ?? "—"} kg` : a.table_name === "colas_costs" ? `${MONTH_NAMES[(r.month ?? 1) - 1]} ${r.year} · £${r.amount_ex_vat}` : a.table_name === "colas_consignments" ? consignmentDetail(a.old_row as Record<string, any> | null, r) : a.table_name === "colas_opening_balances" ? String(r.year) : "";
                 return (
-                  <TableRow key={a.id}><TableCell className="whitespace-nowrap text-sm">{ukDateTime(a.changed_at)}</TableCell><TableCell className="text-sm">{names.get(a.changed_by) ?? "System"}</TableCell><TableCell className="text-sm">{TABLE_LABELS[a.table_name] ?? a.table_name}</TableCell><TableCell className="text-sm">{ACTION_LABELS[a.action] ?? a.action}</TableCell><TableCell className="text-sm">{detail}</TableCell></TableRow>
+                  <TableRow key={a.id}><TableCell className="whitespace-nowrap text-sm">{ukDateTime(a.changed_at)}</TableCell><TableCell className="text-sm">{names.get(a.changed_by) ?? "System"}</TableCell><TableCell className="text-sm">{TABLE_LABELS[a.table_name] ?? a.table_name}</TableCell><TableCell className="text-sm">{ACTION_LABELS[a.action] ?? a.action}</TableCell><TableCell className="text-sm">{detail}</TableCell><TableCell className="text-right">{correctable(a) && <Button size="sm" variant="outline" onClick={() => openCorrection(a)}><PenLine className="mr-1 h-4 w-4" />Correct</Button>}</TableCell></TableRow>
                 );
               })}
-              {(audit.data ?? []).length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Nothing recorded yet.</TableCell></TableRow>}
+              {(audit.data ?? []).length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Nothing recorded yet.</TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+      {correcting && <ColasConsignmentCorrection entry={correcting} data={data} onClose={() => setCorrecting(null)} />}
+      {editingEntry && <EntryDialog entry={editingEntry} onClose={() => setEditingEntry(null)} onSaved={() => { setEditingEntry(null); invalidate(); }} />}
     </div>
   );
 }
@@ -205,4 +222,14 @@ function TreatmentSettings({ saved, authorised, onSaved }: { saved: ColasTreatme
       </CardContent>
     </Card>
   );
+}
+
+/** "Job 50653: — → COLASR/00178" so a number typed on the wrong job is easy to spot. */
+function consignmentDetail(oldRow: Record<string, any> | null, r: Record<string, any>): string {
+  const before = oldRow?.consignment_ref ?? null;
+  const after = r.consignment_ref ?? null;
+  if (oldRow && before !== after) return `Job ${r.job_number}: ${before ?? "—"} → ${after ?? "—"}`;
+  if (oldRow && (oldRow.notes ?? null) !== (r.notes ?? null)) return `Job ${r.job_number}: note changed`;
+  if (oldRow && (oldRow.read_issue ?? null) !== (r.read_issue ?? null)) return `Job ${r.job_number}: reading problem ${r.read_issue ? "set" : "cleared"}`;
+  return `Job ${r.job_number} → ${after ?? "—"}`;
 }

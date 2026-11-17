@@ -115,7 +115,7 @@ function ProviderEntries({ provider, data }: { provider: ManualProvider; data: C
   );
 }
 
-function EntryDialog({ entry, onClose, onSaved }: { entry: Entry; onClose: () => void; onSaved: () => void }) {
+export function EntryDialog({ entry, onClose, onSaved }: { entry: Entry; onClose: () => void; onSaved: () => void }) {
   const { user } = useAuth();
   const provider = entry.provider as ManualProvider;
   const [f, setF] = useState<Entry>({
