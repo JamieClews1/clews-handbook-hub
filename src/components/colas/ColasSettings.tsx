@@ -92,7 +92,7 @@ export function ColasSettings({ data, settings }: { data: ColasYearData; setting
         </CardContent>
       </Card>
 
-      <ColasAutoReader authorised={authorised} />
+      <ColasAutoReader authorised={authorised} data={data} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

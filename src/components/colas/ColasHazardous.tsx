@@ -78,6 +78,7 @@ export function ColasHazardous({ data }: { data: ColasYearData }) {
                           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); save(l.reference); } }} />
                         {saving === l.reference && <Loader2 className="h-4 w-4 animate-spin" />}
                       </div>
+                      {data.consignmentNotes.get(l.reference) && <p className="mt-1 max-w-[16rem] text-sm text-muted-foreground"><span className="font-medium text-foreground">Note:</span> {data.consignmentNotes.get(l.reference)}</p>}
                       {data.autoRead.has(l.reference) && <div className="mt-1" title={data.autoRead.get(l.reference) ?? undefined}><Chip tone="info">{l.consignmentRef ? "Read automatically" : "Checked automatically"}</Chip></div>}
                       {!l.consignmentRef && (
                         <div className="mt-1 flex items-center gap-2">

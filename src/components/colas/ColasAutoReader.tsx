@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useInvalidateColas } from "./useColasData";
 import { Chip, ukDateTime } from "./ColasShared";
+import { ColasManualConsignments } from "./ColasManualConsignments";
+import type { ColasYearData } from "./useColasData";
 
 const RESULT_LABEL: Record<string, string> = { found: "Number found", unreadable: "Can't read", not_present: "Consignment page missing" };
 const APPLIED_LABEL: Record<string, string> = { saved: "Saved", flagged: "Flagged on report", kept_existing: "Already recorded — left as it was" };
@@ -17,7 +19,7 @@ const APPLIED_LABEL: Record<string, string> = { saved: "Saved", flagged: "Flagge
 interface Summary { checked: number; found: number; unreadable: number; page_missing: number; kept: number; remaining: number; saved: string[] }
 
 /** Status and history of the daily 5pm QuickConsign reader (colas-consignment-reader). */
-export function ColasAutoReader({ authorised }: { authorised: boolean }) {
+export function ColasAutoReader({ authorised, data }: { authorised: boolean; data: ColasYearData }) {
   const qc = useQueryClient();
   const invalidate = useInvalidateColas();
   const [busy, setBusy] = useState<string | null>(null);
@@ -84,6 +86,8 @@ export function ColasAutoReader({ authorised }: { authorised: boolean }) {
               </div>
             )}
             {st?.last_error && !st.paused_reason && <p className="text-sm text-destructive">Last check stopped: {st.last_error}</p>}
+            <ColasManualConsignments data={data} />
+            <h3 className="pt-2 text-base font-semibold">Recent scans read</h3>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader><TableRow><TableHead>When</TableHead><TableHead>Job</TableHead><TableHead>Result</TableHead><TableHead>Number</TableHead><TableHead>What happened</TableHead><TableHead>What the reader saw</TableHead></TableRow></TableHeader>
