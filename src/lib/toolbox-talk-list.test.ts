@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
 import { sortTalks, talkAppliesTo, talkNumber } from "./toolbox-talk-list";
 
 const t = (id: string, ref: string, extra: Partial<{ user_types: string[]; assigned_users: string[]; is_mandatory: boolean }> = {}) => ({
@@ -8,13 +9,13 @@ const t = (id: string, ref: string, extra: Partial<{ user_types: string[]; assig
 describe("toolbox talk list", () => {
   it("sorts by talk number, newest first, not text order", () => {
     const out = sortTalks([t("a", "TBT-2"), t("b", "TBT-12"), t("c", "TBT-10")], "newest", new Set());
-    expect(out.map((x) => x.reference_code)).toEqual(["TBT-12", "TBT-10", "TBT-2"]);
-    expect(talkNumber("TBT-11")).toBe(11);
+    assert.deepEqual(out.map((x) => x.reference_code), ["TBT-12", "TBT-10", "TBT-2"]);
+    assert.equal(talkNumber("TBT-11"), 11);
   });
 
   it("oldest first reverses the order", () => {
     const out = sortTalks([t("a", "TBT-2"), t("b", "TBT-12"), t("c", "TBT-1")], "oldest", new Set());
-    expect(out.map((x) => x.reference_code)).toEqual(["TBT-1", "TBT-2", "TBT-12"]);
+    assert.deepEqual(out.map((x) => x.reference_code), ["TBT-1", "TBT-2", "TBT-12"]);
   });
 
   it("to-sign puts unsigned mandatory first and signed last", () => {
@@ -23,12 +24,12 @@ describe("toolbox talk list", () => {
       "to-sign",
       new Set(["s"]),
     );
-    expect(out.map((x) => x.id)).toEqual(["m", "o", "s"]);
+    assert.deepEqual(out.map((x) => x.id), ["m", "o", "s"]);
   });
 
   it("applies by user type or by named assignment", () => {
-    expect(talkAppliesTo(t("a", "TBT-11", { user_types: ["driver"] }), "u1", ["office"])).toBe(false);
-    expect(talkAppliesTo(t("a", "TBT-11", { user_types: ["driver"] }), "u1", ["driver"])).toBe(true);
-    expect(talkAppliesTo(t("a", "TBT-11", { user_types: ["driver"], assigned_users: ["u1"] }), "u1", [])).toBe(true);
+    assert.equal(talkAppliesTo(t("a", "TBT-11", { user_types: ["driver"] }), "u1", ["office"]), false);
+    assert.equal(talkAppliesTo(t("a", "TBT-11", { user_types: ["driver"] }), "u1", ["driver"]), true);
+    assert.equal(talkAppliesTo(t("a", "TBT-11", { user_types: ["driver"], assigned_users: ["u1"] }), "u1", []), true);
   });
 });
