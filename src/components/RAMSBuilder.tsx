@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -99,8 +99,19 @@ const emptyHazard: Omit<Hazard, "id" | "rams_id"> = {
   display_order: 0,
 };
 
-export const RAMSBuilder = () => {
+interface RAMSBuilderProps {
+  /** Open straight into editing this RAMS (from the RAMS page or a document's own page). */
+  initialEditId?: string | null;
+  /** Open straight into a new, blank RAMS. */
+  startNew?: boolean;
+  /** Called once the requested document/new form has been opened, so the page can tidy its address. */
+  onInitialApplied?: () => void;
+}
+
+export const RAMSBuilder = ({ initialEditId, startNew, onInitialApplied }: RAMSBuilderProps = {}) => {
   const { toast } = useToast();
+  const appliedInitial = useRef("");
+  const [listLoaded, setListLoaded] = useState(false);
   const [ramsList, setRamsList] = useState<RAMS[]>([]);
   const [selectedRAMS, setSelectedRAMS] = useState<RAMS | null>(null);
   const [hazards, setHazards] = useState<Hazard[]>([]);
@@ -135,6 +146,7 @@ export const RAMSBuilder = () => {
     } else {
       setRamsList((data as RAMS[]) || []);
     }
+    setListLoaded(true);
   };
 
   const fetchHazards = async (ramsId: string) => {
@@ -158,7 +170,33 @@ export const RAMSBuilder = () => {
     setIsEditing(true);
   };
 
-  const handleEdit = (rams: RAMS) => {
+  useEffect(() => {
+    const request = initialEditId ? `edit:${initialEditId}` : startNew ? "new" : "";
+    if (!request) { appliedInitial.current = ""; return; }
+    if (!listLoaded || appliedInitial.current === request) return;
+    appliedInitial.current = request;
+    (async () => {
+      if (initialEditId) {
+        const rams = ramsList.find(r => r.id === initialEditId);
+        if (!rams) toast({ title: "RAMS not found", description: "It may have been deleted.", variant: "destructive" });
+        else await openForEditing(rams);
+      } else if (startNew) {
+        handleCreateNew();
+      }
+      onInitialApplied?.();
+    })();
+  }, [listLoaded, ramsList, initialEditId, startNew]);
+
+  /** Loads the document's hazards first, so the editor never opens with another document's rows. */
+  const openForEditing = async (rams: RAMS) => {
+    const { data } = await supabase.from("rams_hazards").select("*").eq("rams_id", rams.id).order("display_order");
+    const hz = (data as Hazard[]) || [];
+    setSelectedRAMS(rams);
+    setHazards(hz);
+    handleEdit(rams, hz);
+  };
+
+  const handleEdit = (rams: RAMS, hazardRows: Hazard[] = hazards) => {
     setSelectedRAMS(rams);
     setEditForm({
       reference_code: rams.reference_code,
@@ -174,7 +212,7 @@ export const RAMSBuilder = () => {
       user_types: rams.user_types,
       assigned_users: rams.assigned_users || [],
     });
-    setEditHazards(hazards.map(h => ({ ...h })));
+    setEditHazards(hazardRows.map(h => ({ ...h })));
     setIsEditing(true);
   };
 
@@ -853,9 +891,7 @@ export const RAMSBuilder = () => {
                           variant="ghost"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedRAMS(rams);
-                            fetchHazards(rams.id);
-                            setTimeout(() => handleEdit(rams), 100);
+                            void openForEditing(rams);
                           }}
                         >
                           <Edit className="h-4 w-4" />

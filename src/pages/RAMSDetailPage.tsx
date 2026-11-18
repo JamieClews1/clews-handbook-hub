@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Download, Languages, Loader2, CheckCircle, PenTool, ClipboardSignature } from "lucide-react";
+import { ArrowLeft, Download, Languages, Loader2, CheckCircle, PenTool, ClipboardSignature, Pencil } from "lucide-react";
+import { manageHref } from "@/lib/hs-manage-view";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
@@ -727,6 +728,12 @@ const RAMSDetailPage = () => {
               <Button onClick={() => setShowSignDialog(true)} className="gap-2">
                 <PenTool className="h-4 w-4" />
                 Sign This RAMS
+              </Button>
+            )}
+            {isAdmin && (
+              <Button variant="outline" className="gap-2" onClick={() => navigate(manageHref("/rams", { editId: rams.id }))}>
+                <Pencil className="h-4 w-4" />
+                Edit RAMS
               </Button>
             )}
             {isAdmin && (

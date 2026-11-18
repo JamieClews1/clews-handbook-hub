@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, CheckCircle, ClipboardSignature, Printer, Loader2, Languages } from "lucide-react";
+import { ArrowLeft, CheckCircle, ClipboardSignature, Printer, Loader2, Languages, Pencil } from "lucide-react";
+import { manageHref } from "@/lib/hs-manage-view";
 import { SignaturePad } from "@/components/SignaturePad";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeHtml } from "@/lib/sanitize-html";
@@ -453,6 +454,12 @@ const ToolboxTalkDetailPage = () => {
               {!isSigned && (
                 <Button size="sm" onClick={() => setShowSignDialog(true)} className="h-8 text-xs">
                   Sign Off
+                </Button>
+              )}
+              {isAdmin && (
+                <Button variant="outline" size="sm" className="h-8 gap-1 text-xs" onClick={() => navigate(manageHref("/toolbox-talks", { editId: talk.id }))}>
+                  <Pencil className="h-3 w-3" />
+                  Edit
                 </Button>
               )}
               {isAdmin && (

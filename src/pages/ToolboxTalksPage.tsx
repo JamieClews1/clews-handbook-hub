@@ -1,12 +1,15 @@
 import { PageHeading } from "@/components/PageHeading";
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MessageSquare, CheckCircle, AlertTriangle } from "lucide-react";
+import { MessageSquare, CheckCircle, AlertTriangle, ClipboardSignature, Pencil, Plus } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToolboxTalkBuilder } from "@/components/ToolboxTalkBuilder";
+import { manageHref, readManageView } from "@/lib/hs-manage-view";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 
 interface ToolboxTalk {
@@ -21,7 +24,8 @@ interface ToolboxTalk {
 
 const ToolboxTalksPage = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [toolboxTalks, setToolboxTalks] = useState<ToolboxTalk[]>([]);
   const [signedTalkIds, setSignedTalkIds] = useState<Set<string>>(new Set());
@@ -97,14 +101,28 @@ const ToolboxTalksPage = () => {
     t => t.is_mandatory && !signedTalkIds.has(t.id)
   ).length;
 
+  const { manage, editId, startNew } = readManageView(searchParams, isAdmin);
+  const setView = (v: string) => setSearchParams(v === "manage" ? { view: "manage" } : {});
+
   return (
     <div className="min-h-screen bg-background">
-
-
       <section className="container mx-auto px-4 pt-6">
         <div>
-          <PageHeading title="Toolbox Talks" description="Safety briefings and signatures" />
-          {pendingMandatory > 0 && (
+          <PageHeading title="Toolbox Talks" description="Safety briefings and signatures" actions={isAdmin ? (
+            <>
+              <Button asChild variant="outline"><Link to="/mass-sign-off"><ClipboardSignature className="h-4 w-4 mr-2" />Mass Sign-Off</Link></Button>
+              <Button asChild><Link to={manageHref("/toolbox-talks", { startNew: true })}><Plus className="h-4 w-4 mr-2" />New Toolbox Talk</Link></Button>
+            </>
+          ) : undefined} />
+          {isAdmin && (
+            <Tabs value={manage ? "manage" : "documents"} onValueChange={setView} className="mt-4">
+              <TabsList>
+                <TabsTrigger value="documents">My talks</TabsTrigger>
+                <TabsTrigger value="manage">Manage</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+          {!manage && pendingMandatory > 0 && (
             <div className="mt-4 inline-flex items-center gap-2 bg-destructive/10 text-destructive px-4 py-2 rounded-full">
               <AlertTriangle className="h-5 w-5" />
               <span>{pendingMandatory} mandatory talk{pendingMandatory > 1 ? "s" : ""} pending signature</span>
@@ -113,6 +131,11 @@ const ToolboxTalksPage = () => {
         </div>
       </section>
 
+      {manage ? (
+        <main className="container max-w-screen-2xl mx-auto px-4 py-6">
+          <ToolboxTalkBuilder initialEditId={editId} startNew={startNew} onInitialApplied={() => setSearchParams({ view: "manage" }, { replace: true })} />
+        </main>
+      ) : (
       <main className="container mx-auto px-4 py-8">
         {toolboxTalks.length === 0 ? (
           <Card className="max-w-2xl mx-auto">
@@ -121,6 +144,7 @@ const ToolboxTalksPage = () => {
               <p className="text-muted-foreground">
                 No Toolbox Talks are currently assigned to your user type.
               </p>
+              {isAdmin && <Button variant="outline" className="mt-4" onClick={() => setView("manage")}>Manage Toolbox Talks</Button>}
             </CardContent>
           </Card>
         ) : (
@@ -161,11 +185,16 @@ const ToolboxTalksPage = () => {
                       dangerouslySetInnerHTML={{ __html: sanitizeHtml(talk.content) }}
                     />
                   </CardContent>
-                  <div className="px-6 pb-4 mt-auto">
+                  <div className="px-6 pb-4 mt-auto flex gap-2">
+                    {isAdmin && (
+                      <Button size="sm" variant="outline" className={isSigned ? "w-full" : ""} onClick={(e) => { e.stopPropagation(); navigate(manageHref("/toolbox-talks", { editId: talk.id })); }}>
+                        <Pencil className="h-4 w-4 mr-1" />Edit
+                      </Button>
+                    )}
                     {!isSigned && (
                       <Button
                         size="sm"
-                        className="w-full"
+                        className="flex-1"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/toolbox-talks/${talk.id}`);
@@ -181,6 +210,7 @@ const ToolboxTalksPage = () => {
           </div>
         )}
       </main>
+      )}
     </div>
   );
 };

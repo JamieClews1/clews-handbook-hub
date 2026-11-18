@@ -54,14 +54,14 @@ const AdminPage = () => {
       title: "RAMS Builder",
       description: "Build and manage Risk Assessments and Method Statements for workplace safety.",
       icon: FileText,
-      href: "/admin/rams",
+      href: "/rams?view=manage",
       gradient: "from-secondary to-secondary/80",
     },
     {
       title: "Toolbox Talk Builder",
       description: "Create and manage safety briefings and training materials.",
       icon: MessageSquare,
-      href: "/admin/toolbox-talks",
+      href: "/toolbox-talks?view=manage",
       gradient: "from-warning to-warning/80",
     },
     {

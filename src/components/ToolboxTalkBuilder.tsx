@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,8 +35,18 @@ interface ToolboxTalk {
 
 const USER_TYPES = ["driver", "yard", "office", "management"];
 
-export const ToolboxTalkBuilder = () => {
+interface ToolboxTalkBuilderProps {
+  /** Open straight into editing this talk (from the Toolbox Talks page or a talk's own page). */
+  initialEditId?: string | null;
+  /** Open straight into a new, blank talk. */
+  startNew?: boolean;
+  /** Called once the requested talk/new form has been opened, so the page can tidy its address. */
+  onInitialApplied?: () => void;
+}
+
+export const ToolboxTalkBuilder = ({ initialEditId, startNew, onInitialApplied }: ToolboxTalkBuilderProps = {}) => {
   const { toast } = useToast();
+  const appliedInitial = useRef("");
   const [toolboxTalks, setToolboxTalks] = useState<ToolboxTalk[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingTalk, setEditingTalk] = useState<ToolboxTalk | null>(null);
@@ -65,6 +75,22 @@ export const ToolboxTalkBuilder = () => {
   useEffect(() => {
     fetchToolboxTalks();
   }, []);
+
+  useEffect(() => {
+    const request = initialEditId ? `edit:${initialEditId}` : startNew ? "new" : "";
+    if (!request) { appliedInitial.current = ""; return; }
+    if (loading || appliedInitial.current === request) return;
+    appliedInitial.current = request;
+    if (initialEditId) {
+      const talk = toolboxTalks.find(t => t.id === initialEditId);
+      if (talk) handleEdit(talk);
+      else toast({ title: "Toolbox Talk not found", description: "It may have been deleted.", variant: "destructive" });
+    } else if (startNew) {
+      resetForm();
+      setIsCreating(true);
+    }
+    onInitialApplied?.();
+  }, [loading, toolboxTalks, initialEditId, startNew]);
 
   const fetchToolboxTalks = async () => {
     try {

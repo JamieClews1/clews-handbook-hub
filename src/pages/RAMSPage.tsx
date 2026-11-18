@@ -9,7 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, FileText, AlertTriangle, ClipboardList, Loader2, CheckCircle, User, ClipboardSignature } from "lucide-react";
 import { format } from "date-fns";
 import { RAMSBuilder } from "@/components/RAMSBuilder";
-import { Pencil, Eye } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { manageHref, readManageView } from "@/lib/hs-manage-view";
 
 interface RAMS {
   id: string;
@@ -142,21 +144,28 @@ const RAMSPage = () => {
     return null;
   }
 
-  const editing = isAdmin && searchParams.get("view") === "edit";
+  const { manage: editing, editId, startNew } = readManageView(searchParams, isAdmin);
+  const setView = (v: string) => setSearchParams(v === "manage" ? { view: "manage" } : {});
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 pt-6">
-        <PageHeading title={editing ? "Edit RAMS" : "RAMS"} description="Risk assessments and method statements" actions={
+        <PageHeading title="RAMS" description="Risk assessments and method statements" actions={
           <>
             {(isAdmin || isManagement) && <Button asChild variant="outline"><Link to="/mass-sign-off"><ClipboardSignature className="h-4 w-4 mr-2" />Mass Sign-Off</Link></Button>}
-            {isAdmin && <Button variant="outline" onClick={() => setSearchParams(prev => { const next = new URLSearchParams(prev); if (editing) next.delete("view"); else next.set("view", "edit"); return next; })}>
-              {editing ? <Eye className="h-4 w-4 mr-2" /> : <Pencil className="h-4 w-4 mr-2" />}{editing ? "View RAMS" : "Edit RAMS"}
-            </Button>}
+            {isAdmin && <Button asChild><Link to={manageHref("/rams", { startNew: true })}><Plus className="h-4 w-4 mr-2" />New RAMS</Link></Button>}
           </>
         } />
+        {isAdmin && (
+          <Tabs value={editing ? "manage" : "documents"} onValueChange={setView} className="mt-4">
+            <TabsList>
+              <TabsTrigger value="documents">Documents</TabsTrigger>
+              <TabsTrigger value="manage">Manage</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
       </div>
-      {editing ? <main className="container max-w-screen-2xl mx-auto px-4 py-6"><RAMSBuilder /></main> : <>
-      <main className="container mx-auto px-4 pb-6">
+      {editing ? <main className="container max-w-screen-2xl mx-auto px-4 py-6"><RAMSBuilder initialEditId={editId} startNew={startNew} onInitialApplied={() => setSearchParams({ view: "manage" }, { replace: true })} /></main> : <>
+      <main className="container mx-auto px-4 py-6">
         <div className="max-w-4xl mx-auto">
           <Card className="mb-8">
             <CardHeader>
@@ -240,6 +249,11 @@ const RAMSPage = () => {
                                 </p>
                               )}
                             </div>
+                            {isAdmin && (
+                              <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate(manageHref("/rams", { editId: rams.id })); }}>
+                                <Pencil className="h-4 w-4 mr-1" />Edit
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </div>

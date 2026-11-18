@@ -24,7 +24,6 @@ import ContactPage from "./pages/ContactPage";
 import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AdminPage from "./pages/AdminPage";
-import AdminToolboxTalksPage from "./pages/AdminToolboxTalksPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import AdminCustomersPage from "./pages/AdminCustomersPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
@@ -172,8 +171,8 @@ const App = () => (
             <Route path="/contact" element={<Staff><ContactPage /></Staff>} />
             <Route path="/admin" element={<Staff><AdminPage /></Staff>} />
             <Route path="/admin/handbook" element={<Staff><Navigate to="/handbook?view=edit" replace /></Staff>} />
-            <Route path="/admin/rams" element={<Staff><Navigate to="/rams?view=edit" replace /></Staff>} />
-            <Route path="/admin/toolbox-talks" element={<Staff><AdminToolboxTalksPage /></Staff>} />
+            <Route path="/admin/rams" element={<Staff><Navigate to="/rams?view=manage" replace /></Staff>} />
+            <Route path="/admin/toolbox-talks" element={<Staff><Navigate to="/toolbox-talks?view=manage" replace /></Staff>} />
             <Route path="/admin/users" element={<Staff><AdminUsersPage /></Staff>} />
             <Route path="/admin/customers" element={<Staff><AdminCustomersPage /></Staff>} />
             <Route path="/admin/settings" element={<Staff><AdminSettingsPage /></Staff>} />
