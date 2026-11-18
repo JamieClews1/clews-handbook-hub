@@ -3,14 +3,15 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, CheckCircle, AlertTriangle, ClipboardSignature, Pencil, Plus } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToolboxTalkBuilder } from "@/components/ToolboxTalkBuilder";
 import { manageHref, readManageView } from "@/lib/hs-manage-view";
-import { sanitizeHtml } from "@/lib/sanitize-html";
+import { AUDIENCE_LABELS, sortTalks, talkAppliesTo, talkPreview, type TalkSort } from "@/lib/toolbox-talk-list";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ToolboxTalk {
   id: string;
@@ -18,6 +19,7 @@ interface ToolboxTalk {
   title: string;
   content: string;
   user_types: string[];
+  assigned_users: string[] | null;
   is_mandatory: boolean;
   created_date: string;
 }
@@ -30,6 +32,9 @@ const ToolboxTalksPage = () => {
   const [toolboxTalks, setToolboxTalks] = useState<ToolboxTalk[]>([]);
   const [signedTalkIds, setSignedTalkIds] = useState<Set<string>>(new Set());
   const [loadingData, setLoadingData] = useState(true);
+  const [myTypes, setMyTypes] = useState<string[]>([]);
+  const [sort, setSort] = useState<TalkSort>("newest");
+  const [show, setShow] = useState<"mine" | "all" | "to-sign" | "signed">("all");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -50,20 +55,18 @@ const ToolboxTalksPage = () => {
           .single();
 
         const types = profile?.user_types || [];
+        setMyTypes(types);
 
         // Fetch published toolbox talks
         const { data: talks } = await supabase
           .from("toolbox_talks")
           .select("*")
-          .eq("is_published", true)
-          .order("created_date", { ascending: false });
+          .eq("is_published", true);
 
-        // Filter by user types
-        const applicableTalks = (talks || []).filter(talk =>
-          types.some((ut: string) => talk.user_types.includes(ut))
-        );
-
-        setToolboxTalks(applicableTalks);
+        // Admins can see every published talk (to check new ones); everyone else
+        // sees talks for their user type or assigned to them by name.
+        const all = (talks || []) as ToolboxTalk[];
+        setToolboxTalks(isAdmin ? all : all.filter(talk => talkAppliesTo(talk, user.id, types)));
 
         // Fetch user's signatures
         const { data: signatures } = await supabase
@@ -80,7 +83,7 @@ const ToolboxTalksPage = () => {
     };
 
     fetchData();
-  }, [user]);
+  }, [user, isAdmin]);
 
   if (loading || loadingData) {
     return (
@@ -97,9 +100,23 @@ const ToolboxTalksPage = () => {
     return null;
   }
 
+  const isMine = (t: ToolboxTalk) => talkAppliesTo(t, user.id, myTypes);
   const pendingMandatory = toolboxTalks.filter(
-    t => t.is_mandatory && !signedTalkIds.has(t.id)
+    t => isMine(t) && t.is_mandatory && !signedTalkIds.has(t.id)
   ).length;
+  const filtered = toolboxTalks.filter(t => {
+    if (show === "mine") return isMine(t);
+    if (show === "to-sign") return isMine(t) && !signedTalkIds.has(t.id);
+    if (show === "signed") return signedTalkIds.has(t.id);
+    return true;
+  });
+  const visibleTalks = sortTalks(filtered, sort, signedTalkIds);
+  const showOptions: { value: typeof show; label: string }[] = [
+    { value: "all", label: "All talks" },
+    ...(isAdmin ? [{ value: "mine" as const, label: "Assigned to me" }] : []),
+    { value: "to-sign", label: "To sign" },
+    { value: "signed", label: "Signed" },
+  ];
 
   const { manage, editId, startNew } = readManageView(searchParams, isAdmin);
   const setView = (v: string) => setSearchParams(v === "manage" ? { view: "manage" } : {});
@@ -136,78 +153,97 @@ const ToolboxTalksPage = () => {
           <ToolboxTalkBuilder initialEditId={editId} startNew={startNew} onInitialApplied={() => setSearchParams({ view: "manage" }, { replace: true })} />
         </main>
       ) : (
-      <main className="container mx-auto px-4 py-8">
-        {toolboxTalks.length === 0 ? (
-          <Card className="max-w-2xl mx-auto">
+      <main className="container max-w-screen-2xl mx-auto px-4 py-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Show">
+            {showOptions.map(o => (
+              <Button key={o.value} size="sm" variant={show === o.value ? "default" : "outline"} onClick={() => setShow(o.value)}>
+                {o.label}
+              </Button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Sort</span>
+            <Select value={sort} onValueChange={(v) => setSort(v as TalkSort)}>
+              <SelectTrigger className="w-[190px]" aria-label="Sort talks"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest first</SelectItem>
+                <SelectItem value="oldest">Oldest first</SelectItem>
+                <SelectItem value="to-sign">Needs signing first</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {visibleTalks.length === 0 ? (
+          <Card>
             <CardContent className="py-12 text-center">
               <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground">
-                No Toolbox Talks are currently assigned to your user type.
+                {toolboxTalks.length === 0 ? "No Toolbox Talks are currently assigned to your user type." : "No talks match this view."}
               </p>
-              {isAdmin && <Button variant="outline" className="mt-4" onClick={() => setView("manage")}>Manage Toolbox Talks</Button>}
+              {isAdmin && toolboxTalks.length === 0 && <Button variant="outline" className="mt-4" onClick={() => setView("manage")}>Manage Toolbox Talks</Button>}
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {toolboxTalks.map(talk => {
+          <ul className="flex flex-col gap-3">
+            {visibleTalks.map(talk => {
               const isSigned = signedTalkIds.has(talk.id);
+              const mine = isMine(talk);
               return (
-                <Card 
-                  key={talk.id} 
-                  className={`flex flex-col h-full cursor-pointer transition-colors hover:bg-muted/50 active:bg-muted/70 ${isSigned ? "border-green-500/30" : ""}`}
-                  onClick={() => navigate(`/toolbox-talks/${talk.id}`)}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded">
-                        {talk.reference_code}
-                      </span>
-                      <div className="flex gap-1">
-                        {talk.is_mandatory && (
-                          <Badge variant="destructive" className="text-xs">Mandatory</Badge>
+                <li key={talk.id}>
+                  <Card
+                    className={`cursor-pointer transition-colors hover:bg-muted/50 active:bg-muted/70 border-l-4 ${isSigned ? "border-l-success" : mine && talk.is_mandatory ? "border-l-destructive" : "border-l-border"}`}
+                    onClick={() => navigate(`/toolbox-talks/${talk.id}`)}
+                  >
+                    <div className="flex flex-col md:flex-row md:items-center gap-3 p-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <span className="text-sm font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded tabular-nums">
+                            {talk.reference_code}
+                          </span>
+                          <span className="text-sm text-muted-foreground tabular-nums">
+                            {new Date(talk.created_date).toLocaleDateString("en-GB")}
+                          </span>
+                          {talk.is_mandatory && <Badge variant="destructive">Mandatory</Badge>}
+                          {isSigned && (
+                            <Badge variant="outline" className="bg-success/10 text-success border-success/30">
+                              <CheckCircle className="h-3 w-3 mr-1" />Signed
+                            </Badge>
+                          )}
+                          {isAdmin && !mine && <Badge variant="secondary">Not assigned to you</Badge>}
+                        </div>
+                        <h3 className="text-lg font-semibold leading-snug">{talk.title}</h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{talkPreview(talk.content)}</p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {(talk.user_types || []).map(ut => (
+                            <Badge key={ut} variant="outline" className="font-normal">{AUDIENCE_LABELS[ut] ?? ut}</Badge>
+                          ))}
+                          {(talk.assigned_users?.length ?? 0) > 0 && (
+                            <Badge variant="outline" className="font-normal">+{talk.assigned_users!.length} named</Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        {isAdmin && (
+                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); navigate(manageHref("/toolbox-talks", { editId: talk.id })); }}>
+                            <Pencil className="h-4 w-4 mr-1" />Edit
+                          </Button>
                         )}
-                        {isSigned && (
-                          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30 text-xs">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Signed
-                          </Badge>
-                        )}
+                        <Button
+                          size="sm"
+                          variant={isSigned || !mine ? "outline" : "default"}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/toolbox-talks/${talk.id}`); }}
+                        >
+                          {isSigned || !mine ? "View" : "View & Sign"}
+                        </Button>
                       </div>
                     </div>
-                    <CardTitle className="text-base mt-2 line-clamp-2">{talk.title}</CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(talk.created_date).toLocaleDateString()}
-                    </p>
-                  </CardHeader>
-                  <CardContent className="flex-1 pb-3">
-                    <div
-                      className="prose prose-sm max-w-none text-muted-foreground line-clamp-4 text-sm"
-                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(talk.content) }}
-                    />
-                  </CardContent>
-                  <div className="px-6 pb-4 mt-auto flex gap-2">
-                    {isAdmin && (
-                      <Button size="sm" variant="outline" className={isSigned ? "w-full" : ""} onClick={(e) => { e.stopPropagation(); navigate(manageHref("/toolbox-talks", { editId: talk.id })); }}>
-                        <Pencil className="h-4 w-4 mr-1" />Edit
-                      </Button>
-                    )}
-                    {!isSigned && (
-                      <Button
-                        size="sm"
-                        className="flex-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/toolbox-talks/${talk.id}`);
-                        }}
-                      >
-                        View & Sign
-                      </Button>
-                    )}
-                  </div>
-                </Card>
+                  </Card>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
       </main>
       )}
