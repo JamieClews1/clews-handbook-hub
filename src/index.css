@@ -392,3 +392,18 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/* Saved rich text (Toolbox Talk content): headings, lists and rules stay readable without the typography plugin. */
+@layer components {
+  .rich-content h1 { @apply mt-5 mb-2 text-xl font-semibold text-foreground; }
+  .rich-content h2 { @apply mt-5 mb-2 text-lg font-semibold text-foreground; }
+  .rich-content h3 { @apply mt-4 mb-1.5 text-base font-semibold text-foreground; }
+  .rich-content p { @apply my-1.5 leading-relaxed; }
+  .rich-content ul { @apply my-2 list-disc pl-6; }
+  .rich-content ol { @apply my-2 list-decimal pl-6; }
+  .rich-content li { @apply my-1; }
+  .rich-content li > p { @apply my-0; }
+  .rich-content hr { @apply my-4 border-border; }
+  .rich-content strong { @apply font-semibold text-foreground; }
+  .rich-content img { @apply my-3 h-auto max-w-full rounded-md; }
+}

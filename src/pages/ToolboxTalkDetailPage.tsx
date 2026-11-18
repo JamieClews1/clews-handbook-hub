@@ -484,7 +484,7 @@ const ToolboxTalkDetailPage = () => {
             </div>
           )}
           <div
-            className="prose prose-sm max-w-none
+            className="rich-content text-muted-foreground prose prose-sm max-w-none
               prose-headings:text-foreground prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
               prose-h3:text-base prose-h2:text-lg prose-h1:text-xl
               prose-p:text-sm prose-p:leading-relaxed prose-p:my-1.5 prose-p:text-muted-foreground
