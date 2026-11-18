@@ -10941,6 +10941,107 @@ export type Database = {
         }
         Relationships: []
       }
+      toolbox_talk_guest_signatures: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          id: string
+          job_title: string | null
+          language: string
+          share_link_id: string | null
+          signature_image: string
+          signed_at: string
+          signer_name: string
+          toolbox_talk_id: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          job_title?: string | null
+          language?: string
+          share_link_id?: string | null
+          signature_image: string
+          signed_at?: string
+          signer_name: string
+          toolbox_talk_id: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          job_title?: string | null
+          language?: string
+          share_link_id?: string | null
+          signature_image?: string
+          signed_at?: string
+          signer_name?: string
+          toolbox_talk_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "toolbox_talk_guest_signatures_share_link_id_fkey"
+            columns: ["share_link_id"]
+            isOneToOne: false
+            referencedRelation: "toolbox_talk_share_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "toolbox_talk_guest_signatures_toolbox_talk_id_fkey"
+            columns: ["toolbox_talk_id"]
+            isOneToOne: false
+            referencedRelation: "toolbox_talks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      toolbox_talk_share_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          label: string | null
+          last_viewed_at: string | null
+          token: string
+          toolbox_talk_id: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          last_viewed_at?: string | null
+          token?: string
+          toolbox_talk_id: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          last_viewed_at?: string | null
+          token?: string
+          toolbox_talk_id?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "toolbox_talk_share_links_toolbox_talk_id_fkey"
+            columns: ["toolbox_talk_id"]
+            isOneToOne: false
+            referencedRelation: "toolbox_talks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       toolbox_talk_signatures: {
         Row: {
           created_at: string

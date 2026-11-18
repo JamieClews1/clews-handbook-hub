@@ -82,6 +82,7 @@ import PublicBookingPage from "./pages/PublicBookingPage";
 import WeightChecksPage from "./pages/WeightChecksPage";
 import PublicInventoryPage from "./pages/PublicInventoryPage";
 import PublicInductionPage from "./pages/PublicInductionPage";
+import PublicToolboxTalkPage from "./pages/PublicToolboxTalkPage";
 import OrdersPortalPage from "./pages/OrdersPortalPage";
 import WeighOnePricingPage from "./pages/WeighOnePricingPage";
 import CRMPage from "./pages/CRMPage";
@@ -147,6 +148,7 @@ const App = () => (
             <Route path="/Weightchecks" element={<WeightChecksPage />} />
             <Route path="/inventory/:token" element={<PublicInventoryPage />} />
             <Route path="/induction/:token" element={<PublicInductionPage />} />
+            <Route path="/talk/:token" element={<PublicToolboxTalkPage />} />
             <Route path="/orders" element={<OrdersPortalPage />} />
             <Route path="/orders/:token" element={<OrdersPortalPage />} />
 

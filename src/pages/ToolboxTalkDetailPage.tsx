@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, CheckCircle, ClipboardSignature, Printer, Loader2, Languages, Pencil } from "lucide-react";
+import { ArrowLeft, CheckCircle, ClipboardSignature, Printer, Loader2, Languages, Pencil, Link2 } from "lucide-react";
+import { ToolboxTalkShareDialog } from "@/components/ToolboxTalkShareDialog";
+import { loadToolboxTalkGuestSignatures } from "@/lib/load-toolbox-talk-signatures";
+import { type ToolboxTalkGuestSignature } from "@/lib/toolbox-talk-share";
 import { manageHref } from "@/lib/hs-manage-view";
 import { SignaturePad } from "@/components/SignaturePad";
 import { useToast } from "@/hooks/use-toast";
@@ -278,6 +281,8 @@ const ToolboxTalkDetailPage = () => {
   const [isPrinting, setIsPrinting] = useState(false);
   const [displayContent, setDisplayContent] = useState<string>("");
   const [displayTitle, setDisplayTitle] = useState<string>("");
+  const [shareOpen, setShareOpen] = useState(false);
+  const [guestSigs, setGuestSigs] = useState<ToolboxTalkGuestSignature[]>([]);
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -307,6 +312,9 @@ const ToolboxTalkDetailPage = () => {
         const { data: signatures } = await supabase
           .from("toolbox_talk_signatures").select("id").eq("user_id", user.id).eq("toolbox_talk_id", id).maybeSingle();
         setIsSigned(!!signatures);
+        if (adminRole) {
+          loadToolboxTalkGuestSignatures(id).then((g) => setGuestSigs([...g].reverse())).catch(() => setGuestSigs([]));
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -463,6 +471,12 @@ const ToolboxTalkDetailPage = () => {
                 </Button>
               )}
               {isAdmin && (
+                <Button variant="outline" size="sm" className="h-8 gap-1 text-xs" onClick={() => setShareOpen(true)}>
+                  <Link2 className="h-3 w-3" />
+                  Share
+                </Button>
+              )}
+              {isAdmin && (
                 <Button variant="outline" size="sm" className="h-8 gap-1 text-xs"
                   onClick={() => navigate(`/mass-sign-off?type=toolbox&id=${talk.id}`)}>
                   <ClipboardSignature className="h-3 w-3" />
@@ -493,6 +507,27 @@ const ToolboxTalkDetailPage = () => {
               prose-strong:text-foreground"
             dangerouslySetInnerHTML={{ __html: sanitizeHtml(displayContent) }}
           />
+          {isAdmin && guestSigs.length > 0 && (
+            <section className="mt-8 rounded-md border">
+              <h2 className="border-b px-4 py-3 font-semibold text-foreground">
+                Signed via share link <span className="font-normal text-muted-foreground tabular-nums">({guestSigs.length})</span>
+              </h2>
+              <ul className="divide-y">
+                {guestSigs.map((g) => (
+                  <li key={g.id} className="flex flex-wrap items-center gap-3 px-4 py-2">
+                    {g.signature_image && (
+                      <img src={g.signature_image} alt={`Signature of ${g.signer_name}`} className="h-10 rounded border bg-card p-1" />
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">{g.signer_name}</span>
+                      {g.company_name ? ` · ${g.company_name}` : ""}
+                      {g.job_title ? ` · ${g.job_title}` : ""} · {new Date(g.signed_at).toLocaleString("en-GB", { timeZone: "Europe/London", dateStyle: "medium", timeStyle: "short" })}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
       </main>
 
@@ -513,6 +548,15 @@ const ToolboxTalkDetailPage = () => {
           )}
         </DialogContent>
       </Dialog>
+      {isAdmin && (
+        <ToolboxTalkShareDialog
+          talk={shareOpen ? talk : null}
+          onOpenChange={(open) => {
+            setShareOpen(open);
+            if (!open) loadToolboxTalkGuestSignatures(talk.id).then((g) => setGuestSigs([...g].reverse())).catch(() => {});
+          }}
+        />
+      )}
     </div>
   );
 };

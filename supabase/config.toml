@@ -121,3 +121,6 @@ verify_jwt = false
 
 [functions.orders-portal]
 verify_jwt = false
+
+[functions.public-toolbox-talk]
+verify_jwt = false

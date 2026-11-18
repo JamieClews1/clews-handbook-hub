@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, CheckCircle, AlertTriangle, ClipboardSignature, Pencil, Plus } from "lucide-react";
+import { MessageSquare, CheckCircle, AlertTriangle, ClipboardSignature, Pencil, Plus, Link2 } from "lucide-react";
+import { ToolboxTalkShareDialog } from "@/components/ToolboxTalkShareDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToolboxTalkBuilder } from "@/components/ToolboxTalkBuilder";
 import { manageHref, readManageView } from "@/lib/hs-manage-view";
@@ -35,6 +36,7 @@ const ToolboxTalksPage = () => {
   const [myTypes, setMyTypes] = useState<string[]>([]);
   const [sort, setSort] = useState<TalkSort>("newest");
   const [show, setShow] = useState<"mine" | "all" | "to-sign" | "signed">("all");
+  const [shareTalk, setShareTalk] = useState<ToolboxTalk | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -230,6 +232,11 @@ const ToolboxTalksPage = () => {
                             <Pencil className="h-4 w-4 mr-1" />Edit
                           </Button>
                         )}
+                        {isAdmin && (
+                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setShareTalk(talk); }}>
+                            <Link2 className="h-4 w-4 mr-1" />Share
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant={isSigned || !mine ? "outline" : "default"}
@@ -247,6 +254,7 @@ const ToolboxTalksPage = () => {
         )}
       </main>
       )}
+      {isAdmin && <ToolboxTalkShareDialog talk={shareTalk} onOpenChange={(open) => !open && setShareTalk(null)} />}
     </div>
   );
 };
