@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { AlertTriangle, Eye, CheckCircle, Clock, XCircle, QrCode, Copy } from "lucide-react";
+import { AlertTriangle, Eye, CheckCircle, Clock, XCircle, QrCode, Copy, Sparkles } from "lucide-react";
+import NearMissSummaryDialog from "@/components/duty-of-care/NearMissSummaryDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { publicUrl } from "@/lib/public-url";
 
@@ -47,6 +48,7 @@ const NearMissReportsList = () => {
   const [selectedReport, setSelectedReport] = useState<NearMissReport | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [showQRDialog, setShowQRDialog] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
   
   const [updateForm, setUpdateForm] = useState({
     status: "",
@@ -148,10 +150,16 @@ const NearMissReportsList = () => {
             {reports.length} total reports • {pendingCount} pending review
           </p>
         </div>
-        <Button variant="outline" onClick={() => setShowQRDialog(true)} className="gap-2">
-          <QrCode className="h-4 w-4" />
-          Get Report Link
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => setShowSummary(true)} className="gap-2">
+            <Sparkles className="h-4 w-4" />
+            Summary since last review
+          </Button>
+          <Button variant="outline" onClick={() => setShowQRDialog(true)} className="gap-2">
+            <QrCode className="h-4 w-4" />
+            Get Report Link
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -322,6 +330,8 @@ const NearMissReportsList = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <NearMissSummaryDialog open={showSummary} onOpenChange={setShowSummary} reports={reports} />
 
       {/* QR Code / Link Dialog */}
       <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>

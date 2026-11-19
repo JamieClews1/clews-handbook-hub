@@ -6058,6 +6058,42 @@ export type Database = {
         }
         Relationships: []
       }
+      near_miss_summaries: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          model: string | null
+          period_from: string | null
+          period_to: string
+          report_count: number
+          report_ids: string[]
+          summary: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          model?: string | null
+          period_from?: string | null
+          period_to: string
+          report_count?: number
+          report_ids?: string[]
+          summary: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          model?: string | null
+          period_from?: string | null
+          period_to?: string
+          report_count?: number
+          report_ids?: string[]
+          summary?: Json
+        }
+        Relationships: []
+      }
       nf_adjustments: {
         Row: {
           adjustment_kg: number
