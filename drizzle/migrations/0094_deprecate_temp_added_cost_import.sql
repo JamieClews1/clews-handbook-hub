@@ -1,0 +1,1 @@
+COMMENT ON TABLE public.tmp_added_cost_import IS 'DEPRECATED: one-off holding table for the Added Cost import (19 Nov 2026); empty and unused, safe to drop.';

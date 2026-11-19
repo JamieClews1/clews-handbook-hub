@@ -659,6 +659,13 @@
       "when": 1795090590780,
       "tag": "0093_temp_added_cost_import",
       "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1795090887224,
+      "tag": "0094_deprecate_temp_added_cost_import",
+      "breakpoints": true
     }
   ]
 }

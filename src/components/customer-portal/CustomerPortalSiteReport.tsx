@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { jobCharges } from "@/lib/portal-job-charges";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -509,6 +510,8 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
   const totalWeight = filteredJobRecords.reduce((sum, r) => sum + (r.weight_t || 0), 0);
   const totalCost = filteredJobRecords.reduce((sum, r) => sum + (getJobCost(r) || 0), 0);
   const totalHaulageCost = filteredJobRecords.reduce((sum, r) => sum + (getHaulageCost(r) || 0), 0);
+  const totalAddedCost = filteredJobRecords.reduce((sum, r) => sum + (jobCharges(r.raw).added || 0), 0);
+  const totalWasteCharge = filteredJobRecords.reduce((sum, r) => sum + (jobCharges(r.raw).waste || 0), 0);
   const selectedSite = sites.find((s) => s.id === selectedSiteId);
 
   const getOrderNumber = (job: JobRecord): string | null => {
@@ -719,14 +722,16 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       ["Total Jobs:", filteredJobRecords.length],
       ["Total Weight (t):", round2(totalWeight)],
       ["Total Cost (£):", round2(totalCost)],
+      ["Total Waste (£):", round2(totalWasteCharge)],
       ["Total Haulage (£):", round2(totalHaulageCost)],
+      ["Total Added Cost (£):", round2(totalAddedCost)],
       [],
       [],
     ];
 
     const hasPallet = Object.keys(palletData).length > 0;
     const hasTotalPallets = Object.keys(totalPalletsData).length > 0;
-    const detailHeaders = ["Date", "Order No.", "Job No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Cost (£)", "Haulage (£)", ...(hasTotalPallets ? ["Pallets"] : []), ...(hasPallet ? ["PET Pallets", "Can Pallets"] : [])];
+    const detailHeaders = ["Date", "Order No.", "Job No.", "Movement", "Container", "EWC", "Waste Type", "Vehicle", "Weight (t)", "Total (£)", "Waste (£)", "Haulage (£)", "Added Cost (£)", ...(hasTotalPallets ? ["Pallets"] : []), ...(hasPallet ? ["PET Pallets", "Can Pallets"] : [])];
     const detailData = filteredJobRecords.map((job) => [
       job.job_date ? format(new Date(job.job_date), "dd/MM/yyyy") : "",
       getOrderNumber(job) || "",
@@ -738,7 +743,9 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
       job.vehicle_registration || "",
       job.weight_t != null ? round2(job.weight_t) : "",
       getJobCost(job) != null ? round2(getJobCost(job)!) : "",
+      jobCharges(job.raw).waste ?? "",
       getHaulageCost(job) != null ? round2(getHaulageCost(job)!) : "",
+      jobCharges(job.raw).added != null ? round2(jobCharges(job.raw).added!) : "",
       ...(hasTotalPallets ? [totalPalletsData[job.job_number] || ""] : []),
       ...(hasPallet ? [palletData[job.job_number]?.pet || "", palletData[job.job_number]?.cans || ""] : []),
     ]);
@@ -748,7 +755,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
 
     ws["!cols"] = [
       { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 25 }, { wch: 12 },
-      { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+      { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 },
       ...(hasTotalPallets ? [{ wch: 10 }] : []),
       ...(hasPallet ? [{ wch: 12 }, { wch: 12 }] : []),
     ];
@@ -971,8 +978,10 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                       <TableHead>Waste Type</TableHead>
                       <TableHead>Vehicle</TableHead>
                       <TableHead className="text-right">Weight (t)</TableHead>
-                      <TableHead className="text-right">Cost (£)</TableHead>
+                      <TableHead className="text-right">Total (£)</TableHead>
+                      <TableHead className="text-right">Waste (£)</TableHead>
                       <TableHead className="text-right">Haulage (£)</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Added Cost (£)</TableHead>
                       <TableHead className="text-center whitespace-nowrap">POD</TableHead>
                       <TableHead className="text-center whitespace-nowrap">WTN</TableHead>
 
@@ -984,6 +993,7 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                   <TableBody>
                     {filteredJobRecords.map((job, idx) => {
                       const cost = getJobCost(job);
+                      const charges = jobCharges(job.raw);
                       const orderNo = getOrderNumber(job);
                       const originalOrderNo = getOriginalOrderNumber(job);
                       const isEditing = editingJobId === job.id;
@@ -1057,7 +1067,13 @@ export function CustomerPortalSiteReport({ customerId, customerName, accessibleS
                             {cost !== null ? `£${cost.toFixed(2)}` : "-"}
                           </TableCell>
                           <TableCell className="text-right">
+                            {charges.waste !== null ? `£${charges.waste.toFixed(2)}` : "-"}
+                          </TableCell>
+                          <TableCell className="text-right">
                             {(() => { const hc = getHaulageCost(job); return hc !== null ? `£${hc.toFixed(2)}` : "-"; })()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {charges.added !== null ? `£${charges.added.toFixed(2)}` : "-"}
                           </TableCell>
                           <TableCell className="text-center">
                             {job.job_number && podJobs.has(job.job_number) ? (
