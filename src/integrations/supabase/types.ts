@@ -10977,6 +10977,21 @@ export type Database = {
         }
         Relationships: []
       }
+      tmp_added_cost_import: {
+        Row: {
+          added: number
+          ticket: string
+        }
+        Insert: {
+          added: number
+          ticket: string
+        }
+        Update: {
+          added?: number
+          ticket?: string
+        }
+        Relationships: []
+      }
       toolbox_talk_guest_signatures: {
         Row: {
           company_name: string | null
