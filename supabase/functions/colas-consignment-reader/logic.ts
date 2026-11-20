@@ -34,10 +34,14 @@ export function isHazardousEwc(code: string | null | undefined, hazardous: Set<s
   return hazardous.has(normaliseEwc(code));
 }
 
-/** Tidies the model's answer: upper-case, no spaces, "COLASR 00185" → "COLASR/00185". */
+/**
+ * Tidies the model's answer: upper-case, no spaces, "COLASR 00185" → "COLASR/00185".
+ * Colas QuickConsign codes always use the COLASR/ prefix, so a faint or smudged R read as
+ * "COLAS/00187" becomes "COLASR/00187"; the five digits must still be read exactly.
+ */
 export function cleanCode(raw: string | null | undefined): string | null {
   if (!raw) return null;
-  const s = raw.toUpperCase().replace(/\s+/g, "").replace(/^COLASR[\\|-]?(\d{5})$/, "COLASR/$1");
+  const s = raw.toUpperCase().replace(/\s+/g, "").replace(/^COLASR?[\/\\|-]?(\d{5})$/, "COLASR/$1");
   return s || null;
 }
 

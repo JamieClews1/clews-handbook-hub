@@ -36,6 +36,12 @@ Deno.test("tidies spacing in a read code", () => {
   assertEquals(cleanCode("colasr 00185"), "COLASR/00185");
 });
 
+Deno.test("a smudged prefix read as COLAS/ is still the COLASR code, but digits must be exact", () => {
+  assertEquals(cleanCode("COLAS/00187"), "COLASR/00187");
+  assertEquals(decide(found("COLAS/00187"), undefined, new Map(), "51355").write, { consignment_ref: "COLASR/00187", read_issue: null });
+  assertEquals(decide(found("COLAS/0018"), undefined, new Map(), "51355").write, { consignment_ref: null, read_issue: "unreadable" });
+});
+
 Deno.test("5pm London is 17:00 UTC in winter and 16:00 UTC in summer", () => {
   assertEquals(londonHour(new Date("2026-11-17T17:00:00Z")), 17);
   assertEquals(londonHour(new Date("2026-07-01T16:00:00Z")), 17);
