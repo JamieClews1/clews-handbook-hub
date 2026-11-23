@@ -1,10 +1,10 @@
 import { it } from "node:test";
 import assert from "node:assert/strict";
-import { buildColasMonth, cumulative, classifyStream, isHazardousEwc, lineSource, parseWeightKg, reportingPeriods, type BuildMonthInput } from "./colas-report";
+import { buildColasMonth, cumulative, classifyStream, isHazardousEwc, lineSource, parseWeightKg, weeklyMondays, reportingPeriods, type BuildMonthInput } from "./colas-report";
 
 const haz = new Set(["15 02 02", "16 01 07", "13 02 05"]);
 const base = (over: Partial<BuildMonthInput> = {}): BuildMonthInput => ({
-  year: 2026, month: 7, today: "2026-11-16", jobs: [], midweigh: [], manual: [], costs: [], consignments: new Map(), hazardousCodes: haz, ...over,
+  year: 2026, month: 7, today: "2026-11-16", jobs: [], midweigh: [], manual: [], costs: [], consignments: new Map(), hazardousCodes: haz, weeklyFrom: null, ...over,
 });
 const job = (o: Partial<BuildMonthInput["jobs"][number]>) => ({ job_number: "1", job_date: "2026-07-09", ewc: "15 01 01", waste_description: "Paper and Cardboard", weight_t: 0.1, cost: 84.43, movement: "Tip/Return", status: "Y", tipping_location: "Clews Recycling Ltd", site: "Colas Road", container_type: "12 Yard Enc", weighbridge_ref: null, ...o });
 
@@ -185,15 +185,15 @@ it("a skip with no weight is still flagged as missing, not assumed", () => {
   assert.equal(month.missingWeights, 1);
 });
 
-it("a B&M wheelie bin entry with no weight counts as 0.5 t", () => {
+it("a B&M wheelie bin entry with no weight counts as 0.05 t", () => {
   const month = buildColasMonth(base({ manual: [manualEntry({ provider: "bm" })] as any }));
-  assert.equal(month.lines[0].weight_t, 0.5);
+  assert.equal(month.lines[0].weight_t, 0.05);
   assert.equal(month.missingWeights, 0);
 });
 
-it("a Fortress food waste entry with no weight counts as 0.3 t", () => {
+it("a Fortress food waste entry with no weight counts as 0.03 t", () => {
   const month = buildColasMonth(base({ manual: [manualEntry({ provider: "fortress", waste_stream: "food" })] as any }));
-  assert.equal(month.lines[0].weight_t, 0.3);
+  assert.equal(month.lines[0].weight_t, 0.03);
   assert.equal(month.lines[0].weightSource, "assumed");
 });
 
@@ -201,4 +201,35 @@ it("an Enva entry with no weight is still flagged as missing", () => {
   const month = buildColasMonth(base({ manual: [manualEntry({ provider: "enva", waste_stream: "aqueous_oil_mix", hazardous: true })] as any }));
   assert.equal(month.lines[0].weight_t, null);
   assert.equal(month.missingWeights, 1);
+});
+
+const weekly = (o: Partial<BuildMonthInput> = {}) => base({ year: 2026, month: 11, today: "2026-11-23", weeklyFrom: "2026-01-01", ...o });
+
+it("each week adds one B&M mixed wheelie bin at 0.05 t and one Fortress food waste at 0.03 t", () => {
+  const month = buildColasMonth(weekly());
+  // Mondays 2, 9, 16 and 23 November are up to today
+  const bm = month.lines.filter(l => l.weekly && l.provider === "bm");
+  const ft = month.lines.filter(l => l.weekly && l.provider === "fortress");
+  assert.equal(bm.length, 4);
+  assert.equal(ft.length, 4);
+  assert.ok(bm.every(l => l.weight_t === 0.05 && l.stream === "mixed_municipal" && l.weightSource === "assumed"));
+  assert.ok(ft.every(l => l.weight_t === 0.03 && l.stream === "food"));
+});
+
+it("weekly collections are not added for weeks after today", () => {
+  assert.deepEqual(weeklyMondays(2026, 11, "2026-11-20"), ["2026-11-02", "2026-11-09", "2026-11-16"]);
+});
+
+it("weekly collections do not start before the agreed start date", () => {
+  // Starting Tuesday 10 Nov counts that week (Monday 9th), then the 16th and 23rd
+  const month = buildColasMonth(weekly({ weeklyFrom: "2026-11-10" }));
+  assert.equal(month.lines.filter(l => l.weekly && l.provider === "bm").length, 3);
+});
+
+it("a week with a staff-entered B&M entry uses that entry instead of the weekly one", () => {
+  const month = buildColasMonth(weekly({ manual: [manualEntry({ provider: "bm", collection_date: "2026-11-11", weight_kg: 60 })] as any }));
+  const bm = month.lines.filter(l => l.provider === "bm");
+  assert.equal(bm.length, 4);
+  assert.equal(bm.find(l => l.date === "2026-11-11")?.weight_t, 0.06);
+  assert.equal(bm.some(l => l.weekly && l.date === "2026-11-09"), false);
 });

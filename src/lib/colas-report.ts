@@ -91,13 +91,43 @@ export function classifyStream(ewcRaw: string | null | undefined, descRaw: strin
 /** Skiptrak movements that remove waste from site (deliveries only drop an empty container). */
 export const isRemovalMovement = (movement: string | null | undefined) => !/^deliver/i.test(String(movement ?? "").trim());
 
-/** Weights assumed for collections that come through with no weight (agreed with Clews, 17 Nov 2026). */
-export const ASSUMED_WHEELIE_BIN_T = 0.5;
-export const ASSUMED_FORTRESS_FOOD_T = 0.3;
+/** Weights assumed for collections that come through with no weight (agreed with Clews). */
+export const ASSUMED_WHEELIE_BIN_T = 0.5; // Colas Road Skiptrak wheelie bin lifts (17 Nov 2026)
+export const ASSUMED_BM_WHEELIE_T = 0.05; // B&M mixed wheelie bin, weekly (23 Nov 2026)
+export const ASSUMED_FORTRESS_FOOD_T = 0.03; // Fortress food waste, weekly (23 Nov 2026)
 export const isWheelieBin = (container: string | null | undefined) => /wheel/i.test(String(container ?? ""));
 /** Assumed tonnes for a manual entry with no weight: B&M wheelie bins and Fortress food waste only. */
 export const assumedManualWeight = (provider: string): number | null =>
-  provider === "bm" ? ASSUMED_WHEELIE_BIN_T : provider === "fortress" ? ASSUMED_FORTRESS_FOOD_T : null;
+  provider === "bm" ? ASSUMED_BM_WHEELIE_T : provider === "fortress" ? ASSUMED_FORTRESS_FOOD_T : null;
+
+/**
+ * Regular weekly collections with no paperwork (agreed with Clews, 23 Nov 2026): one per week, counted in the
+ * month its Monday falls in, from WEEKLY_COLLECTIONS_FROM up to today. A week where staff entered their own
+ * entry for that provider uses the entry instead, so a collection is never counted twice.
+ */
+export const WEEKLY_COLLECTIONS_FROM = "2026-01-01";
+export const WEEKLY_COLLECTIONS: { provider: "bm" | "fortress"; stream: ColasStreamKey; description: string; tonnes: number }[] = [
+  { provider: "bm", stream: "mixed_municipal", description: "B&M wheelie bin – mixed (weekly)", tonnes: ASSUMED_BM_WHEELIE_T },
+  { provider: "fortress", stream: "food", description: "Fortress food waste (weekly)", tonnes: ASSUMED_FORTRESS_FOOD_T },
+];
+const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+/** Monday (YYYY-MM-DD) of the week containing a date. */
+export function weekMonday(date: string): string {
+  const d = new Date(`${date.slice(0, 10)}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return isoDay(d);
+}
+/** Mondays in a month that are on/after the start date and not after today. */
+export function weeklyMondays(year: number, month: number, today: string, from = WEEKLY_COLLECTIONS_FROM): string[] {
+  const out: string[] = [];
+  const d = new Date(Date.UTC(year, month - 1, 1));
+  while (d.getUTCMonth() === month - 1) {
+    const k = isoDay(d);
+    if (d.getUTCDay() === 1 && k >= weekMonday(from) && k <= today) out.push(k);
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return out;
+}
 
 export interface ColasSkiptrakJob {
   job_number: string;
@@ -181,6 +211,8 @@ export interface ColasLine {
   weighbridgeTickets?: string[];
   /** Skiptrak movement (Delivery, Exchange, Collection…) — deliveries carry no waste weight. */
   movement?: string | null;
+  /** Added automatically as an agreed regular weekly collection (no paperwork). */
+  weekly?: boolean;
 }
 export type ConsignmentIssue = "unreadable" | "page_missing";
 export const CONSIGNMENT_ISSUE_LABELS: Record<ConsignmentIssue, string> = {
@@ -229,6 +261,8 @@ export interface BuildMonthInput {
   year: number;
   month: number;
   today: string; // YYYY-MM-DD (London)
+  /** First day the agreed weekly B&M/Fortress collections count from; null turns them off. Defaults to WEEKLY_COLLECTIONS_FROM. */
+  weeklyFrom?: string | null;
   jobs: ColasSkiptrakJob[];
   midweigh: ColasMidweighTicket[];
   manual: ColasManualEntryRow[];
@@ -339,6 +373,31 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
       awaitingPaperwork: e.status !== "confirmed",
     });
   }
+  const enteredWeeks = new Set(input.manual.filter(e => !e.voided_at).map(e => `${e.provider}:${weekMonday(e.collection_date)}`));
+  const weeklyFrom = input.weeklyFrom === undefined ? WEEKLY_COLLECTIONS_FROM : input.weeklyFrom;
+  for (const monday of weeklyFrom ? weeklyMondays(year, month, today, weeklyFrom) : []) {
+    for (const w of WEEKLY_COLLECTIONS) {
+      if (enteredWeeks.has(`${w.provider}:${monday}`)) continue;
+      lines.push({
+        id: `weekly:${w.provider}:${monday}`,
+        provider: w.provider,
+        date: monday,
+        reference: "Weekly",
+        description: w.description,
+        ewc: null,
+        stream: w.stream,
+        hazardous: false,
+        weight_t: w.tonnes,
+        weightSource: "assumed",
+        charge: null,
+        consignmentRef: null,
+        consignmentIssue: null,
+        needsWeight: false,
+        awaitingPaperwork: false,
+        weekly: true,
+      });
+    }
+  }
   lines.sort((a, b) => a.date.localeCompare(b.date) || a.reference.localeCompare(b.reference));
 
   const streams: ColasStreamTotal[] = COLAS_STREAMS.map(s => {
@@ -399,9 +458,10 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
     if (ls.length === 0) add(p, "awaiting", "No figures entered for this month");
     else {
       const aw = ls.filter(l => l.awaitingPaperwork).length, mw = ls.filter(l => l.needsWeight).length;
-      const as = ls.filter(l => l.weightSource === "assumed").length;
+      const wk = ls.filter(l => l.weekly).length, entries = ls.length - wk;
+      const as = ls.filter(l => l.weightSource === "assumed" && !l.weekly).length;
       add(p, aw || mw ? "requires_verification" : "received",
-        [`${ls.length} entr${ls.length === 1 ? "y" : "ies"}`, mw ? `${mw} without a weight` : "", as ? `${as} at an assumed ${(assumedManualWeight(p) ?? 0).toFixed(3)} t` : "", aw ? `${aw} awaiting paperwork` : ""].filter(Boolean).join(" · "));
+        [wk ? `${wk} weekly collection${wk === 1 ? "" : "s"} at an agreed ${(assumedManualWeight(p) ?? 0).toFixed(3)} t` : "", entries ? `${entries} entr${entries === 1 ? "y" : "ies"}` : "", mw ? `${mw} without a weight` : "", as ? `${as} at an assumed ${(assumedManualWeight(p) ?? 0).toFixed(3)} t` : "", aw ? `${aw} awaiting paperwork` : ""].filter(Boolean).join(" · "));
     }
   }
   add("sage", hasSage ? "received" : "awaiting", hasSage ? "Sage figures imported" : hasSkCharges ? "Not imported — Skiptrak job charges shown as provisional" : "Not imported");
@@ -567,8 +627,9 @@ export function buildArisings(lines: Pick<ColasLine, "stream" | "hazardous" | "w
 }
 
 /** Plain-English "where this weight came from" for one collection line (shown when a waste stream row is opened). */
-export function lineSource(l: Pick<ColasLine, "provider" | "reference" | "weightSource" | "weight_t" | "needsWeight" | "consignmentRef" | "weighbridgeTickets" | "movement">): { source: string; tickets: string[]; weightFrom: string } {
+export function lineSource(l: Pick<ColasLine, "provider" | "reference" | "weightSource" | "weight_t" | "needsWeight" | "consignmentRef" | "weighbridgeTickets" | "movement" | "weekly">): { source: string; tickets: string[]; weightFrom: string } {
   const tickets = l.weighbridgeTickets ?? [];
+  if (l.weekly) return { source: `${PROVIDER_LABELS[l.provider]} weekly collection`, tickets: [], weightFrom: `Assumed ${(l.weight_t ?? 0).toFixed(3)} t – agreed weekly weight, no paperwork` };
   if (l.provider === "enva" || l.provider === "bm" || l.provider === "fortress" || l.provider === "other") {
     const who = PROVIDER_LABELS[l.provider];
     return { source: `${who} collection${l.consignmentRef ? ` · consignment ${l.consignmentRef}` : l.reference ? ` · ref ${l.reference}` : ""}`, tickets: [], weightFrom: l.weight_t == null ? "No weight yet" : l.weightSource === "assumed" ? `Assumed ${l.weight_t.toFixed(3)} t – no weight on the ${who} paperwork` : `Entered from the ${who} paperwork` };

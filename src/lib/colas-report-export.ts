@@ -328,7 +328,7 @@ export async function buildColasExcel(p: ColasReportPayload): Promise<Blob> {
   c.columns = [{ header: "Date", width: 12 }, { header: "Reference", width: 14 }, { header: "Consignment ref", width: 18 }, { header: "Provider", width: 34 }, { header: "Waste description", width: 40 }, { header: "EWC", width: 12 }, { header: "Stream", width: 32 }, { header: "Classification", width: 15 }, { header: "Tonnes", width: 10 }, { header: "Weight source", width: 14 }, { header: "Charge (ex VAT)", width: 14 }, { header: "Flags", width: 28 }];
   head(c, 1);
   for (const l of m.lines) {
-    const r = c.addRow([ukDate(l.date), l.reference, l.consignmentRef ?? "", PROVIDER_LABELS[l.provider], l.description, l.ewc ?? "", COLAS_STREAMS.find(s2 => s2.key === l.stream)?.label, l.hazardous ? "Hazardous" : "Non-hazardous", l.weight_t, l.weightSource === "assumed" ? "assumed" : l.weightSource ?? "", l.charge, [l.needsWeight ? "Weight missing" : "", l.awaitingPaperwork ? "Awaiting paperwork" : "", l.consignmentIssue ? CONSIGNMENT_ISSUE_LABELS[l.consignmentIssue] : ""].filter(Boolean).join(", ")]);
+    const r = c.addRow([ukDate(l.date), l.reference, l.consignmentRef ?? "", PROVIDER_LABELS[l.provider], l.description, l.ewc ?? "", COLAS_STREAMS.find(s2 => s2.key === l.stream)?.label, l.hazardous ? "Hazardous" : "Non-hazardous", l.weight_t, l.weightSource === "assumed" ? (l.weekly ? "assumed (weekly)" : "assumed") : l.weightSource ?? "", l.charge, [l.needsWeight ? "Weight missing" : "", l.awaitingPaperwork ? "Awaiting paperwork" : "", l.consignmentIssue ? CONSIGNMENT_ISSUE_LABELS[l.consignmentIssue] : ""].filter(Boolean).join(", ")]);
     r.getCell(9).numFmt = tFmt; r.getCell(11).numFmt = gFmt;
   }
 
