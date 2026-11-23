@@ -680,6 +680,27 @@
       "when": 1795456669228,
       "tag": "0096_restrict_questionnaire_sections_fields_to_staff",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1795457765851,
+      "tag": "0097_weighbridge_per_type_min_weight",
+      "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1795457886707,
+      "tag": "0098_fix_per_type_min_weight_trigger",
+      "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1795457926071,
+      "tag": "0099_per_type_min_weight_clear_to_default",
+      "breakpoints": true
     }
   ]
 }

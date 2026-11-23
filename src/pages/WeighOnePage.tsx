@@ -50,7 +50,7 @@ import { wtnHtmlToPdf, downloadBlob } from "@/lib/wtn-ticket-pdf";
 import { wasteOutProducerSignature } from "@/lib/waste-out-signatures";
 import { signaturePrintMarkup, signoffAt } from "@/lib/weighone-signature-times";
 import { routeOneSkipDetails, importedSkipWaste, routeOneSkipProducer } from "@/lib/routeone-skip-ticket";
-import { hasWeighbridgePricing, minimumChargeFor, weightChargeFor } from "@/lib/weighone-pricing-policy";
+import { effectiveMinWeightKg, hasWeighbridgePricing, minimumChargeFor, weightChargeFor } from "@/lib/weighone-pricing-policy";
 import { format, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { SignatureField } from "@/components/SignatureField";
@@ -159,6 +159,8 @@ interface WasteType {
   price_per_tonne: number;
   min_charge: number | null;
   min_weight_exempt?: boolean | null;
+  /** Per-waste-type minimum weight (kg); null/undefined = use the site default. */
+  min_weight_kg?: number | null;
   is_active: boolean;
   display_order: number;
 }
@@ -761,8 +763,10 @@ const WeighOnePage = () => {
     const exempt = !!wt?.min_weight_exempt;
     return {
       price_per_tonne: r.price_per_tonne,
-      min_charge: minimumChargeFor({ pricePerTonne: r.price_per_tonne, exempt, ownMinCharge: r.min_charge, minWeightKg: minChargeWeightKg }),
+      min_charge: minimumChargeFor({ pricePerTonne: r.price_per_tonne, exempt, ownMinCharge: r.min_charge, minWeightKg: minChargeWeightKg, typeMinWeightKg: wt?.min_weight_kg }),
       min_weight_exempt: exempt,
+      /** The weight this type is actually charged at: its own value, else the site default. */
+      min_weight_kg: effectiveMinWeightKg(wt?.min_weight_kg, minChargeWeightKg),
     };
   };
 
@@ -894,6 +898,7 @@ const WeighOnePage = () => {
               exempt: !!tableRate?.min_weight_exempt,
               ownMinCharge: tableRate?.min_charge ?? 0,
               minWeightKg: minChargeWeightKg,
+              typeMinWeightKg: tableRate?.min_weight_kg,
             }),
           }
         : tableRate;
@@ -2081,7 +2086,7 @@ const WeighOnePage = () => {
                             ) : (
                               <>
                                 <div className="flex justify-between"><span className="text-muted-foreground">Per tonne</span><span className="font-bold tabular-nums">£{selectedRate.price_per_tonne.toFixed(2)}</span></div>
-                                {selectedRate.min_charge > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Minimum charge{!selectedRate.min_weight_exempt && ` (${minChargeWeightKg} kg)`}</span><span className="tabular-nums">£{selectedRate.min_charge.toFixed(2)}</span></div>}
+                                {selectedRate.min_charge > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Minimum charge{!selectedRate.min_weight_exempt && ` (${selectedRate.min_weight_kg} kg)`}</span><span className="tabular-nums">£{selectedRate.min_charge.toFixed(2)}</span></div>}
                                 <div className="flex justify-between"><span className="text-muted-foreground">Weight charge</span><span className="tabular-nums">{weightCharge !== null ? `£${weightCharge.toFixed(2)}` : "Worked out on weigh out"}</span></div>
                               </>
                             )}

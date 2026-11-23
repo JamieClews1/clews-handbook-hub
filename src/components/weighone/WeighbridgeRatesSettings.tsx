@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Trash2, PoundSterling, Package, Building2, RotateCcw, Scale } from "lucide-react";
-import { DEFAULT_MIN_CHARGE_WEIGHT_KG } from "@/lib/weighone-pricing-policy";
+import { DEFAULT_MIN_CHARGE_WEIGHT_KG, effectiveMinWeightKg } from "@/lib/weighone-pricing-policy";
 import { groupWasteTypesForPricing } from "@/lib/weighbridge-price-groups";
 
 export interface RateGroup {
@@ -40,6 +40,8 @@ export interface WasteTypeRow {
   price_per_tonne: number;
   min_charge: number;
   min_weight_exempt: boolean;
+  /** Per-waste-type minimum weight (kg); null = use the site default. */
+  min_weight_kg: number | null;
   is_active: boolean;
   display_order: number;
 }
@@ -360,15 +362,16 @@ export const WeighbridgeRatesSettings = () => {
           <div className="flex items-start gap-2 flex-1 min-w-[240px]">
             <Scale className="h-4 w-4 mt-0.5 text-primary shrink-0" />
             <div>
-              <p className="text-sm font-semibold">Minimum charge weight</p>
+              <p className="text-sm font-semibold">Default minimum charge weight</p>
               <p className="text-xs text-muted-foreground">
-                Loads lighter than this are charged as this weight at the waste type's £/tonne. Waste types switched off in the
-                "Min weight" column (soil and hardcore) keep their own £ minimum instead.
+                Loads lighter than this are charged as this weight at the waste type's £/tonne. Give a waste type its own
+                weight in its "Min weight kg" box (e.g. 1000) — leave it blank to use this default. Waste types switched on in
+                the "£ minimum" column (soil and hardcore) keep their own £ minimum instead.
               </p>
             </div>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="min-charge-weight" className="text-xs">Minimum weight (kg)</Label>
+              <Label htmlFor="min-charge-weight" className="text-xs">Default weight (kg)</Label>
             <Input
               id="min-charge-weight"
               type="number"
@@ -401,7 +404,8 @@ export const WeighbridgeRatesSettings = () => {
                   <TableHead>Waste type</TableHead>
                   <TableHead className="w-24">EWC</TableHead>
                   <TableHead className="w-32 text-right">£ / tonne</TableHead>
-                  <TableHead className="w-24 text-center" title={`Charge at least ${minChargeWeightKg} kg`}>Min weight</TableHead>
+                  <TableHead className="w-32 text-right" title={`Blank uses the site default of ${minChargeWeightKg} kg`}>Min weight kg</TableHead>
+                  <TableHead className="w-24 text-center" title="On = this waste keeps its own £ minimum instead of a weight minimum (soil and hardcore)">£ minimum</TableHead>
                   <TableHead className="w-32 text-right">Min charge £</TableHead>
                   {!isDefaultGroup && <TableHead className="w-24 text-right">Trade</TableHead>}
                 </TableRow>
@@ -410,7 +414,7 @@ export const WeighbridgeRatesSettings = () => {
                 {pricedGroups.map((group) => (
                   <Fragment key={group.key}>
                   <TableRow className="bg-muted/60 hover:bg-muted/60">
-                    <TableCell colSpan={isDefaultGroup ? 6 : 7} className="py-2">
+                    <TableCell colSpan={isDefaultGroup ? 7 : 8} className="py-2">
                       <span className="text-sm font-semibold">{group.label}</span>
                       <span className="ml-2 text-xs text-muted-foreground">{group.items.length} {group.items.length === 1 ? "type" : "types"}</span>
                     </TableCell>
@@ -421,6 +425,7 @@ export const WeighbridgeRatesSettings = () => {
                   );
                   const priceValue = isDefaultGroup ? wt.price_per_tonne : override?.price_per_tonne ?? "";
                   const minValue = isDefaultGroup ? wt.min_charge : override?.min_charge ?? "";
+                  const minKg = effectiveMinWeightKg(wt.min_weight_kg, minChargeWeightKg);
                   return (
                     <TableRow key={wt.id}>
                       <TableCell><WasteRefFor name={wt.waste_type} ewc={wt.ewc_code} source="weighone" direction="incoming" /></TableCell>
@@ -450,20 +455,61 @@ export const WeighbridgeRatesSettings = () => {
                           }}
                         />
                       </TableCell>
+                      <TableCell className="text-right">
+                        {wt.min_weight_exempt ? (
+                          <span className="text-xs text-muted-foreground">Own £ min</span>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1">
+                            <Input
+                              type="number"
+                              min={0}
+                              step={50}
+                              className="h-8 w-24 text-right text-sm tabular-nums"
+                              placeholder={String(minChargeWeightKg)}
+                              defaultValue={wt.min_weight_kg ?? ""}
+                              key={`mwkg-${wt.id}-${wt.min_weight_kg ?? "default"}`}
+                              disabled={!isDefaultGroup}
+                              title={isDefaultGroup ? `Blank uses the site default of ${minChargeWeightKg} kg` : "Change this on the default (trade) rate group"}
+                              onBlur={(e) => {
+                                const raw = e.target.value.trim();
+                                if (raw === "") {
+                                  if (wt.min_weight_kg !== null) saveBase.mutate({ id: wt.id, patch: { min_weight_kg: null } });
+                                  return;
+                                }
+                                const kg = parseFloat(raw);
+                                if (isNaN(kg) || kg < 0) { e.target.value = String(wt.min_weight_kg ?? ""); return; }
+                                if (kg === wt.min_weight_kg) return;
+                                saveBase.mutate({ id: wt.id, patch: { min_weight_kg: kg } });
+                              }}
+                            />
+                            {wt.min_weight_kg !== null && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                title={`Use the site default of ${minChargeWeightKg} kg`}
+                                onClick={() => saveBase.mutate({ id: wt.id, patch: { min_weight_kg: null } })}
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-center">
                         <Switch
-                          aria-label={`Apply ${minChargeWeightKg} kg minimum to ${wt.waste_type}`}
-                          checked={!wt.min_weight_exempt}
+                          aria-label={`Let ${wt.waste_type} keep its own £ minimum instead of a ${minKg} kg minimum`}
+                          checked={wt.min_weight_exempt}
                           disabled={!isDefaultGroup}
-                          title={isDefaultGroup ? undefined : "Change this on the default (trade) rate group"}
-                          onCheckedChange={(v) => saveBase.mutate({ id: wt.id, patch: { min_weight_exempt: !v } })}
+                          title={isDefaultGroup ? "On = this waste keeps its own £ minimum instead of a weight minimum" : "Change this on the default (trade) rate group"}
+                          onCheckedChange={(v) => saveBase.mutate({ id: wt.id, patch: { min_weight_exempt: v } })}
                         />
                       </TableCell>
                       <TableCell className="text-right">
                         {!wt.min_weight_exempt ? (
-                          <div className="text-sm tabular-nums" title={`${minChargeWeightKg} kg at the £/tonne rate`}>
+                          <div className="text-sm tabular-nums" title={`${minKg} kg at the £/tonne rate`}>
                             £{Number(isDefaultGroup ? wt.min_charge : override?.min_charge ?? wt.min_charge ?? 0).toFixed(2)}
-                            <div className="text-xs text-muted-foreground">{minChargeWeightKg} kg</div>
+                            <div className="text-xs text-muted-foreground">{minKg} kg</div>
                           </div>
                         ) : (
                         <Input

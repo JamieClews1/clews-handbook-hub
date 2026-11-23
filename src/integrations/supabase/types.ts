@@ -12052,6 +12052,7 @@ export type Database = {
           is_active: boolean
           min_charge: number
           min_weight_exempt: boolean
+          min_weight_kg: number | null
           price_per_tonne: number
           updated_at: string
           waste_type: string
@@ -12064,6 +12065,7 @@ export type Database = {
           is_active?: boolean
           min_charge?: number
           min_weight_exempt?: boolean
+          min_weight_kg?: number | null
           price_per_tonne?: number
           updated_at?: string
           waste_type: string
@@ -12076,6 +12078,7 @@ export type Database = {
           is_active?: boolean
           min_charge?: number
           min_weight_exempt?: boolean
+          min_weight_kg?: number | null
           price_per_tonne?: number
           updated_at?: string
           waste_type?: string
@@ -12520,7 +12523,19 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      weighbridge_effective_min_weight_kg: {
+        Args: { _waste_type_id: string }
+        Returns: number
+      }
       weighbridge_min_charge_for: { Args: { _price: number }; Returns: number }
+      weighbridge_min_charge_for_price: {
+        Args: { _price: number; _type_min_kg?: number; _waste_type_id: string }
+        Returns: number
+      }
+      weighbridge_min_charge_for_type: {
+        Args: { _price: number; _waste_type_id: string }
+        Returns: number
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "finance"

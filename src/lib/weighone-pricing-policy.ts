@@ -7,17 +7,34 @@ export const DEFAULT_MIN_CHARGE_WEIGHT_KG = 350;
 const round2 = (v: number) => Math.round(v * 100) / 100;
 
 /**
- * Minimum £ charge for a waste type. Most waste is charged for at least the configured
- * minimum weight at its £/t; exempt types (soil, hardcore) keep their own £ minimum.
+ * The weight a waste type is charged at when it has no minimum of its own: its own value
+ * when set (0 = genuinely no minimum), otherwise the site-wide default.
+ */
+export function effectiveMinWeightKg(
+  typeMinWeightKg: number | null | undefined,
+  siteDefaultKg: number | null | undefined,
+): number {
+  const own = Number(typeMinWeightKg);
+  if (typeMinWeightKg !== null && typeMinWeightKg !== undefined && Number.isFinite(own) && own >= 0) return own;
+  const site = Number(siteDefaultKg);
+  return Number.isFinite(site) && site >= 0 ? site : DEFAULT_MIN_CHARGE_WEIGHT_KG;
+}
+
+/**
+ * Minimum £ charge for a waste type. Most waste is charged for at least its minimum weight
+ * at its £/t; exempt types (soil, hardcore) keep their own £ minimum.
  */
 export function minimumChargeFor(opts: {
   pricePerTonne: number;
   exempt: boolean;
   ownMinCharge?: number | null;
+  /** Site-wide default minimum weight (kg), from Prices & Rates. */
   minWeightKg?: number | null;
+  /** This waste type's own minimum weight (kg) when it has one. */
+  typeMinWeightKg?: number | null;
 }): number {
   if (opts.exempt) return Number(opts.ownMinCharge ?? 0);
-  const kg = opts.minWeightKg ?? DEFAULT_MIN_CHARGE_WEIGHT_KG;
+  const kg = effectiveMinWeightKg(opts.typeMinWeightKg, opts.minWeightKg);
   return round2((Number(opts.pricePerTonne) || 0) * kg / 1000);
 }
 
