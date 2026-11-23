@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { contestedAuthLocks, isAuthTokenRequest, releaseStuckAuthLocks, withAuthTokenTimeout, type LockApi } from "./auth-lock-guard";
+import { authTokenTimeout, contestedAuthLocks, isAuthTokenRequest, releaseStuckAuthLocks, withAuthTokenTimeout, type LockApi } from "./auth-lock-guard";
 
 const AUTH = "lock:sb-atblyrrczwcmnyhcdkto-auth-token";
 
@@ -47,4 +47,9 @@ test("a hung session refresh is abandoned after the time limit", async () => {
     new Promise<Response>((_r, reject) => init?.signal?.addEventListener("abort", () => reject(new Error("aborted"))));
   const wrapped = withAuthTokenTimeout(hanging, 20);
   await assert.rejects(wrapped("https://x.supabase.co/auth/v1/token?grant_type=refresh_token"), /aborted/);
+});
+
+test("a session refresh is abandoned after 10 seconds, a password sign-in after 20", () => {
+  assert.equal(authTokenTimeout("https://x.supabase.co/auth/v1/token?grant_type=refresh_token"), 10000);
+  assert.equal(authTokenTimeout("https://x.supabase.co/auth/v1/token?grant_type=password"), 20000);
 });

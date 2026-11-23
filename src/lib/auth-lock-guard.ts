@@ -12,8 +12,10 @@
 export const AUTH_LOCK_NAME = /^lock:sb-.+-auth-token$/;
 /** How long a contested lock may stay unavailable before it counts as stuck. */
 export const PROBE_TIMEOUT_MS = 6000;
-/** Session refresh / sign-in calls that run longer than this are abandoned so they can be retried. */
-export const AUTH_TOKEN_TIMEOUT_MS = 15000;
+/** A hung session refresh is abandoned after this, before the portal's 12s sign-in wait gives up. */
+export const AUTH_REFRESH_TIMEOUT_MS = 10000;
+/** Password sign-ins may take longer on a weak signal; the sign-in screens allow up to 20s. */
+export const AUTH_TOKEN_TIMEOUT_MS = 20000;
 
 type LockEntry = { name?: string };
 type Snapshot = { held?: LockEntry[]; pending?: LockEntry[] };
@@ -63,6 +65,11 @@ export function isAuthTokenRequest(url: string): boolean {
   return /\/auth\/v1\/token(\?|$)/.test(url);
 }
 
+/** Session refreshes get the shorter limit so a stuck one ends before the portal stops waiting. */
+export function authTokenTimeout(url: string): number {
+  return /grant_type=refresh_token/.test(url) ? AUTH_REFRESH_TIMEOUT_MS : AUTH_TOKEN_TIMEOUT_MS;
+}
+
 function requestUrl(input: RequestInfo | URL): string {
   if (typeof input === "string") return input;
   if (input instanceof URL) return input.href;
@@ -70,11 +77,13 @@ function requestUrl(input: RequestInfo | URL): string {
 }
 
 /** Wraps fetch so a hung session refresh fails after a time limit instead of blocking forever. */
-export function withAuthTokenTimeout(baseFetch: typeof fetch, timeoutMs = AUTH_TOKEN_TIMEOUT_MS): typeof fetch {
+export function withAuthTokenTimeout(baseFetch: typeof fetch, timeoutMs?: number): typeof fetch {
   return (input, init) => {
-    if (init?.signal || !isAuthTokenRequest(requestUrl(input))) return baseFetch(input, init);
+    const url = requestUrl(input);
+    if (init?.signal || !isAuthTokenRequest(url)) return baseFetch(input, init);
+    const limit = timeoutMs ?? authTokenTimeout(url);
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const timer = setTimeout(() => controller.abort(), limit);
     return baseFetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer));
   };
 }
