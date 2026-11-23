@@ -106,9 +106,9 @@ export const assumedManualWeight = (provider: string): number | null =>
  * entry for that provider uses the entry instead, so a collection is never counted twice.
  */
 export const WEEKLY_COLLECTIONS_FROM = "2026-01-01";
-export const WEEKLY_COLLECTIONS: { provider: "bm" | "fortress"; stream: ColasStreamKey; description: string; tonnes: number }[] = [
-  { provider: "bm", stream: "mixed_municipal", description: "B&M wheelie bin – mixed (weekly)", tonnes: ASSUMED_BM_WHEELIE_T },
-  { provider: "fortress", stream: "food", description: "Fortress food waste (weekly)", tonnes: ASSUMED_FORTRESS_FOOD_T },
+export const WEEKLY_COLLECTIONS: { provider: "bm" | "fortress"; stream: ColasStreamKey; ewc: string; description: string; tonnes: number }[] = [
+  { provider: "bm", stream: "mixed_municipal", ewc: "20 03 01", description: "B&M wheelie bin – mixed (weekly)", tonnes: ASSUMED_BM_WHEELIE_T },
+  { provider: "fortress", stream: "food", ewc: "20 01 08", description: "Fortress food waste (weekly)", tonnes: ASSUMED_FORTRESS_FOOD_T },
 ];
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 /** Monday (YYYY-MM-DD) of the week containing a date. */
@@ -384,7 +384,7 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
         date: monday,
         reference: "Weekly",
         description: w.description,
-        ewc: null,
+        ewc: w.ewc,
         stream: w.stream,
         hazardous: false,
         weight_t: w.tonnes,

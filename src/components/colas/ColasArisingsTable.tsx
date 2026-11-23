@@ -130,7 +130,7 @@ export function ColasArisingsTable({ month, ytd }: { month: ArisingsView; ytd: A
                             <table className="w-full text-sm">
                               <thead>
                                 <tr className="border-b text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                  <th className="px-3 py-2">Date</th><th className="px-3 py-2">Brought in from</th><th className="px-3 py-2">Weighbridge ticket</th><th className="px-3 py-2 text-right">Tonnes</th><th className="px-3 py-2">Weight taken from</th>
+                                  <th className="px-3 py-2">Date</th><th className="px-3 py-2">Data source</th><th className="px-3 py-2">EWC code</th><th className="px-3 py-2">Weighbridge ticket</th><th className="px-3 py-2 text-right">Tonnes</th><th className="px-3 py-2">Weight taken from</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -140,13 +140,14 @@ export function ColasArisingsTable({ month, ytd }: { month: ArisingsView; ytd: A
                                     <tr key={l.id} className="border-b last:border-0">
                                       <td className="whitespace-nowrap px-3 py-2">{ukDate(l.date)}</td>
                                       <td className="px-3 py-2 font-medium">{src.source}</td>
+                                      <td className="px-3 py-2">{l.ewc ? <><span className="whitespace-nowrap font-medium tabular-nums">{l.ewc}</span><div className="text-xs text-muted-foreground">{l.description}</div></> : <span className="text-muted-foreground">{l.description || "—"}</span>}</td>
                                       <td className="whitespace-nowrap px-3 py-2 tabular-nums">{src.tickets.length ? src.tickets.join(", ") : <span className="text-muted-foreground">{l.provider === "clews" || l.provider === "robert_hopkins" ? "Not recorded" : "—"}</span>}</td>
                                       <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">{l.weight_t == null ? "–" : fmtT(l.weight_t)}</td>
                                       <td className={cn("px-3 py-2", l.needsWeight ? "font-semibold text-destructive" : "text-muted-foreground")}>{src.weightFrom}</td>
                                     </tr>
                                   );
                                 })}
-                                {rowLines.length === 0 && <tr><td colSpan={5} className="px-3 py-2 text-muted-foreground">No collection details available.</td></tr>}
+                                {rowLines.length === 0 && <tr><td colSpan={6} className="px-3 py-2 text-muted-foreground">No collection details available.</td></tr>}
                               </tbody>
                             </table>
                           </div>
