@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { WasteRefFor } from "@/components/waste/WasteRefChip";
 import { formatEwc } from "@/lib/waste-streams";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Plus, Trash2, PoundSterling, Package, Building2, RotateCcw, Scale } from "lucide-react";
 import { DEFAULT_MIN_CHARGE_WEIGHT_KG } from "@/lib/weighone-pricing-policy";
+import { groupWasteTypesForPricing } from "@/lib/weighbridge-price-groups";
 
 export interface RateGroup {
   id: string;
@@ -169,6 +170,7 @@ export const WeighbridgeRatesSettings = () => {
     () => wasteTypes.filter((wt) => wt.is_active),
     [wasteTypes],
   );
+  const pricedGroups = useMemo(() => groupWasteTypesForPricing(pricedWasteTypes), [pricedWasteTypes]);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["weighbridge-rate-groups"] });
@@ -405,7 +407,15 @@ export const WeighbridgeRatesSettings = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pricedWasteTypes.map((wt) => {
+                {pricedGroups.map((group) => (
+                  <Fragment key={group.key}>
+                  <TableRow className="bg-muted/60 hover:bg-muted/60">
+                    <TableCell colSpan={isDefaultGroup ? 6 : 7} className="py-2">
+                      <span className="text-sm font-semibold">{group.label}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">{group.items.length} {group.items.length === 1 ? "type" : "types"}</span>
+                    </TableCell>
+                  </TableRow>
+                {group.items.map((wt) => {
                   const override = ratePrices.find(
                     (p) => p.waste_type_id === wt.id && p.rate_group_id === activeGroupId,
                   );
@@ -492,6 +502,8 @@ export const WeighbridgeRatesSettings = () => {
                     </TableRow>
                   );
                 })}
+                  </Fragment>
+                ))}
               </TableBody>
             </Table>
           </div>
