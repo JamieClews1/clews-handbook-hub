@@ -975,7 +975,7 @@ async function markRentalCollected(
       if (!bin.bin_key) { results.errors.push("Missing bin reference."); continue; }
       let chaseId: string | null = null;
       const { data: existing } = await supabase
-        .from("rental_chases").select("id").eq("bin_key", bin.bin_key).maybeSingle();
+        .from("rental_chases").select("id").eq("bin_key", bin.bin_key).order("updated_at", { ascending: false }).limit(1).maybeSingle(); // one chase per rental; collected is a site/container marking
       if (existing) {
         chaseId = existing.id;
       } else {

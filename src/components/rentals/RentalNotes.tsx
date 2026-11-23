@@ -9,12 +9,16 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { userColour } from "@/lib/user-colour";
+import { noteBelongsToRental, rentalRefFor, type RentalEpisodeBin } from "@/lib/rental-episode";
 import { loadSeenMap, markNotesSeen, notesBadgeLabel, notesKeyFor, unreadNotes } from "@/lib/rental-notes-unread";
 
-type Note = { id: string; body: string; author_name: string; created_at: string };
+type Note = { id: string; body: string; author_name: string; created_at: string; rental_ref: string | null };
 
 type Props = {
   binKey?: string;
+  // The bin's current rental: only its notes are shown, and new notes are filed to it,
+  // so a container that comes back round to Rentals starts with an empty notes list.
+  rental?: RentalEpisodeBin;
   agreementId?: string;
   legacyNotes?: string | null;
   userId?: string | null;
@@ -22,7 +26,7 @@ type Props = {
   onRead?: () => void;
 };
 
-export default function RentalNotes({ binKey, agreementId, legacyNotes, userId, onRead }: Props) {
+export default function RentalNotes({ binKey, rental, agreementId, legacyNotes, userId, onRead }: Props) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
@@ -34,14 +38,15 @@ export default function RentalNotes({ binKey, agreementId, legacyNotes, userId, 
 
   const load = async (markRead: boolean) => {
     setLoading(true);
-    let query = supabase.from("rental_notes").select("id,body,author_name,created_at").order("created_at", { ascending: false });
+    let query = supabase.from("rental_notes").select("id,body,author_name,created_at,rental_ref").order("created_at", { ascending: false });
     if (binKey) query = query.eq("bin_key", binKey);
     else if (agreementId) query = query.eq("agreement_id", agreementId);
     else { setLoading(false); return; }
     const { data, error } = await query;
     if (error) toast({ title: "Could not load notes", description: error.message, variant: "destructive" });
     else {
-      const rows = (data ?? []) as Note[];
+      const all = (data ?? []) as Note[];
+      const rows = binKey && rental ? all.filter((note) => noteBelongsToRental(note, rental)) : all;
       setNotes(rows);
       const seenAt = threadKey ? loadSeenMap(userId)[threadKey] ?? null : null;
       const unread = unreadNotes(rows, seenAt);
@@ -56,12 +61,13 @@ export default function RentalNotes({ binKey, agreementId, legacyNotes, userId, 
     setLoading(false);
   };
 
-  useEffect(() => { void load(true); }, [binKey, agreementId, userId]);
+  const rentalRef = rental ? rentalRefFor(rental) : null;
+  useEffect(() => { void load(true); }, [binKey, rentalRef, agreementId, userId]);
 
   const add = async () => {
     if (!body.trim() || saving) return;
     setSaving(true);
-    const { error } = await supabase.from("rental_notes").insert({ body: body.trim(), bin_key: binKey ?? null, agreement_id: agreementId ?? null });
+    const { error } = await supabase.from("rental_notes").insert({ body: body.trim(), bin_key: binKey ?? null, rental_ref: binKey ? rentalRef : null, agreement_id: agreementId ?? null });
     if (error) toast({ title: "Could not save note", description: error.message, variant: "destructive" });
     else {
       setBody("");

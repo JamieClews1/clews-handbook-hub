@@ -41,6 +41,7 @@ import { loadRentalJobPages } from "@/lib/rental-job-loading";
 import { RENTAL_JOB_FIELDS, rentalCustomerKey } from "@/lib/rental-open-movements";
 import CustomerFilterSelect, { type CustomerOption } from "./CustomerFilterSelect";
 import { ALL_RENTAL_FILTERS, customerBinCounts, filterRentalBins } from "@/lib/rental-bin-filters";
+import { currentRentalChase, noteBelongsToRental, rentalRefFor } from "@/lib/rental-episode";
 
 type Chase = {
   id: string;
@@ -55,7 +56,11 @@ type Chase = {
   collection_ticket: string | null;
   collected_date: string | null;
   own_skip: boolean;
+  rental_ref: string | null;
+  updated_at: string;
 };
+
+type RentalNoteStamp = NoteStamp & { rental_ref: string | null };
 
 type Profile = { id: string; full_name: string | null; email: string | null; user_types: string[] | null; is_archived: boolean | null };
 type ChaseEmail = { id: string; to_email: string; subject: string | null; created_at: string };
@@ -101,7 +106,7 @@ export default function RentalsDashboard() {
   const [jobsReload, setJobsReload] = useState(0);
   const standingRules = useStandingBinRules();
   const replayJobs = useMemo(() => withStandingBins(jobs, standingRules), [jobs, standingRules]);
-  const [chases, setChases] = useState<Record<string, Chase>>({});
+  const [chases, setChases] = useState<Record<string, Chase[]>>({});
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [officeProfiles, setOfficeProfiles] = useState<Profile[]>([]);
   // One distinct colour per office staff member, so no two people share one.
@@ -124,7 +129,7 @@ export default function RentalsDashboard() {
 
   // Notes waiting to be read. When each person last opened a bin's notes is kept
   // on their own device; the note timestamps come from the database.
-  const [noteStamps, setNoteStamps] = useState<Record<string, NoteStamp[]>>({});
+  const [noteStamps, setNoteStamps] = useState<Record<string, RentalNoteStamp[]>>({});
   const [seenMap, setSeenMap] = useState<SeenMap>({});
   const [notesOnly, setNotesOnly] = useState(false);
 
@@ -162,8 +167,8 @@ export default function RentalsDashboard() {
 
   const fetchChases = async () => {
     const { data } = await supabase.from("rental_chases").select("*");
-    const map: Record<string, Chase> = {};
-    for (const c of (data ?? []) as Chase[]) map[c.bin_key] = c;
+    const map: Record<string, Chase[]> = {};
+    for (const c of (data ?? []) as Chase[]) (map[c.bin_key] ??= []).push(c);
     setChases(map);
   };
 
@@ -171,12 +176,12 @@ export default function RentalsDashboard() {
   const fetchNoteStamps = async () => {
     const { data } = await supabase
       .from("rental_notes")
-      .select("created_at,bin_key")
+      .select("created_at,bin_key,rental_ref")
       .not("bin_key", "is", null)
       .order("created_at", { ascending: true });
-    const map: Record<string, NoteStamp[]> = {};
-    for (const row of (data ?? []) as { created_at: string; bin_key: string }[]) {
-      (map[row.bin_key] ??= []).push({ created_at: row.created_at });
+    const map: Record<string, RentalNoteStamp[]> = {};
+    for (const row of (data ?? []) as { created_at: string; bin_key: string; rental_ref: string | null }[]) {
+      (map[row.bin_key] ??= []).push({ created_at: row.created_at, rental_ref: row.rental_ref });
     }
     setNoteStamps(map);
   };
@@ -189,8 +194,19 @@ export default function RentalsDashboard() {
 
   // Notes this person has not opened yet. The older single-field note kept on the
   // chase was always shown inline, so only notes-history entries count here.
-  const unreadFor = (binKey: string) =>
-    unreadNoteCount(noteStamps[binKey] ?? [], seenMap[`bin:${binKey}`] ?? null);
+  // Only notes for the bin's current rental count — a container back on the list
+  // after an exchange or new delivery is a new rental with its own notes.
+  const unreadFor = (bin: OverRentalBin) =>
+    unreadNoteCount(
+      (noteStamps[bin.binKey] ?? []).filter((n) => noteBelongsToRental(n, bin)),
+      seenMap[`bin:${bin.binKey}`] ?? null,
+    );
+
+  // Chase status, assignee, agreed-to-pay and notes belong to the current rental only.
+  const chaseFor = (bin: OverRentalBin) => currentRentalChase(chases[bin.binKey], bin);
+  // Collected / Own Skip describe the site's container itself, so any rental's marking counts.
+  const isCollected = (bin: OverRentalBin) => !!chases[bin.binKey]?.some((c) => c.collected);
+  const isOwnSkip = (bin: OverRentalBin) => !!chases[bin.binKey]?.some((c) => c.own_skip);
 
   // Quick-assign a chase to a team member straight from the list row.
   const assignChase = async (bin: OverRentalBin, profileId: string | null) => {
@@ -198,7 +214,7 @@ export default function RentalsDashboard() {
       toast({ title: "Only Clews Recycling Office users can be assigned", variant: "destructive" });
       return;
     }
-    const id = await ensureChase(bin, user?.id ?? null);
+    const id = await ensureChase(bin, user?.id ?? null, chaseFor(bin));
     if (!id) { toast({ title: "Failed to assign", variant: "destructive" }); return; }
     const { error } = await supabase.from("rental_chases").update({ assigned_to: profileId }).eq("id", id);
     if (error) { toast({ title: "Failed to assign", description: error.message, variant: "destructive" }); return; }
@@ -282,7 +298,7 @@ export default function RentalsDashboard() {
     // collection or exchange already booked for today or later are dropped too:
     // the truck is coming, so there is nothing to chase.
     return computeOverRentalBins(replayJobs, settings, undefined, jobs)
-      .filter((b) => !chases[b.binKey]?.collected && !chases[b.binKey]?.own_skip);
+      .filter((b) => !isCollected(b) && !isOwnSkip(b));
   }, [replayJobs, jobs, settings, settingsLoading, chases]);
 
   // Bins the customer has confirmed are their own — pulled off the chase list but
@@ -290,14 +306,14 @@ export default function RentalsDashboard() {
   const ownSkipBins = useMemo(() => {
     if (settingsLoading) return [];
     return computeOverRentalBins(replayJobs, settings)
-      .filter((b) => chases[b.binKey]?.own_skip && !chases[b.binKey]?.collected);
+      .filter((b) => isOwnSkip(b) && !isCollected(b));
   }, [replayJobs, jobs, settings, settingsLoading, chases]);
 
   // Bins covered by an active rental agreement (e.g. open-ended ones) are pulled out
   // of the main Over Rental list — they are no longer being chased — but we still track
   // how long they've been over so they remain visible.
   const coveredBins = useMemo(
-    () => trackedAgreementBins(replayJobs, settings).filter((b) => !chases[b.binKey]?.collected && !chases[b.binKey]?.own_skip && agreements.some((a) => agreementCoversBin(a, b))),
+    () => trackedAgreementBins(replayJobs, settings).filter((b) => !isCollected(b) && !isOwnSkip(b) && agreements.some((a) => agreementCoversBin(a, b))),
     [replayJobs, settings, chases, agreements],
   );
 
@@ -331,7 +347,7 @@ export default function RentalsDashboard() {
       size: sizeFilter,
     });
     if (!notesOnly) return matched;
-    return matched.filter((b) => unreadFor(b.binKey) > 0);
+    return matched.filter((b) => unreadFor(b) > 0);
   }, [bins, customerFilter, categoryFilter, sizeFilter, notesOnly, noteStamps, seenMap]);
 
   // The agreement and own-skip lists below follow the same customer filter, so
@@ -348,14 +364,14 @@ export default function RentalsDashboard() {
   // Bins holding notes this person has not opened yet — drives the highlight and
   // the "notes to read" filter.
   const unreadNotesBins = useMemo(
-    () => bins.reduce((total, b) => total + (unreadFor(b.binKey) > 0 ? 1 : 0), 0),
+    () => bins.reduce((total, b) => total + (unreadFor(b) > 0 ? 1 : 0), 0),
     [bins, noteStamps, seenMap],
   );
 
   const stats = useMemo(() => {
     let chased = 0, agreed = 0, unchased = 0;
     for (const b of filteredBins) {
-      const c = chases[b.binKey];
+      const c = chaseFor(b);
       if (!c || c.chase_status === "not_chased") unchased++;
       else if (c.agreed_to_pay) agreed++;
       else chased++;
@@ -367,7 +383,7 @@ export default function RentalsDashboard() {
   const legendUsers = useMemo(() => {
     const map = new Map<string, { id: string; name: string; colour: string }>();
     for (const b of filteredBins) {
-      const c = chases[b.binKey];
+      const c = chaseFor(b);
       const p = c?.assigned_to ? profiles.find((x) => x.id === c.assigned_to) : null;
       if (p && !map.has(p.id)) {
         map.set(p.id, { id: p.id, name: p.full_name || p.email || "Staff", colour: staffColours.get(p.id) ?? "#2563eb" });
@@ -391,7 +407,7 @@ export default function RentalsDashboard() {
 
     let totalEx = 0, totalVat = 0, totalInc = 0, totalQty = 0;
     const rows = filteredBins.map((b) => {
-      const c = chases[b.binKey];
+      const c = chaseFor(b);
       const rate = b.category === "roro" ? settings.rental_roro_rate : settings.rental_skip_rate;
       const qty = b.netOnSite || 0;
       const daysOver = daysOverFreePeriod(b.daysSinceActivity, freeDays);
@@ -574,7 +590,7 @@ export default function RentalsDashboard() {
               </TableHeader>
               <TableBody>
                 {filteredBins.map((b) => {
-                  const c = chases[b.binKey];
+                  const c = chaseFor(b);
                   const assignee = c?.assigned_to ? profiles.find((p) => p.id === c.assigned_to) : null;
                   const assigneeColour = assignee ? staffColours.get(assignee.id) ?? null : null;
                   return (
@@ -626,7 +642,7 @@ export default function RentalsDashboard() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <NotesButton unread={unreadFor(b.binKey)} onClick={() => setNotesBin(b)} />
+                          <NotesButton unread={unreadFor(b)} onClick={() => setNotesBin(b)} />
                           <Button variant="outline" size="sm" onClick={() => setEmailBin(b)}>
                             <Mail className="h-4 w-4 mr-1" /> Chase
                           </Button>
@@ -687,7 +703,7 @@ export default function RentalsDashboard() {
                     <TableCell className="text-center"><Badge variant="default">{b.netOnSite}</Badge></TableCell>
                     <TableCell className="text-center" title={`${b.daysSinceActivity ?? 0}d since the last movement · ${settings.rental_free_days}d free rental period`}><Badge variant="secondary">{b.daysSinceActivity ?? 0}d</Badge></TableCell>
                     <TableCell><Badge variant="outline">{agreements.find(a => agreementCoversBin(a, b))?.rental_mode === "no_rental" ? "No Rental" : "Rental"}</Badge></TableCell>
-                    <TableCell><NotesButton unread={unreadFor(b.binKey)} onClick={() => setNotesBin(b)} /></TableCell>
+                    <TableCell><NotesButton unread={unreadFor(b)} onClick={() => setNotesBin(b)} /></TableCell>
                     <TableCell className="text-xs font-mono text-muted-foreground">{b.lastJobNumber ?? "—"}</TableCell>
                   </TableRow>
                 ))}
@@ -723,7 +739,7 @@ export default function RentalsDashboard() {
               </TableHeader>
               <TableBody>
                 {visibleOwnSkipBins.map((b) => {
-                  const c = chases[b.binKey];
+                  const c = chases[b.binKey]?.find((row) => row.own_skip);
                   return (
                     <TableRow key={`${b.binKey}::${b.customer}`}>
                       <TableCell className="font-medium">{b.customer}</TableCell>
@@ -738,7 +754,7 @@ export default function RentalsDashboard() {
                           size="sm"
                           onClick={async () => {
                             if (!c) return;
-                            const { error } = await supabase.from("rental_chases").update({ own_skip: false }).eq("id", c.id);
+                            const { error } = await supabase.from("rental_chases").update({ own_skip: false }).eq("bin_key", b.binKey).eq("own_skip", true);
                             if (error) { toast({ title: "Failed", description: error.message, variant: "destructive" }); return; }
                             toast({ title: "Moved back to Over Rental" });
                             fetchChases();
@@ -756,12 +772,12 @@ export default function RentalsDashboard() {
         </Card>
       )}
 
-      {notesBin && <Dialog open onOpenChange={open => !open && setNotesBin(null)}><DialogContent className="max-w-lg"><DialogHeader><DialogTitle>Rental Notes</DialogTitle><DialogDescription>{notesBin.customer} — {notesBin.site} — {notesBin.containerType}</DialogDescription></DialogHeader><RentalNotes binKey={notesBin.binKey} legacyNotes={chases[notesBin.binKey]?.notes} userId={user?.id ?? null} onRead={refreshNotesRead} /></DialogContent></Dialog>}
+      {notesBin && <Dialog open onOpenChange={open => !open && setNotesBin(null)}><DialogContent className="max-w-lg"><DialogHeader><DialogTitle>Rental Notes</DialogTitle><DialogDescription>{notesBin.customer} — {notesBin.site} — {notesBin.containerType}</DialogDescription></DialogHeader><RentalNotes binKey={notesBin.binKey} rental={notesBin} legacyNotes={chaseFor(notesBin)?.notes} userId={user?.id ?? null} onRead={refreshNotesRead} /></DialogContent></Dialog>}
 
       {manageBin && (
         <ManageDialog
           bin={manageBin}
-          chase={chases[manageBin.binKey]}
+          chase={chaseFor(manageBin)}
           profiles={officeProfiles}
           userId={user?.id ?? null}
           onRead={refreshNotesRead}
@@ -774,7 +790,7 @@ export default function RentalsDashboard() {
       {emailBin && (
         <EmailDialog
           bin={emailBin}
-          chase={chases[emailBin.binKey]}
+          chase={chaseFor(emailBin)}
           defaultEmail={emailMap[emailBin.customer.toLowerCase().trim()] ?? emailMap[`~${rentalCustomerKey(emailBin.customer)}`] ?? ""}
           customerId={customerIdMap[emailBin.customer.toLowerCase().trim()] ?? customerIdMap[`~${rentalCustomerKey(emailBin.customer)}`]}
           contacts={chaseContacts}
@@ -795,7 +811,7 @@ export default function RentalsDashboard() {
       {collectBin && (
         <CollectDialog
           bin={collectBin}
-          chase={chases[collectBin.binKey]}
+          chase={chaseFor(collectBin)}
           userId={user?.id ?? null}
           onClose={() => setCollectBin(null)}
           onSaved={() => { setCollectBin(null); fetchChases(); }}
@@ -806,7 +822,7 @@ export default function RentalsDashboard() {
       {agreementBin && (
         <AgreementDialog
           bin={agreementBin}
-          chase={chases[agreementBin.binKey]}
+          chase={chaseFor(agreementBin)}
           userId={user?.id ?? null}
           onClose={() => setAgreementBin(null)}
           onSaved={() => { setAgreementBin(null); fetchAgreements(); }}
@@ -817,7 +833,7 @@ export default function RentalsDashboard() {
       {ownSkipBin && (
         <OwnSkipDialog
           bin={ownSkipBin}
-          chase={chases[ownSkipBin.binKey]}
+          chase={chaseFor(ownSkipBin)}
           userId={user?.id ?? null}
           onClose={() => setOwnSkipBin(null)}
           onSaved={() => { setOwnSkipBin(null); fetchChases(); }}
@@ -873,11 +889,23 @@ function NotesButton({ unread, onClick }: { unread: number; onClick: () => void 
   );
 }
 
-async function ensureChase(bin: OverRentalBin, userId: string | null): Promise<string | null> {
-  const { data: existing } = await supabase.from("rental_chases").select("id").eq("bin_key", bin.binKey).maybeSingle();
+// Finds or starts the chase for the bin's CURRENT rental. A chase from an earlier
+// rental of the same site/container is left alone, so a container that comes back
+// round starts as Not Chased. A pre-tracking chase still in date is pinned to this rental.
+async function ensureChase(bin: OverRentalBin, userId: string | null, current?: Chase): Promise<string | null> {
+  const ref = rentalRefFor(bin);
+  if (current) {
+    if (current.rental_ref !== ref) {
+      const { error } = await supabase.from("rental_chases").update({ rental_ref: ref }).eq("id", current.id);
+      if (error) { console.error(error); return null; }
+    }
+    return current.id;
+  }
+  const { data: existing } = await supabase.from("rental_chases").select("id").eq("bin_key", bin.binKey).eq("rental_ref", ref).maybeSingle();
   if (existing) return existing.id;
   const { data, error } = await supabase.from("rental_chases").insert({
     bin_key: bin.binKey,
+    rental_ref: ref,
     customer: bin.customer,
     site: bin.site,
     category: bin.category,
@@ -1028,7 +1056,7 @@ function CollectDialog({ bin, chase, userId, onClose, onSaved, toast }: {
 
   const save = async () => {
     setSaving(true);
-    const id = await ensureChase(bin, userId);
+    const id = await ensureChase(bin, userId, chase);
     if (!id) { setSaving(false); toast({ title: "Failed to save", variant: "destructive" }); return; }
     const { error } = await supabase.from("rental_chases").update({
       collected: true,
@@ -1123,7 +1151,7 @@ function ManageDialog({ bin, chase, profiles, userId, onRead, onClose, onSaved, 
 
   const save = async () => {
     setSaving(true);
-    const id = await ensureChase(bin, userId);
+    const id = await ensureChase(bin, userId, chase);
     if (!id) { setSaving(false); toast({ title: "Failed to save", variant: "destructive" }); return; }
     const { error } = await supabase.from("rental_chases").update({
       chase_status: status,
@@ -1210,7 +1238,7 @@ function ManageDialog({ bin, chase, profiles, userId, onRead, onClose, onSaved, 
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
           </div>
 
-          <RentalNotes binKey={bin.binKey} legacyNotes={chase?.notes} userId={userId} onRead={onRead} />
+          <RentalNotes binKey={bin.binKey} rental={bin} legacyNotes={chase?.notes} userId={userId} onRead={onRead} />
 
           {agreed && (
             <Button variant="outline" className="w-full" onClick={promoteToAgreement}>
@@ -1261,7 +1289,7 @@ function EmailDialog({ bin, chase, defaultEmail, customerId, contacts, freeDays,
       });
       if (error) throw error;
 
-      const chaseId = await ensureChase(bin, userId);
+      const chaseId = await ensureChase(bin, userId, chase);
       if (chaseId) {
         await supabase.from("rental_chase_emails").insert({
           chase_id: chaseId, to_email: to.trim(), subject, body, sent_by: userId,
@@ -1276,6 +1304,7 @@ function EmailDialog({ bin, chase, defaultEmail, customerId, contacts, freeDays,
       const sentAt = new Date().toLocaleString("en-GB", { timeZone: "Europe/London", dateStyle: "medium", timeStyle: "short" });
       const { error: noteError } = await supabase.from("rental_notes").insert({
         bin_key: bin.binKey,
+        rental_ref: rentalRefFor(bin),
         agreement_id: null,
         body: `Chase email sent ${sentAt} to ${to.trim()}\nSubject: ${subject}\n\n${body}`,
       });
@@ -1400,7 +1429,7 @@ function OwnSkipDialog({ bin, chase, userId, onClose, onSaved, toast }: {
 
   const save = async () => {
     setSaving(true);
-    const id = await ensureChase(bin, userId);
+    const id = await ensureChase(bin, userId, chase);
     if (!id) { setSaving(false); toast({ title: "Failed to save", variant: "destructive" }); return; }
     const { error } = await supabase.from("rental_chases").update({
       own_skip: true,

@@ -9030,6 +9030,7 @@ export type Database = {
           id: string
           notes: string | null
           own_skip: boolean
+          rental_ref: string | null
           site: string | null
           updated_at: string
         }
@@ -9051,6 +9052,7 @@ export type Database = {
           id?: string
           notes?: string | null
           own_skip?: boolean
+          rental_ref?: string | null
           site?: string | null
           updated_at?: string
         }
@@ -9072,6 +9074,7 @@ export type Database = {
           id?: string
           notes?: string | null
           own_skip?: boolean
+          rental_ref?: string | null
           site?: string | null
           updated_at?: string
         }
@@ -9094,6 +9097,7 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
+          rental_ref: string | null
         }
         Insert: {
           agreement_id?: string | null
@@ -9103,6 +9107,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
+          rental_ref?: string | null
         }
         Update: {
           agreement_id?: string | null
@@ -9112,6 +9117,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
+          rental_ref?: string | null
         }
         Relationships: [
           {
