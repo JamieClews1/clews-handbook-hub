@@ -423,9 +423,9 @@ export function CustomerSetupAdmin() {
           return !currentSites.some((s) => {
             const sNames = [s.site_name, s.data_hub_site, s.data_hub_site_2, s.data_hub_site_3, s.data_hub_site_4, s.data_hub_site_5].map(norm);
             if (sNames.includes(norm(e.label))) return true;
-            if (!sNames.some((n) => n && names.has(n))) return false;
-            const sAddr = norm((s as any).address_1);
-            return !sAddr || !e.addr || sAddr === norm(e.addr);
+            // Any existing site already mapped to one of these Skiptrak site names wins,
+            // whatever address the job carries, so address variants never create duplicates.
+            return sNames.some((n) => n && names.has(n));
           });
         })
         .map((e) => ({
