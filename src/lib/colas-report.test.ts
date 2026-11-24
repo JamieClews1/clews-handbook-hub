@@ -110,6 +110,14 @@ it("the unreadable flag clears once the consignment number is entered", () => {
   assert.ok(!m.outstanding.some(o => o.includes("49134")));
 });
 
+it("a job marked not required (e.g. a rental charge) is not flagged as missing a consignment reference", () => {
+  const rhJob = job({ job_number: "46311", ewc: "15 02 02", waste_description: "Oil Contaminated Packaging", weight_t: 0.3, tipping_location: "Robert Hopkins Environmental" });
+  const m = buildColasMonth(base({ jobs: [rhJob], consignmentIssues: new Map([["46311", "not_required" as const]]) }));
+  assert.equal(m.lines[0].consignmentIssue, "not_required");
+  assert.equal(m.sources.find(s => s.key === "robert_hopkins")?.status, "received");
+  assert.ok(!m.outstanding.some(o => o.includes("46311")));
+});
+
 import { buildArisings, DEFAULT_TREATMENTS, treatmentFor } from "./colas-report";
 const aline = (o: any) => ({ stream: "cardboard_paper", hazardous: false, weight_t: 1, charge: null, needsWeight: false, consignmentRef: null, ...o });
 

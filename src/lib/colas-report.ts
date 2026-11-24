@@ -214,10 +214,11 @@ export interface ColasLine {
   /** Added automatically as an agreed regular weekly collection (no paperwork). */
   weekly?: boolean;
 }
-export type ConsignmentIssue = "unreadable" | "page_missing";
+export type ConsignmentIssue = "unreadable" | "page_missing" | "not_required";
 export const CONSIGNMENT_ISSUE_LABELS: Record<ConsignmentIssue, string> = {
   unreadable: "Consignment note can't be read",
   page_missing: "Consignment page missing from scan",
+  not_required: "No consignment note required",
 };
 export interface ColasStreamTotal { key: ColasStreamKey; label: string; hazardous: boolean; tonnes: number; lines: number; missingWeights: number; charges: number }
 export interface ColasCosts {
@@ -448,8 +449,8 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
     [`${sk.length} completed job${sk.length === 1 ? "" : "s"}`, skMissing ? `${skMissing} without a weight` : "", skAssumed ? `${skAssumed} wheelie bin${skAssumed === 1 ? "" : "s"} at an assumed ${ASSUMED_WHEELIE_BIN_T.toFixed(3)} t` : "", notCompleted ? `${notCompleted} past job${notCompleted === 1 ? "" : "s"} not marked complete in Skiptrak` : ""].filter(Boolean).join(" · "));
   const rh = lines.filter(l => l.provider === "robert_hopkins");
   // Only hazardous loads travel on a consignment note; non-hazardous loads to Robert Hopkins need a weight only.
-  const rhMissW = rh.filter(l => l.needsWeight).length, rhMissRef = rh.filter(l => l.hazardous && !l.consignmentRef).length;
-  const rhUnread = rh.filter(l => l.consignmentIssue).length;
+  const rhMissW = rh.filter(l => l.needsWeight).length, rhMissRef = rh.filter(l => l.hazardous && !l.consignmentRef && l.consignmentIssue !== "not_required").length;
+  const rhUnread = rh.filter(l => l.consignmentIssue && l.consignmentIssue !== "not_required").length;
   if (rh.length === 0) add("robert_hopkins", inProgress ? "awaiting" : "received", inProgress ? "No hazardous collections recorded yet" : "No Robert Hopkins collections in Skiptrak this month");
   else add("robert_hopkins", rhMissW || rhMissRef ? "requires_verification" : "received",
     [`${rh.length} collection${rh.length === 1 ? "" : "s"}`, rhMissW ? `${rhMissW} without a weight` : "", rhMissRef ? `${rhMissRef} without a consignment reference` : "", rhUnread ? `${rhUnread} of them unreadable or missing from the scan` : ""].filter(Boolean).join(" · "));
@@ -468,6 +469,7 @@ export function buildColasMonth(input: BuildMonthInput): ColasMonth {
   for (const s of sources) if (s.status === "awaiting" || s.status === "requires_verification") outstanding.push(`${s.label}: ${s.detail}`);
   // A consignment note that could not be read is always an issue until the number is entered, even if the source was approved.
   for (const issue of Object.keys(CONSIGNMENT_ISSUE_LABELS) as ConsignmentIssue[]) {
+    if (issue === "not_required") continue; // staff confirmed no note is needed (e.g. a rental charge) — never an outstanding issue
     const jobs = lines.filter(l => l.consignmentIssue === issue).map(l => l.reference);
     if (jobs.length) outstanding.push(`${CONSIGNMENT_ISSUE_LABELS[issue]}: job${jobs.length === 1 ? "" : "s"} ${jobs.join(", ")} — get the number from QuickConsign${issue === "unreadable" ? " or re-scan at full size" : " or scan the missing page"}`);
   }

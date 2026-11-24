@@ -104,7 +104,7 @@ export function useColasYear(year: number, startMonth: number | undefined) {
       }));
       const hazardousCodes = new Set((ewc.data ?? []).map((r: any) => normaliseEwc(r.code)));
       const consignments = new Map<string, string | null>((cons.data ?? []).map((c: any) => [String(c.job_number), c.consignment_ref]));
-      const consignmentIssues = new Map<string, ConsignmentIssue>((cons.data ?? []).filter((c: any) => !c.consignment_ref && (c.read_issue === "unreadable" || c.read_issue === "page_missing")).map((c: any) => [String(c.job_number), c.read_issue as ConsignmentIssue]));
+      const consignmentIssues = new Map<string, ConsignmentIssue>((cons.data ?? []).filter((c: any) => !c.consignment_ref && (c.read_issue === "unreadable" || c.read_issue === "page_missing" || c.read_issue === "not_required")).map((c: any) => [String(c.job_number), c.read_issue as ConsignmentIssue]));
       // Numbers and flags the 5pm automatic reader set (cleared when staff change them by hand).
       const autoRead = new Map<string, string | null>((cons.data ?? []).filter((c: any) => c.auto_read_at).map((c: any) => [String(c.job_number), c.auto_evidence ?? null]));
       const consignmentNotes = new Map<string, string>((cons.data ?? []).filter((c: any) => c.notes).map((c: any) => [String(c.job_number), String(c.notes)]));

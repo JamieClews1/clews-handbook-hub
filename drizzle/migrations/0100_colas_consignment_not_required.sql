@@ -1,0 +1,2 @@
+ALTER TABLE public.colas_consignments DROP CONSTRAINT colas_consignments_read_issue_check;
+ALTER TABLE public.colas_consignments ADD CONSTRAINT colas_consignments_read_issue_check CHECK (read_issue IS NULL OR read_issue = ANY (ARRAY['unreadable'::text, 'page_missing'::text, 'not_required'::text]));

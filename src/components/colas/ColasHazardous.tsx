@@ -21,7 +21,7 @@ export function ColasHazardous({ data }: { data: ColasYearData }) {
   const [saving, setSaving] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const jobByNumber = useMemo(() => new Map(data.jobs.map(j => [j.job_number, j])), [data.jobs]);
-  const rows = useMemo(() => data.months.flatMap(m => m.lines.filter(l => l.hazardous && l.id.startsWith("skiptrak:"))).filter(l => !missingOnly || !l.consignmentRef || l.needsWeight), [data.months, missingOnly]);
+  const rows = useMemo(() => data.months.flatMap(m => m.lines.filter(l => l.hazardous && l.id.startsWith("skiptrak:"))).filter(l => !missingOnly || ((!l.consignmentRef || l.needsWeight) && l.consignmentIssue !== "not_required")), [data.months, missingOnly]);
   const withScan = rows.filter(r => data.hazDocs.has(r.reference)).length;
 
   const save = async (job: string) => {
@@ -39,7 +39,7 @@ export function ColasHazardous({ data }: { data: ColasYearData }) {
     setSaving(null);
     if (error) toast.error(error.message); else { toast.success(issue ? `Job ${job} flagged: ${CONSIGNMENT_ISSUE_LABELS[issue].toLowerCase()}` : `Flag cleared for job ${job}`); invalidate(); }
   };
-  const unreadable = rows.filter(r => r.consignmentIssue).length;
+  const unreadable = rows.filter(r => r.consignmentIssue && r.consignmentIssue !== "not_required").length;
 
   return (
     <div className="space-y-4">
@@ -88,9 +88,10 @@ export function ColasHazardous({ data }: { data: ColasYearData }) {
                               <SelectItem value="none">No reading problem</SelectItem>
                               <SelectItem value="unreadable">Can't read</SelectItem>
                               <SelectItem value="page_missing">Page missing</SelectItem>
+                              <SelectItem value="not_required">Not required</SelectItem>
                             </SelectContent>
                           </Select>
-                          {l.consignmentIssue && <Chip tone="bad">Issue</Chip>}
+                          {l.consignmentIssue === "not_required" ? <Chip tone="info">Not required</Chip> : l.consignmentIssue && <Chip tone="bad">Issue</Chip>}
                         </div>
                       )}
                     </TableCell>
