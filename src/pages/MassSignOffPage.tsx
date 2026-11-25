@@ -182,12 +182,14 @@ const MassSignOffPage = () => {
     setHasInitialized(true);
   }, [loading, hasInitialized, searchParams, rams, toolboxTalks, inductions]);
 
-  useEffect(() => {
-    if (hasInitialized) {
-      setSelectedDocId("");
-      setExistingSignatures([]);
-    }
-  }, [activeTab]);
+  // Clear the chosen document only when staff switch tabs by hand; opening the page
+  // with ?type=&id= selects a tab and document together and must keep that document.
+  const changeTab = (tab: TabKey) => {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    setSelectedDocId("");
+    setExistingSignatures([]);
+  };
 
   useEffect(() => {
     const fetchSignatures = async () => {
@@ -391,7 +393,7 @@ const MassSignOffPage = () => {
       </header>
 
       <main className="p-4 max-w-4xl mx-auto">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)} className="mb-4">
+        <Tabs value={activeTab} onValueChange={(v) => changeTab(v as TabKey)} className="mb-4">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="rams" className="gap-2">
               <ClipboardList className="h-4 w-4" />
