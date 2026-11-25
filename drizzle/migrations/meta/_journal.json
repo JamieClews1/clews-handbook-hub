@@ -708,6 +708,20 @@
       "when": 1795518579083,
       "tag": "0100_colas_consignment_not_required",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1795593573783,
+      "tag": "0101_profiles_left_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1795593652099,
+      "tag": "0102_rental_assignee_excludes_left_staff",
+      "breakpoints": true
     }
   ]
 }

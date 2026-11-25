@@ -28,7 +28,7 @@ export function SectionVisibilitySettings() {
     (async () => {
       const [vis, prof, pl] = await Promise.all([
         supabase.from("portal_section_visibility").select("section_key, hidden, allowed_user_ids"),
-        supabase.from("profiles").select("id, full_name, email, is_archived").order("full_name"),
+        supabase.from("profiles").select("id, full_name, email, is_archived, left_at").order("full_name"),
         supabase.rpc("list_company_pl_access"),
       ]);
       if (vis.error) {
@@ -39,7 +39,7 @@ export function SectionVisibilitySettings() {
         (vis.data ?? []).forEach((r: any) => { h[r.section_key] = !!r.hidden; a[r.section_key] = r.allowed_user_ids ?? []; });
         setHidden(h); setAllowed(a);
       }
-      setPeople(((prof.data ?? []) as any[]).filter(p => !p.is_archived && (p.email ?? "").endsWith("@clewsrecycling.co.uk") || p.email === "jclewsie@gmail.com")
+      setPeople(((prof.data ?? []) as any[]).filter(p => !p.is_archived && !p.left_at && (p.email ?? "").endsWith("@clewsrecycling.co.uk") || p.email === "jclewsie@gmail.com")
         .map(p => ({ id: p.id, name: p.full_name || p.email, email: p.email })));
       setPlPeople(((pl.data ?? []) as any[]).filter(r => r.has_access || r.is_manager).map(r => r.full_name || r.email));
       setLoading(false);

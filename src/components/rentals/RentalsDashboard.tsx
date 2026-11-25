@@ -62,7 +62,7 @@ type Chase = {
 
 type RentalNoteStamp = NoteStamp & { rental_ref: string | null };
 
-type Profile = { id: string; full_name: string | null; email: string | null; user_types: string[] | null; is_archived: boolean | null };
+type Profile = { id: string; full_name: string | null; email: string | null; user_types: string[] | null; is_archived: boolean | null; left_at: string | null };
 type ChaseEmail = { id: string; to_email: string; subject: string | null; created_at: string };
 type Agreement = {
   id: string;
@@ -239,7 +239,7 @@ export default function RentalsDashboard() {
     fetchAgreements();
     void fetchNoteStamps();
     Promise.all([
-      supabase.from("profiles").select("id,full_name,email,user_types,is_archived").order("full_name"),
+      supabase.from("profiles").select("id,full_name,email,user_types,is_archived,left_at").order("full_name"),
       supabase.from("user_roles").select("user_id"),
     ]).then(([profileResult, roleResult]) => {
       const all = (profileResult.data ?? []) as Profile[];

@@ -8233,6 +8233,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_archived: boolean
+          left_at: string | null
           signature_image: string | null
           updated_at: string
           user_types: Database["public"]["Enums"]["user_type"][] | null
@@ -8246,6 +8247,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_archived?: boolean
+          left_at?: string | null
           signature_image?: string | null
           updated_at?: string
           user_types?: Database["public"]["Enums"]["user_type"][] | null
@@ -8259,6 +8261,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_archived?: boolean
+          left_at?: string | null
           signature_image?: string | null
           updated_at?: string
           user_types?: Database["public"]["Enums"]["user_type"][] | null

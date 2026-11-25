@@ -145,6 +145,7 @@ const MassSignOffPage = () => {
         .from("profiles")
         .select("id, email, full_name, user_types")
         .not("is_archived", "is", true)
+        .is("left_at", null)
         .order("full_name");
 
       if (usersData) {

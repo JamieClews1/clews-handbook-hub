@@ -14,4 +14,12 @@ describe("rental assignees", () => {
     ];
     assert.deepEqual(eligibleRentalAssignees(profiles, ["office", "mixed", "driver", "yard", "archived"]).map(p => p.id), ["office", "mixed"]);
   });
+
+  it("excludes staff recorded as having left the company", () => {
+    const profiles = [
+      { id: "current", user_types: ["office"], is_archived: false, left_at: null },
+      { id: "left", user_types: ["office"], is_archived: false, left_at: "2026-11-01" },
+    ];
+    assert.deepEqual(eligibleRentalAssignees(profiles, ["current", "left"]).map(p => p.id), ["current"]);
+  });
 });

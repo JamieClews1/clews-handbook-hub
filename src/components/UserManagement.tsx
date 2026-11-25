@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Shield, ShieldOff, UserCog, UserPlus, Key, Search, Hash, Archive, ArchiveRestore, Trash2 } from "lucide-react";
+import { Shield, ShieldOff, UserCog, UserPlus, UserMinus, UserCheck, Key, Search, Hash, Archive, ArchiveRestore, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,6 +31,7 @@ interface UserProfile {
   signature_image: string | null;
   customerNames: string[];
   is_archived: boolean;
+  left_at: string | null;
 }
 
 const USER_TYPES = [
@@ -53,7 +54,7 @@ RomanS, Roman Sultan
 VladslavK, Vladslav Kormyltsev
 WojciechS, Wojciech Siczek`;
 
-type StaffTab = "all" | "office" | "yard" | "driver" | "management" | "unassigned" | "archived";
+type StaffTab = "all" | "office" | "yard" | "driver" | "management" | "unassigned" | "left" | "archived";
 
 
 export const UserManagement = () => {
@@ -91,6 +92,9 @@ export const UserManagement = () => {
   const [search, setSearch] = useState("");
   const [deleteUser, setDeleteUser] = useState<UserProfile | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [leftUser, setLeftUser] = useState<UserProfile | null>(null);
+  const [leftDate, setLeftDate] = useState("");
+  const [savingLeft, setSavingLeft] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -381,6 +385,44 @@ export const UserManagement = () => {
     }
   };
 
+  const handleMarkLeft = (user: UserProfile) => {
+    setLeftUser(user);
+    setLeftDate(user.left_at || new Date().toISOString().slice(0, 10));
+  };
+
+  const saveLeft = async () => {
+    if (!leftUser || !leftDate) return;
+    setSavingLeft(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ left_at: leftDate } as any)
+        .eq("id", leftUser.id);
+      if (error) throw error;
+      toast({ title: "Marked as left", description: `${emailToUsername(leftUser.email)} is recorded as having left on ${new Date(leftDate + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}.` });
+      setLeftUser(null);
+      fetchUsers();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setSavingLeft(false);
+    }
+  };
+
+  const markCurrent = async (user: UserProfile) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ left_at: null } as any)
+        .eq("id", user.id);
+      if (error) throw error;
+      toast({ title: "Marked as current", description: `${emailToUsername(user.email)} is current staff again.` });
+      fetchUsers();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleteUser) return;
     setDeleting(true);
@@ -425,8 +467,10 @@ export const UserManagement = () => {
     let list = staffUsers;
     if (staffTab === "archived") {
       list = list.filter(u => u.is_archived);
+    } else if (staffTab === "left") {
+      list = list.filter(u => !u.is_archived && !!u.left_at);
     } else {
-      list = list.filter(u => !u.is_archived);
+      list = list.filter(u => !u.is_archived && !u.left_at);
       if (staffTab === "unassigned") {
         list = list.filter(u => !u.user_types || u.user_types.length === 0);
       } else if (staffTab !== "all") {
@@ -439,7 +483,7 @@ export const UserManagement = () => {
   const filteredCustomers = useMemo(() => filterBySearch(customerUsers), [customerUsers, search]);
 
   const counts = useMemo(() => {
-    const active = staffUsers.filter(u => !u.is_archived);
+    const active = staffUsers.filter(u => !u.is_archived && !u.left_at);
     return {
       all: active.length,
       office: active.filter(u => u.user_types?.includes("office")).length,
@@ -447,6 +491,7 @@ export const UserManagement = () => {
       driver: active.filter(u => u.user_types?.includes("driver")).length,
       management: active.filter(u => u.user_types?.includes("management")).length,
       unassigned: active.filter(u => !u.user_types || u.user_types.length === 0).length,
+      left: staffUsers.filter(u => !u.is_archived && !!u.left_at).length,
       archived: staffUsers.filter(u => u.is_archived).length,
       customers: customerUsers.length,
     };
@@ -504,6 +549,15 @@ export const UserManagement = () => {
           <Shield className="h-4 w-4" /> Admin
         </Button>
       )}
+      {user.left_at ? (
+        <Button variant="outline" size="sm" onClick={() => markCurrent(user)} className="gap-1" title="Record them as current staff again">
+          <UserCheck className="h-4 w-4" /> Mark current
+        </Button>
+      ) : (
+        <Button variant="outline" size="sm" onClick={() => handleMarkLeft(user)} className="gap-1" title="Record that this person has left the company">
+          <UserMinus className="h-4 w-4" /> Mark as left
+        </Button>
+      )}
       {renderArchiveDeleteActions(user)}
     </div>
   );
@@ -550,6 +604,7 @@ export const UserManagement = () => {
                 <TabsTrigger value="driver">Drivers ({counts.driver})</TabsTrigger>
                 <TabsTrigger value="management">Management ({counts.management})</TabsTrigger>
                 <TabsTrigger value="unassigned">Unassigned ({counts.unassigned})</TabsTrigger>
+                <TabsTrigger value="left">Left ({counts.left})</TabsTrigger>
                 <TabsTrigger value="archived">Archived ({counts.archived})</TabsTrigger>
               </TabsList>
             </Tabs>
@@ -575,11 +630,16 @@ export const UserManagement = () => {
                       </TableCell>
                     </TableRow>
                   ) : filteredStaff.map((user) => (
-                    <TableRow key={user.id} className={user.is_archived ? "opacity-60" : undefined}>
+                    <TableRow key={user.id} className={user.is_archived || user.left_at ? "opacity-60" : undefined}>
                       <TableCell className="font-medium">
                         {emailToUsername(user.email)}
                         {user.is_archived && (
                           <Badge variant="outline" className="ml-2 text-xs">Archived</Badge>
+                        )}
+                        {user.left_at && (
+                          <Badge variant="secondary" className="ml-2 text-xs">
+                            Left {new Date(user.left_at + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                          </Badge>
                         )}
                       </TableCell>
                       <TableCell>{user.full_name || "-"}</TableCell>
@@ -742,6 +802,32 @@ export const UserManagement = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Mark as Left Dialog */}
+      <Dialog open={!!leftUser} onOpenChange={(open) => !open && setLeftUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark as left</DialogTitle>
+            <DialogDescription>
+              Record when {leftUser ? (leftUser.full_name || emailToUsername(leftUser.email)) : ""} left the company. They move to the Left tab and drop out of staff assignment lists. Their login still works — archive them as well if they should no longer sign in.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-4">
+            <Label htmlFor="leftDate">Leaving date</Label>
+            <Input
+              id="leftDate"
+              type="date"
+              value={leftDate}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setLeftDate(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLeftUser(null)}>Cancel</Button>
+            <Button onClick={saveLeft} disabled={savingLeft || !leftDate}>{savingLeft ? "Saving..." : "Save"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete User Confirmation */}
       <AlertDialog open={!!deleteUser} onOpenChange={(open) => !open && setDeleteUser(null)}>
