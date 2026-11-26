@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, CheckCircle, AlertTriangle, ClipboardSignature, Pencil, Plus, Link2 } from "lucide-react";
 import { ToolboxTalkShareDialog } from "@/components/ToolboxTalkShareDialog";
+import { ToolboxTalkCoverage } from "@/components/ToolboxTalkCoverage";
+import type { CoverageProfile, CoverageSignature } from "@/lib/toolbox-talk-coverage";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToolboxTalkBuilder } from "@/components/ToolboxTalkBuilder";
 import { manageHref, readManageView } from "@/lib/hs-manage-view";
@@ -37,6 +39,8 @@ const ToolboxTalksPage = () => {
   const [sort, setSort] = useState<TalkSort>("newest");
   const [show, setShow] = useState<"mine" | "all" | "to-sign" | "signed">("all");
   const [shareTalk, setShareTalk] = useState<ToolboxTalk | null>(null);
+  const [coverageProfiles, setCoverageProfiles] = useState<CoverageProfile[]>([]);
+  const [coverageSignatures, setCoverageSignatures] = useState<CoverageSignature[]>([]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -77,6 +81,22 @@ const ToolboxTalksPage = () => {
           .eq("user_id", user.id);
 
         setSignedTalkIds(new Set(signatures?.map(s => s.toolbox_talk_id) || []));
+
+        // Managers also see how much of the signing each audience group still
+        // owes. Reading every profile and sign-off needs staff-wide access, so
+        // this is only fetched for admins - everyone else keeps their own view.
+        if (isAdmin) {
+          const [{ data: staff }, { data: allSignatures }] = await Promise.all([
+            supabase
+              .from("profiles")
+              .select("id, user_types, is_archived, left_at")
+              .not("is_archived", "is", true)
+              .is("left_at", null),
+            supabase.from("toolbox_talk_signatures").select("user_id, toolbox_talk_id"),
+          ]);
+          setCoverageProfiles(staff || []);
+          setCoverageSignatures(allSignatures || []);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -156,6 +176,15 @@ const ToolboxTalksPage = () => {
         </main>
       ) : (
       <main className="container max-w-screen-2xl mx-auto px-4 py-6">
+        {isAdmin && (
+          <div className="mb-4">
+            <ToolboxTalkCoverage
+              talks={toolboxTalks}
+              profiles={coverageProfiles}
+              signatures={coverageSignatures}
+            />
+          </div>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div className="flex flex-wrap gap-2" role="group" aria-label="Show">
             {showOptions.map(o => (
