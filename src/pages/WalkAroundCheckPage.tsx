@@ -13,10 +13,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Check, CheckCheck, Circle, Cloud, Loader2, Printer, Send, Trash2, X } from "lucide-react";
+import { ArrowLeft, Plus, Check, CheckCheck, Circle, Cloud, Loader2, Printer, Send, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { WalkAroundPhoto, PhotoThumb } from "@/components/walk-around/WalkAroundPhoto";
+import { WalkAroundPhotos, PhotoThumb } from "@/components/walk-around/WalkAroundPhoto";
 import {
   PRIORITY_DAYS, STATE_LABEL, checkProgress, dueDateFor, formatUkDate, submissionProblems,
   type WalkAroundPriority, type WalkAroundState,
@@ -28,7 +28,7 @@ interface CheckRecord {
 }
 interface ItemRecord {
   id: string; section_key: string; section_title: string; item_key: string; label: string; position: number;
-  state: WalkAroundState | null; action_required: string | null; priority: WalkAroundPriority; due_date: string | null; photo_path: string | null;
+  state: WalkAroundState | null; action_required: string | null; priority: WalkAroundPriority; due_date: string | null; photo_path: string | null; extra_photo_paths: string[] | null;
 }
 interface ActionRecord { id: string; item_id: string | null; status: string; due_date: string; assigned_name: string | null }
 
@@ -38,6 +38,11 @@ const STATE_BUTTONS: { state: WalkAroundState; icon: typeof Check; short: string
   { state: "na", icon: Circle, short: "N/A", on: "border-foreground/40 bg-muted text-foreground" },
 ];
 const PRIORITIES: WalkAroundPriority[] = ["high", "medium", "low"];
+const ADDITIONAL = "additional";
+const itemPhotos = (i: ItemRecord) => [i.photo_path, ...(i.extra_photo_paths ?? [])].filter((p): p is string => !!p);
+const photoPatch = (paths: string[]) => ({ photo_path: paths[0] ?? null, extra_photo_paths: paths.slice(1) });
+const isBlankAdditional = (i: ItemRecord) =>
+  i.section_key === ADDITIONAL && !i.label.trim() && !(i.action_required ?? "").trim() && itemPhotos(i).length === 0;
 
 const WalkAroundCheckPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -117,15 +122,35 @@ const WalkAroundCheckPage = () => {
   };
 
   const progress = checkProgress(items);
-  const problems = submissionProblems(items);
+  const problems = submissionProblems(items.filter(i => !isBlankAdditional(i)));
   const sections = useMemo(() => {
     const map = new Map<string, { key: string; title: string; items: ItemRecord[] }>();
-    items.forEach(i => {
+    items.filter(i => i.section_key !== ADDITIONAL).forEach(i => {
       if (!map.has(i.section_key)) map.set(i.section_key, { key: i.section_key, title: i.section_title, items: [] });
       map.get(i.section_key)!.items.push(i);
     });
     return [...map.values()];
   }, [items]);
+  const additional = items.filter(i => i.section_key === ADDITIONAL);
+
+  const addAdditional = async () => {
+    if (!check) return;
+    await flush().catch(() => undefined);
+    const position = Math.max(0, ...items.map(i => i.position)) + 1;
+    const { data, error } = await supabase.from("walk_around_check_items").insert({
+      check_id: check.id, section_key: ADDITIONAL, section_title: "Additional issues", item_key: `extra-${Date.now()}`,
+      label: "", position, state: "attention", priority: "medium", due_date: dueDateFor(check.inspection_date, "medium"),
+    } as never).select("*").single();
+    if (error) { toast.error(error.message); return; }
+    setItems(prev => [...prev, data as ItemRecord]);
+  };
+  const removeAdditional = async (item: ItemRecord) => {
+    clearTimeout(timers.current[`walk_around_check_items:${item.id}`]);
+    delete pending.current[`walk_around_check_items:${item.id}`];
+    const { error } = await supabase.from("walk_around_check_items").delete().eq("id", item.id);
+    if (error) { toast.error(error.message); return; }
+    setItems(prev => prev.filter(i => i.id !== item.id));
+  };
 
   const submit = async () => {
     if (!check) return;
@@ -307,11 +332,11 @@ const WalkAroundCheckPage = () => {
                                 onChange={e => updateItem(item, { due_date: e.target.value || null })} />
                             </div>
                           </div>
-                          <WalkAroundPhoto folder={check.id} path={item.photo_path} onChange={photo_path => updateItem(item, { photo_path })} />
+                          <WalkAroundPhotos folder={check.id} paths={itemPhotos(item)} onChange={paths => updateItem(item, photoPatch(paths))} />
                         </div>
                       ) : (
-                        <div className="flex gap-3 text-sm">
-                          <PhotoThumb path={item.photo_path} className="h-16 w-16" />
+                        <div className="flex flex-wrap gap-3 text-sm">
+                          {itemPhotos(item).map(p => <PhotoThumb key={p} path={p} className="h-16 w-16" />)}
                           <div className="space-y-1">
                             <p>{item.action_required}</p>
                             <p className="text-xs text-muted-foreground">
@@ -329,6 +354,76 @@ const WalkAroundCheckPage = () => {
             </Card>
           );
         })}
+
+        {(draft || additional.length > 0) && (
+          <Card className="break-inside-avoid-page">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Additional issues</CardTitle>
+              {draft && <p className="text-xs text-muted-foreground">Anything else that needs sorting that isn't on the list. Each one becomes a job when you submit.</p>}
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {additional.map((item, n) => {
+                const job = actions.find(a => a.item_id === item.id);
+                const missing = showProblems && draft && !isBlankAdditional(item) && (!(item.action_required ?? "").trim() || !item.due_date);
+                return draft ? (
+                  <div key={item.id} className={cn("space-y-3 rounded-md border border-destructive/30 bg-destructive/5 p-3", missing && "ring-2 ring-destructive/60")}>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold">Issue {n + 1}</p>
+                      <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => removeAdditional(item)}>
+                        <Trash2 className="mr-1.5 h-4 w-4" />Remove
+                      </Button>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`lbl-${item.id}`}>What was found</Label>
+                      <Input id={`lbl-${item.id}`} value={item.label} placeholder="e.g. Damaged barrier by bay 3"
+                        onChange={e => updateItem(item, { label: e.target.value }, 700)} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`act-${item.id}`}>Action required</Label>
+                      <Textarea id={`act-${item.id}`} rows={2} value={item.action_required ?? ""} placeholder="What needs doing?"
+                        onChange={e => updateItem(item, { action_required: e.target.value }, 700)} />
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label>Priority</Label>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {PRIORITIES.map(p => (
+                            <button key={p} type="button" onClick={() => setPriority(item, p)}
+                              className={cn("h-10 rounded-md border text-xs font-semibold capitalize",
+                                item.priority === p ? "border-primary bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted")}>
+                              {p}<span className="block text-[10px] font-normal opacity-80">{PRIORITY_DAYS[p]} days</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor={`due-${item.id}`}>Complete by</Label>
+                        <Input id={`due-${item.id}`} type="date" value={item.due_date ?? ""} className="h-10"
+                          onChange={e => updateItem(item, { due_date: e.target.value || null })} />
+                      </div>
+                    </div>
+                    <WalkAroundPhotos folder={check.id} paths={itemPhotos(item)} onChange={paths => updateItem(item, photoPatch(paths))} />
+                  </div>
+                ) : (
+                  <div key={item.id} className="space-y-2 border-b pb-3 text-sm last:border-0">
+                    <p className="font-medium">{item.label || "Additional issue"}</p>
+                    <p>{item.action_required}</p>
+                    <p className="text-xs text-muted-foreground">
+                      <span className="capitalize">{item.priority}</span> priority · complete by {formatUkDate(job?.due_date ?? item.due_date)}
+                      {job ? ` · ${job.status === "done" ? "Completed" : job.status === "in_progress" ? "In progress" : "Open"}` : ""}
+                    </p>
+                    <div className="flex flex-wrap gap-2">{itemPhotos(item).map(p => <PhotoThumb key={p} path={p} className="h-16 w-16" />)}</div>
+                  </div>
+                );
+              })}
+              {draft && (
+                <Button type="button" variant="outline" onClick={addAdditional} className="w-full print:hidden">
+                  <Plus className="mr-1.5 h-4 w-4" />Add an issue
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-base">Other notes</CardTitle></CardHeader>

@@ -24,7 +24,7 @@ import {
 interface Job {
   id: string; check_id: string; section_title: string | null; item_label: string; action_required: string;
   priority: WalkAroundPriority; due_date: string; assigned_to: string | null; assigned_name: string | null;
-  status: WalkAroundActionStatus; completed_at: string | null; completed_by?: string | null; completion_notes: string | null; photo_path: string | null;
+  status: WalkAroundActionStatus; completed_at: string | null; completed_by?: string | null; completion_notes: string | null; photo_path: string | null; extra_photo_paths?: string[] | null;
   created_at: string;
   walk_around_checks: { inspection_date: string } | null;
 }
@@ -189,9 +189,10 @@ const WalkAroundJobsPage = () => {
                             From check {formatUkDate(job.walk_around_checks?.inspection_date)}
                           </Link>
                         </div>
-                        {(job.photo_path || job.completion_notes) && (
-                          <div className="flex gap-3 text-sm">
+                        {(job.photo_path || job.completion_notes || job.extra_photo_paths?.length) && (
+                          <div className="flex flex-wrap gap-3 text-sm">
                             <PhotoThumb path={job.photo_path} className="h-16 w-16" />
+                            {(job.extra_photo_paths ?? []).map(p => <PhotoThumb key={p} path={p} className="h-16 w-16" />)}
                             {job.completion_notes && <p className="text-muted-foreground">{job.completion_notes}</p>}
                           </div>
                         )}

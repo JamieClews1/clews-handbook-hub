@@ -11286,6 +11286,7 @@ export type Database = {
           completion_notes: string | null
           created_at: string
           due_date: string
+          extra_photo_paths: string[]
           id: string
           item_id: string | null
           item_label: string
@@ -11305,6 +11306,7 @@ export type Database = {
           completion_notes?: string | null
           created_at?: string
           due_date: string
+          extra_photo_paths?: string[]
           id?: string
           item_id?: string | null
           item_label: string
@@ -11324,6 +11326,7 @@ export type Database = {
           completion_notes?: string | null
           created_at?: string
           due_date?: string
+          extra_photo_paths?: string[]
           id?: string
           item_id?: string | null
           item_label?: string
@@ -11355,6 +11358,7 @@ export type Database = {
           action_required: string | null
           check_id: string
           due_date: string | null
+          extra_photo_paths: string[]
           id: string
           item_key: string
           label: string
@@ -11370,6 +11374,7 @@ export type Database = {
           action_required?: string | null
           check_id: string
           due_date?: string | null
+          extra_photo_paths?: string[]
           id?: string
           item_key: string
           label: string
@@ -11385,6 +11390,7 @@ export type Database = {
           action_required?: string | null
           check_id?: string
           due_date?: string | null
+          extra_photo_paths?: string[]
           id?: string
           item_key?: string
           label?: string

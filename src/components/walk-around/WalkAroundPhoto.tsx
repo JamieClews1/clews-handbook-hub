@@ -79,3 +79,52 @@ export function WalkAroundPhoto({ folder, path, onChange, disabled, label = "Add
     </div>
   );
 }
+
+/** Several photos for one line: thumbnails with remove buttons plus an "Add photo" button (multiple files allowed). */
+export function WalkAroundPhotos({ folder, paths, onChange, disabled }: {
+  folder: string;
+  paths: string[];
+  onChange: (paths: string[]) => void;
+  disabled?: boolean;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  const upload = async (files: File[]) => {
+    setBusy(true);
+    const added: string[] = [];
+    for (const file of files) {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+      const key = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await supabase.storage.from(WALK_AROUND_BUCKET).upload(key, file, { contentType: file.type || "image/jpeg" });
+      if (error) toast.error(`Photo upload failed: ${error.message}`);
+      else added.push(key);
+    }
+    setBusy(false);
+    if (added.length) onChange([...paths, ...added]);
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {paths.map(p => (
+        <div key={p} className="relative">
+          <PhotoThumb path={p} />
+          {!disabled && (
+            <button type="button" aria-label="Remove photo" onClick={() => onChange(paths.filter(x => x !== p))}
+              className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border bg-background text-foreground shadow">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      ))}
+      <input ref={input} type="file" accept="image/*" multiple className="hidden"
+        onChange={e => { const f = Array.from(e.target.files ?? []); e.target.value = ""; if (f.length) upload(f); }} />
+      {!disabled && (
+        <Button type="button" variant="outline" size="sm" onClick={() => input.current?.click()} disabled={busy}>
+          {busy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Camera className="mr-1.5 h-4 w-4" />}
+          {paths.length ? "Add another photo" : "Add photos"}
+        </Button>
+      )}
+    </div>
+  );
+}
