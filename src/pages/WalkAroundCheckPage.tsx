@@ -13,12 +13,12 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Plus, Check, CheckCheck, Circle, Cloud, Loader2, Printer, Send, Trash2, X } from "lucide-react";
+import { ArrowLeft, Plus, Check, CheckCheck, Circle, Cloud, Loader2, Pencil, Printer, Save, Send, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { WalkAroundPhotos, PhotoThumb } from "@/components/walk-around/WalkAroundPhoto";
 import {
-  PRIORITY_DAYS, STATE_LABEL, checkProgress, dueDateFor, formatUkDate, submissionProblems,
+  PRIORITY_DAYS, STATE_LABEL, canEditWalkAroundCheck, checkProgress, dueDateFor, formatUkDate, submissionProblems,
   type WalkAroundPriority, type WalkAroundState,
 } from "@/lib/walk-around-checks";
 
@@ -54,9 +54,14 @@ const WalkAroundCheckPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [savingEdits, setSavingEdits] = useState(false);
+  const [editingSubmitted, setEditingSubmitted] = useState(false);
+  const [removedAdditionalIds, setRemovedAdditionalIds] = useState<string[]>([]);
   const [showProblems, setShowProblems] = useState(false);
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pending = useRef<Record<string, Record<string, unknown>>>({});
+  const draft = check?.status === "draft";
+  const editable = canEditWalkAroundCheck(check?.status, editingSubmitted);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -102,7 +107,7 @@ const WalkAroundCheckPage = () => {
 
   const updateItem = (item: ItemRecord, patch: Partial<ItemRecord>, delay = 0) => {
     setItems(prev => prev.map(i => (i.id === item.id ? { ...i, ...patch } : i)));
-    persist("walk_around_check_items", item.id, patch, delay);
+    if (draft) persist("walk_around_check_items", item.id, patch, delay);
   };
   const setState = (item: ItemRecord, state: WalkAroundState) => {
     const patch: Partial<ItemRecord> = { state };
@@ -115,7 +120,7 @@ const WalkAroundCheckPage = () => {
   };
   const updateCheck = (patch: Partial<CheckRecord>, delay = 600) => {
     setCheck(prev => (prev ? { ...prev, ...patch } : prev));
-    if (check) persist("walk_around_checks", check.id, patch, delay);
+    if (check && draft) persist("walk_around_checks", check.id, patch, delay);
   };
   const markRemainingAcceptable = (sectionKey: string) => {
     items.filter(i => i.section_key === sectionKey && !i.state).forEach(i => updateItem(i, { state: "acceptable" }));
@@ -135,16 +140,29 @@ const WalkAroundCheckPage = () => {
 
   const addAdditional = async () => {
     if (!check) return;
-    await flush().catch(() => undefined);
     const position = Math.max(0, ...items.map(i => i.position)) + 1;
+    const values = {
+      section_key: ADDITIONAL, section_title: "Additional issues", item_key: `extra-${Date.now()}`,
+      label: "", position, state: "attention" as const, priority: "medium" as const,
+      due_date: dueDateFor(check.inspection_date, "medium"), action_required: null, photo_path: null, extra_photo_paths: [],
+    };
+    if (!draft) {
+      setItems(prev => [...prev, { id: `new-${crypto.randomUUID()}`, ...values }]);
+      return;
+    }
+    await flush().catch(() => undefined);
     const { data, error } = await supabase.from("walk_around_check_items").insert({
-      check_id: check.id, section_key: ADDITIONAL, section_title: "Additional issues", item_key: `extra-${Date.now()}`,
-      label: "", position, state: "attention", priority: "medium", due_date: dueDateFor(check.inspection_date, "medium"),
+      check_id: check.id, ...values,
     } as never).select("*").single();
     if (error) { toast.error(error.message); return; }
     setItems(prev => [...prev, data as ItemRecord]);
   };
   const removeAdditional = async (item: ItemRecord) => {
+    if (!draft) {
+      setItems(prev => prev.filter(i => i.id !== item.id));
+      if (!item.id.startsWith("new-")) setRemovedAdditionalIds(prev => [...new Set([...prev, item.id])]);
+      return;
+    }
     clearTimeout(timers.current[`walk_around_check_items:${item.id}`]);
     delete pending.current[`walk_around_check_items:${item.id}`];
     const { error } = await supabase.from("walk_around_check_items").delete().eq("id", item.id);
@@ -170,6 +188,79 @@ const WalkAroundCheckPage = () => {
     }
   };
 
+  const cancelSubmittedEdits = async () => {
+    setEditingSubmitted(false);
+    setRemovedAdditionalIds([]);
+    setShowProblems(false);
+    await load();
+  };
+
+  const saveSubmittedEdits = async () => {
+    if (!check || draft) return;
+    if (!check.site_name.trim()) { toast.error("Enter the site name"); return; }
+    if (problems.length) { setShowProblems(true); toast.error(problems[0]); return; }
+    setSavingEdits(true);
+    try {
+      const { error: checkError } = await supabase.from("walk_around_checks").update({
+        site_name: check.site_name.trim(),
+        inspection_date: check.inspection_date,
+        manager_name: check.manager_name,
+        supervisor_name: check.supervisor_name,
+        notes: check.notes,
+      } as never).eq("id", check.id);
+      if (checkError) throw checkError;
+
+      const itemRow = (i: ItemRecord) => ({
+        check_id: check.id,
+        section_key: i.section_key,
+        section_title: i.section_title,
+        item_key: i.item_key,
+        label: i.label,
+        position: i.position,
+        state: i.state,
+        action_required: i.action_required,
+        priority: i.priority,
+        due_date: i.due_date,
+        photo_path: i.photo_path,
+        extra_photo_paths: i.extra_photo_paths ?? [],
+      });
+      const completedItems = items.filter(i => !isBlankAdditional(i));
+      const updates = await Promise.all(completedItems.filter(i => !i.id.startsWith("new-")).map(i =>
+        supabase.from("walk_around_check_items").update(itemRow(i) as never).eq("id", i.id),
+      ));
+      const updateError = updates.find(result => result.error)?.error;
+      if (updateError) throw updateError;
+
+      const newItems = completedItems.filter(i => i.id.startsWith("new-"));
+      if (newItems.length) {
+        const { error: insertError } = await supabase.from("walk_around_check_items").insert(
+          newItems.map(i => ({ id: crypto.randomUUID(), ...itemRow(i) })) as never,
+        );
+        if (insertError) throw insertError;
+      }
+
+      const deleteIds = [...new Set([
+        ...removedAdditionalIds,
+        ...items.filter(i => isBlankAdditional(i) && !i.id.startsWith("new-")).map(i => i.id),
+      ])];
+      if (deleteIds.length) {
+        const { error: deleteError } = await supabase.from("walk_around_check_items").delete().in("id", deleteIds);
+        if (deleteError) throw deleteError;
+      }
+
+      toast.success("Submitted check updated · existing jobs unchanged");
+      setEditingSubmitted(false);
+      setRemovedAdditionalIds([]);
+      setShowProblems(false);
+      await load();
+      window.scrollTo({ top: 0 });
+    } catch (e: any) {
+      toast.error(e.message || "Could not save changes");
+    } finally {
+      setSavingEdits(false);
+    }
+  };
+
   const deleteCheck = async () => {
     if (!check) return;
     const { error } = await supabase.from("walk_around_checks").delete().eq("id", check.id);
@@ -181,11 +272,10 @@ const WalkAroundCheckPage = () => {
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   if (!check) return <div className="p-6 text-sm text-muted-foreground">Check not found. <Link className="underline" to="/walk-around-checks">Back</Link></div>;
 
-  const draft = check.status === "draft";
   const pct = progress.total ? Math.round((progress.answered / progress.total) * 100) : 0;
 
   return (
-    <div className={cn("mx-auto max-w-3xl print:max-w-none", check.status === "draft" && "pb-24 md:pb-0")}>
+    <div className={cn("mx-auto max-w-3xl print:max-w-none", editable && "pb-24 md:pb-0")}>
       {/* Sticky header with progress */}
       <div className="border-b px-4 py-3 print:border-0">
         <div className="flex items-center gap-2">
@@ -199,8 +289,13 @@ const WalkAroundCheckPage = () => {
               {saving > 0 ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Cloud className="h-3.5 w-3.5" />}
               {saving > 0 ? "Saving" : "Saved"}
             </span>
+          ) : editingSubmitted ? (
+            <Badge variant="outline" className="border-warning/60 text-warning-text print:hidden">Editing</Badge>
           ) : (
-            <Button variant="outline" size="sm" onClick={() => window.print()} className="print:hidden"><Printer className="mr-1.5 h-4 w-4" />Print</Button>
+            <div className="flex items-center gap-2 print:hidden">
+              <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="mr-1.5 h-4 w-4" />Print</Button>
+              <Button variant="default" size="sm" onClick={() => setEditingSubmitted(true)}><Pencil className="mr-1.5 h-4 w-4" />Edit</Button>
+            </div>
           )}
         </div>
         <div className="mt-2 flex items-center gap-3">
@@ -217,7 +312,9 @@ const WalkAroundCheckPage = () => {
               <div>
                 <p className="font-semibold">Submitted{check.submitted_at ? ` ${new Date(check.submitted_at).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}` : ""}</p>
                 <p className="text-sm text-muted-foreground">
-                  {progress.acceptable} acceptable · {progress.attention} need attention · {progress.na} not applicable
+                  {editingSubmitted
+                    ? "Make your corrections, then Save changes. Existing follow-up jobs stay unchanged and no new jobs are created."
+                    : `${progress.acceptable} acceptable · ${progress.attention} need attention · ${progress.na} not applicable`}
                 </p>
               </div>
               {actions.length > 0 && (
@@ -232,24 +329,26 @@ const WalkAroundCheckPage = () => {
           <CardContent className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="wac-date">Date of inspection</Label>
-              <Input id="wac-date" type="date" value={check.inspection_date} disabled={!draft}
+              <Input id="wac-date" type="date" value={check.inspection_date} disabled={!editable}
                 onChange={e => e.target.value && updateCheck({ inspection_date: e.target.value }, 0)} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="wac-site">Site</Label>
-              <Input id="wac-site" value={check.site_name} disabled={!draft} onChange={e => updateCheck({ site_name: e.target.value })} />
+              <Input id="wac-site" value={check.site_name} disabled={!editable} onChange={e => updateCheck({ site_name: e.target.value })} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="wac-manager">Manager</Label>
-              <Input id="wac-manager" value={check.manager_name ?? ""} disabled={!draft} placeholder="Name" onChange={e => updateCheck({ manager_name: e.target.value })} />
+              <Input id="wac-manager" value={check.manager_name ?? ""} disabled={!editable} placeholder="Name" onChange={e => updateCheck({ manager_name: e.target.value })} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="wac-supervisor">Supervisor</Label>
-              <Input id="wac-supervisor" value={check.supervisor_name ?? ""} disabled={!draft} placeholder="Name" onChange={e => updateCheck({ supervisor_name: e.target.value })} />
+              <Input id="wac-supervisor" value={check.supervisor_name ?? ""} disabled={!editable} placeholder="Name" onChange={e => updateCheck({ supervisor_name: e.target.value })} />
             </div>
-            {draft && (
+            {editable && (
               <p className="text-xs text-muted-foreground sm:col-span-2">
-                Mark each line <strong>✓ OK</strong>, <strong>✗ Attention</strong> or <strong>O N/A</strong>. Anything needing attention becomes a job with a completion date when you submit.
+                Mark each line <strong>✓ OK</strong>, <strong>✗ Attention</strong> or <strong>O N/A</strong>. {draft
+                  ? "Anything needing attention becomes a job with a completion date when you submit."
+                  : "Changes update this report only; use the Job List to change existing follow-up jobs."}
               </p>
             )}
           </CardContent>
@@ -261,7 +360,7 @@ const WalkAroundCheckPage = () => {
             <Card key={section.key} className="break-inside-avoid-page">
               <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                 <CardTitle className="text-base">{section.title}</CardTitle>
-                {draft && remaining > 0 && (
+                {editable && remaining > 0 && (
                   <Button variant="ghost" size="sm" onClick={() => markRemainingAcceptable(section.key)} className="print:hidden">
                     <CheckCheck className="mr-1.5 h-4 w-4" /> Rest OK ({remaining})
                   </Button>
@@ -269,13 +368,13 @@ const WalkAroundCheckPage = () => {
               </CardHeader>
               <CardContent className="divide-y p-0">
                 {section.items.map(item => {
-                  const missing = showProblems && draft && (!item.state || (item.state === "attention" && !(item.action_required ?? "").trim()));
+                  const missing = showProblems && editable && (!item.state || (item.state === "attention" && !(item.action_required ?? "").trim()));
                   const job = actions.find(a => a.item_id === item.id);
                   return (
                     <div key={item.id} className={cn("space-y-3 px-4 py-3", item.state === "attention" && "bg-destructive/5", missing && "ring-2 ring-inset ring-destructive/60")}>
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-sm font-medium leading-snug">{item.label}</p>
-                        {draft ? (
+                        {editable ? (
                           <div className="grid shrink-0 grid-cols-3 gap-1.5 sm:w-64" role="radiogroup" aria-label={item.label}>
                             {STATE_BUTTONS.map(b => {
                               const active = item.state === b.state;
@@ -306,7 +405,7 @@ const WalkAroundCheckPage = () => {
                         )}
                       </div>
 
-                      {item.state === "attention" && (draft ? (
+                      {item.state === "attention" && (editable ? (
                         <div className="space-y-3 rounded-md border border-destructive/30 bg-background p-3">
                           <div className="space-y-1.5">
                             <Label htmlFor={`act-${item.id}`}>Action required</Label>
@@ -355,17 +454,17 @@ const WalkAroundCheckPage = () => {
           );
         })}
 
-        {(draft || additional.length > 0) && (
+        {(editable || additional.length > 0) && (
           <Card className="break-inside-avoid-page">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Additional issues</CardTitle>
-              {draft && <p className="text-xs text-muted-foreground">Anything else that needs sorting that isn't on the list. Each one becomes a job when you submit.</p>}
+              {editable && <p className="text-xs text-muted-foreground">Anything else that needs sorting that isn't on the list. {draft ? "Each one becomes a job when you submit." : "Saving updates this report without creating another job."}</p>}
             </CardHeader>
             <CardContent className="space-y-3">
               {additional.map((item, n) => {
                 const job = actions.find(a => a.item_id === item.id);
-                const missing = showProblems && draft && !isBlankAdditional(item) && (!(item.action_required ?? "").trim() || !item.due_date);
-                return draft ? (
+                const missing = showProblems && editable && !isBlankAdditional(item) && (!(item.action_required ?? "").trim() || !item.due_date);
+                return editable ? (
                   <div key={item.id} className={cn("space-y-3 rounded-md border border-destructive/30 bg-destructive/5 p-3", missing && "ring-2 ring-destructive/60")}>
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-semibold">Issue {n + 1}</p>
@@ -416,7 +515,7 @@ const WalkAroundCheckPage = () => {
                   </div>
                 );
               })}
-              {draft && (
+              {editable && (
                 <Button type="button" variant="outline" onClick={addAdditional} className="w-full print:hidden">
                   <Plus className="mr-1.5 h-4 w-4" />Add an issue
                 </Button>
@@ -428,7 +527,7 @@ const WalkAroundCheckPage = () => {
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-base">Other notes</CardTitle></CardHeader>
           <CardContent>
-            {draft ? (
+            {editable ? (
               <Textarea rows={3} value={check.notes ?? ""} placeholder="Anything else seen on the walk around" onChange={e => updateCheck({ notes: e.target.value })} />
             ) : (
               <p className="whitespace-pre-wrap text-sm text-muted-foreground">{check.notes || "None"}</p>
@@ -475,6 +574,19 @@ const WalkAroundCheckPage = () => {
             <Button size="lg" onClick={submit} disabled={submitting}>
               {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
               Submit
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {editingSubmitted && !draft && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 p-3 pr-20 backdrop-blur md:static md:mx-4 md:mb-6 md:rounded-lg md:border md:pr-3 print:hidden">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <p className="mr-auto text-xs text-muted-foreground">Existing jobs stay unchanged.</p>
+            <Button type="button" variant="outline" size="lg" onClick={cancelSubmittedEdits} disabled={savingEdits}>Cancel</Button>
+            <Button type="button" size="lg" onClick={saveSubmittedEdits} disabled={savingEdits}>
+              {savingEdits ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Save changes
             </Button>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { it } from "node:test";
 import assert from "node:assert/strict";
-import { WALK_AROUND_TEMPLATE, dueDateFor, actionBucket, submissionProblems, addCalendarDays, daysUntil } from "./walk-around-checks";
+import { WALK_AROUND_TEMPLATE, dueDateFor, actionBucket, submissionProblems, addCalendarDays, daysUntil, canEditWalkAroundCheck } from "./walk-around-checks";
 
 it("the digital form carries every line from the paper sheet", () => {
   assert.deepEqual(WALK_AROUND_TEMPLATE.map(s => [s.title, s.items.length]), [
@@ -31,6 +31,11 @@ it("open jobs past their due date are overdue; due today counts as this week", (
 });
 it("completed jobs are never overdue", () => {
   assert.equal(actionBucket({ status: "done", due_date: "2026-01-01" }, "2026-11-11"), "done");
+});
+it("submitted checks become editable only after staff explicitly choose Edit", () => {
+  assert.equal(canEditWalkAroundCheck("submitted", false), false);
+  assert.equal(canEditWalkAroundCheck("submitted", true), true);
+  assert.equal(canEditWalkAroundCheck("draft", false), true);
 });
 it("a check cannot be submitted with unmarked lines", () => {
   assert.deepEqual(submissionProblems([{ state: "acceptable" }, { state: null }]), ["1 item still need marking"]);

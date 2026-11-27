@@ -140,6 +140,11 @@ export function checkProgress(items: WalkAroundItemLike[]) {
   };
 }
 
+/** Drafts are always editable; submitted reports require an explicit edit choice. */
+export function canEditWalkAroundCheck(status: string | null | undefined, editingSubmitted: boolean): boolean {
+  return status === "draft" || (status === "submitted" && editingSubmitted);
+}
+
 /** Reasons a check cannot be submitted yet (mirrors the server-side submit guard). */
 export function submissionProblems(items: WalkAroundItemLike[]): string[] {
   const problems: string[] = [];
